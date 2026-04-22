@@ -13,7 +13,7 @@ export default function LoginPage() {
   // Redirect to chat if already logged in
   useEffect(() => {
     if (user && accessToken) {
-      navigate('/chat', { replace: true });
+      navigate('/chat/tro-chuyen', { replace: true });
     }
   }, [user, accessToken, navigate]);
 

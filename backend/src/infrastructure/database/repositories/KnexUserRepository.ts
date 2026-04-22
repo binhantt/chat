@@ -24,6 +24,34 @@ export class KnexUserRepository implements IUserRepository {
     return row ? this.mapToEntity(row) : null;
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    const normalizedEmail = email.trim().toLowerCase();
+    const row = await this.db<UserRow>("users")
+      .whereRaw("LOWER(email) = ?", [normalizedEmail])
+      .first();
+    return row ? this.mapToEntity(row) : null;
+  }
+
+  async search(keyword?: string, limit = 20): Promise<User[]> {
+    const query = this.db<UserRow>("users")
+      .select("*")
+      .orderBy("updated_at", "desc")
+      .limit(limit);
+
+    const trimmedKeyword = keyword?.trim();
+    if (trimmedKeyword) {
+      const normalized = `%${trimmedKeyword.toLowerCase()}%`;
+      query.where((builder) => {
+        builder
+          .whereRaw("LOWER(display_name) LIKE ?", [normalized])
+          .orWhereRaw("LOWER(email) LIKE ?", [normalized]);
+      });
+    }
+
+    const rows = await query;
+    return rows.map((row) => this.mapToEntity(row));
+  }
+
   async save(user: User): Promise<User> {
     const data = user.toPrimitives();
     await this.db("users").insert({

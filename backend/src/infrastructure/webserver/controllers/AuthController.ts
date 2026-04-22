@@ -1,35 +1,118 @@
+import { randomUUID } from "crypto";
 import { LoginWithGoogleUseCase } from "../../../application/use-cases/auth/LoginWithGoogle";
 import { RefreshTokenUseCase } from "../../../application/use-cases/auth/RefreshToken";
-import { JwtStrategy } from "../../security/JwtStrategy";
+import { UserDTO } from "../../../application/dtos/UserDTO";
+import { User } from "../../../domain/entities/User";
+import { IUserRepository } from "../../../domain/repositories/IUserRepository";
+import { UnauthorizedError, ValidationError } from "../../../shared/errors/AppError";
 import { getCookie } from "../../../shared/utils/Cookie";
-import {
-  REFRESH_TOKEN_COOKIE_NAME
-} from "../../../shared/constants/AppConstants";
+import { REFRESH_TOKEN_COOKIE_NAME } from "../../../shared/constants/AppConstants";
+import { JwtStrategy } from "../../security/JwtStrategy";
 import { clearAuthCookies, setAuthCookies } from "../../security/AuthCookies";
+
+type LoginRequest = {
+  email?: string;
+  password?: string;
+  displayName?: string;
+};
+
+const toSerializableUser = (user: User | UserDTO) =>
+  user instanceof User ? user.toPrimitives() : user;
 
 export class AuthController {
   constructor(
     private readonly loginWithGoogleUseCase: LoginWithGoogleUseCase,
     private readonly refreshTokenUseCase: RefreshTokenUseCase,
-    private readonly jwtStrategy: JwtStrategy
+    private readonly jwtStrategy: JwtStrategy,
+    private readonly userRepository: IUserRepository
   ) {}
+
+  private issueAuthTokens = async (userId: string) => {
+    const tokenPayload = { userId };
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtStrategy.createAccessToken(tokenPayload),
+      this.jwtStrategy.createRefreshToken(tokenPayload)
+    ]);
+
+    return { accessToken, refreshToken };
+  };
+
+  loginWithEmailPassword = async (req: any, res: any, next: any): Promise<void> => {
+    try {
+      const payload = req.body as LoginRequest;
+      const email = payload?.email?.trim().toLowerCase();
+      const password = payload?.password?.trim();
+
+      if (!email) {
+        throw new ValidationError("Email is required.");
+      }
+      if (!password) {
+        throw new ValidationError("Password is required.");
+      }
+
+      let user = await this.userRepository.findByEmail(email);
+      if (!user) {
+        const defaultDisplayName = payload?.displayName?.trim() || email.split("@")[0] || "User";
+        user = new User({
+          id: randomUUID(),
+          email,
+          displayName: defaultDisplayName,
+          attributes: {
+            role: "user",
+            authPassword: password,
+            joinedAt: new Date().toISOString()
+          }
+        });
+        user = await this.userRepository.save(user);
+      } else {
+        const attributes = user.attributes ?? {};
+        const existingPassword = typeof attributes.authPassword === "string"
+          ? attributes.authPassword
+          : undefined;
+
+        if (existingPassword && existingPassword !== password) {
+          throw new UnauthorizedError("Invalid email or password.");
+        }
+
+        if (!existingPassword) {
+          const updatedUser = new User({
+            ...user.toPrimitives(),
+            attributes: {
+              ...attributes,
+              authPassword: password
+            }
+          });
+          user = await this.userRepository.update(updatedUser);
+        }
+      }
+
+      const tokens = await this.issueAuthTokens(user.id);
+      setAuthCookies(res, tokens);
+      res.setHeader("Authorization", `Bearer ${tokens.accessToken}`);
+
+      res.status(200).json({
+        user: toSerializableUser(user),
+        authToken: tokens.accessToken,
+        accessToken: tokens.accessToken,
+        useCookieAuth: true
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
 
   loginWithGoogle = async (req: any, res: any, next: any): Promise<void> => {
     try {
       const user = await this.loginWithGoogleUseCase.execute(req.body?.idToken);
-      const tokenPayload = { userId: user.id };
-      const [accessToken, refreshToken] = await Promise.all([
-        this.jwtStrategy.createAccessToken(tokenPayload),
-        this.jwtStrategy.createRefreshToken(tokenPayload)
-      ]);
+      const tokens = await this.issueAuthTokens(user.id);
 
-      setAuthCookies(res, { accessToken, refreshToken });
-      res.setHeader("Authorization", `Bearer ${accessToken}`);
+      setAuthCookies(res, tokens);
+      res.setHeader("Authorization", `Bearer ${tokens.accessToken}`);
 
       res.status(200).json({
-        user,
-        authToken: accessToken,
-        accessToken,
+        user: toSerializableUser(user),
+        authToken: tokens.accessToken,
+        accessToken: tokens.accessToken,
         useCookieAuth: true
       });
     } catch (error) {

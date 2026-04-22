@@ -1,4 +1,6 @@
 import { SendNotificationUseCase, GetNotificationsUseCase, GetUnreadCountUseCase, MarkNotificationAsReadUseCase, MarkAllNotificationsAsReadUseCase, DeleteNotificationUseCase } from "../../../application/use-cases/notifications/NotificationUseCase";
+import { NotificationDTO } from "../../../application/dtos/NotificationDTO";
+import { getNotificationService } from "../../external-services/NotificationService";
 
 export class NotificationController {
   constructor(
@@ -100,6 +102,58 @@ export class NotificationController {
       }
 
       res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  streamNotifications = async (req: any, res: any, next: any): Promise<void> => {
+    try {
+      const userId = req.currentUser?.id;
+      if (!userId) {
+        res.status(401).json({ error: "Unauthorized" });
+        return;
+      }
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+      if (typeof res.flushHeaders === "function") {
+        res.flushHeaders();
+      }
+
+      const notificationService = getNotificationService();
+      const toSsePayload = (notification: NotificationDTO) => ({
+        ...notification,
+        createdAt:
+          notification.createdAt instanceof Date
+            ? notification.createdAt.toISOString()
+            : notification.createdAt,
+        readAt:
+          notification.readAt instanceof Date
+            ? notification.readAt.toISOString()
+            : notification.readAt
+      });
+
+      res.write(`event: connected\ndata: ${JSON.stringify({ userId })}\n\n`);
+
+      const handleNotification = (notification: NotificationDTO) => {
+        if (notification.userId !== userId) return;
+        res.write(`event: notification\ndata: ${JSON.stringify(toSsePayload(notification))}\n\n`);
+      };
+
+      notificationService.on("notification:sent", handleNotification);
+
+      const heartbeat = setInterval(() => {
+        res.write("event: ping\ndata: {}\n\n");
+      }, 25000);
+
+      req.on("close", () => {
+        clearInterval(heartbeat);
+        notificationService.off("notification:sent", handleNotification);
+        res.end();
+      });
     } catch (error) {
       next(error);
     }

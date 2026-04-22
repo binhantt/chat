@@ -6,14 +6,12 @@ import {
   Card,
   Alert,
   Row,
-  Col,
   Divider,
   Spin,
   Typography,
 } from 'antd';
-import { GoogleOutlined, LockOutlined, MailOutlined } from '@ant-design/icons';
+import { LockOutlined, MailOutlined } from '@ant-design/icons';
 import { useAuthStore } from '../store/auth.store';
-import type { FormInstance } from 'antd';
 
 const { Title, Text } = Typography;
 
@@ -24,7 +22,7 @@ declare global {
 }
 
 export default function LoginForm() {
-  const [form] = Form.useForm<FormInstance>();
+  const [form] = Form.useForm<{ email: string; password: string }>();
   const [googleScriptLoaded, setGoogleScriptLoaded] = useState(false);
   const { login, loginWithGoogle, isLoading, error, clearError } =
     useAuthStore();

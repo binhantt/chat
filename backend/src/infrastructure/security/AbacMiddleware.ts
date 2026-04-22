@@ -23,36 +23,40 @@ export function createAbacMiddleware(
         typeof authHeader === "string" && authHeader.startsWith("Bearer ")
           ? authHeader.slice("Bearer ".length).trim()
           : undefined;
+      const tokenFromQuery =
+        typeof req.query?.accessToken === "string"
+          ? req.query.accessToken.trim()
+          : undefined;
       const tokenFromCookie = getCookie(req, ACCESS_TOKEN_COOKIE_NAME);
-      const token = tokenFromBearer ?? tokenFromCookie;
+      const token = tokenFromBearer ?? tokenFromQuery ?? tokenFromCookie;
 
       if (!token) {
-        throw new UnauthorizedError("Access token is required (Bearer or cookie).");
+        throw new UnauthorizedError("Access token is required (Bearer, query or cookie).");
       }
 
       let accessPayload;
-      if (tokenFromBearer) {
-        accessPayload = await jwtStrategy.verifyAccessToken(tokenFromBearer);
+      if (tokenFromBearer || tokenFromQuery) {
+        accessPayload = await jwtStrategy.verifyAccessToken(token);
       } else {
         const refreshTokenFromCookie = getCookie(req, REFRESH_TOKEN_COOKIE_NAME);
         if (!refreshTokenFromCookie) {
-          throw new UnauthorizedError("Refresh token cookie is required for session integrity check.");
+          accessPayload = await jwtStrategy.verifyAccessToken(tokenFromCookie as string);
+        } else {
+          const [verifiedAccessPayload, verifiedRefreshPayload] = await Promise.all([
+            jwtStrategy.verifyAccessToken(tokenFromCookie as string),
+            jwtStrategy.verifyRefreshToken(refreshTokenFromCookie)
+          ]);
+
+          const validPair = verifyTokenPairIntegrity(
+            verifiedAccessPayload,
+            verifiedRefreshPayload
+          );
+          if (!validPair) {
+            throw new UnauthorizedError("Session integrity check failed (AT/RT mismatch).");
+          }
+
+          accessPayload = verifiedAccessPayload;
         }
-
-        const [verifiedAccessPayload, verifiedRefreshPayload] = await Promise.all([
-          jwtStrategy.verifyAccessToken(tokenFromCookie as string),
-          jwtStrategy.verifyRefreshToken(refreshTokenFromCookie)
-        ]);
-
-        const validPair = verifyTokenPairIntegrity(
-          verifiedAccessPayload,
-          verifiedRefreshPayload
-        );
-        if (!validPair) {
-          throw new UnauthorizedError("Session integrity check failed (AT/RT mismatch).");
-        }
-
-        accessPayload = verifiedAccessPayload;
       }
 
       const user = await userRepository.findById(accessPayload.userId);

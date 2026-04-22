@@ -80,10 +80,14 @@ export const API_ENDPOINTS = {
     MESSAGES: '/chat/messages',
     ROOMS: '/chat/rooms',
     USERS: '/chat/users',
+    MATCHMAKING_SEARCH: '/chat/matchmaking/search',
   },
   USERS: {
     PROFILE: '/users/profile',
     UPDATE_PROFILE: '/users/profile',
     CHANGE_PASSWORD: '/users/change-password',
+  },
+  NOTIFICATIONS: {
+    STREAM: '/notifications/stream',
   },
 };

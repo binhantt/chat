@@ -1,16 +1,18 @@
 /**
- * Token management utilities
+ * Token management utilities (cookie-based)
  */
-
-const TOKEN_KEY = 'accessToken';
-const USER_KEY = 'user';
+import {
+  clearAuthSessionCookie,
+  getAccessTokenFromAuthCookie,
+  setAuthSessionInCookie,
+} from './cookieAuthStorage';
 
 /**
- * Get token from localStorage
+ * Get token from cookie storage
  */
 export const getToken = (): string | null => {
   try {
-    return localStorage.getItem(TOKEN_KEY);
+    return getAccessTokenFromAuthCookie();
   } catch (error) {
     console.error('Error getting token:', error);
     return null;
@@ -18,22 +20,22 @@ export const getToken = (): string | null => {
 };
 
 /**
- * Set token in localStorage
+ * Set token in cookie storage
  */
 export const setToken = (token: string): void => {
   try {
-    localStorage.setItem(TOKEN_KEY, token);
+    setAuthSessionInCookie({ accessToken: token });
   } catch (error) {
     console.error('Error setting token:', error);
   }
 };
 
 /**
- * Remove token from localStorage
+ * Remove token from cookie storage
  */
 export const removeToken = (): void => {
   try {
-    localStorage.removeItem(TOKEN_KEY);
+    clearAuthSessionCookie();
   } catch (error) {
     console.error('Error removing token:', error);
   }
@@ -85,12 +87,11 @@ export const isTokenExpiringSoon = (): boolean => {
 };
 
 /**
- * Clear all auth data
+ * Clear auth token data
  */
 export const clearAuthData = (): void => {
   try {
     removeToken();
-    localStorage.removeItem(USER_KEY);
   } catch (error) {
     console.error('Error clearing auth data:', error);
   }

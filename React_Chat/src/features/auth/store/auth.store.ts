@@ -1,11 +1,17 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import authService from '../services/auth.service';
-import type { AuthState, User } from '../types/auth.type';
+import type { AuthState } from '../types/auth.type';
+import {
+  AUTH_STORAGE_COOKIE_NAME,
+  authCookieStorage,
+  clearAuthCredentialsCookie,
+  setAuthCredentialsCookie,
+} from '../../../shared/utils/cookieAuthStorage';
 
 /**
  * Auth Store with Zustand
- * Persists token and user in localStorage
+ * Persists token and user in cookies
  */
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -22,6 +28,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const data = await authService.login(email, password);
+          setAuthCredentialsCookie(email, password);
           set({
             user: data.user,
             accessToken: data.accessToken,
@@ -50,6 +57,7 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true, error: null });
         try {
           const data = await authService.loginWithGoogle(credential);
+          clearAuthCredentialsCookie();
           set({
             user: data.user,
             accessToken: data.accessToken,
@@ -81,6 +89,7 @@ export const useAuthStore = create<AuthState>()(
         } catch (error) {
           console.error('Logout error:', error);
         } finally {
+          clearAuthCredentialsCookie();
           set({
             user: null,
             accessToken: null,
@@ -98,7 +107,8 @@ export const useAuthStore = create<AuthState>()(
       },
     }),
     {
-      name: 'auth-storage',
+      name: AUTH_STORAGE_COOKIE_NAME,
+      storage: createJSONStorage(() => authCookieStorage),
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

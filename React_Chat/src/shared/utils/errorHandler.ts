@@ -1,3 +1,5 @@
+
+
 /**
  * API Error response handler
  */
@@ -41,7 +43,7 @@ export const isAuthError = (error: unknown): boolean => {
     return (
       apiError.statusCode === 401 ||
       apiError.error === 'UNAUTHORIZED' ||
-      apiError.message?.toLowerCase().includes('unauthorized')
+      (apiError.message?.toLowerCase().includes('unauthorized') ?? false)
     );
   }
   return false;
@@ -56,7 +58,7 @@ export const isValidationError = (error: unknown): boolean => {
     return (
       apiError.statusCode === 400 ||
       apiError.error === 'VALIDATION_ERROR' ||
-      apiError.message?.toLowerCase().includes('invalid')
+      (apiError.message?.toLowerCase().includes('invalid') ?? false)
     );
   }
   return false;

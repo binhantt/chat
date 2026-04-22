@@ -19,6 +19,7 @@ export function buildNotificationRoutes() {
   );
 
   return {
+    streamNotifications: notificationController.streamNotifications,
     getNotifications: notificationController.getNotifications,
     getUnreadCount: notificationController.getUnreadCount,
     markAsRead: notificationController.markAsRead,
