@@ -1,0 +1,12 @@
+# Ignore banked directory
+banked/
+
+# Common ignores
+node_modules/
+dist/
+build/
+*.log
+.env
+.DS_Store
+.vscode/
+.idea/
