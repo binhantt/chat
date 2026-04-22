@@ -1,6 +1,4 @@
 # Ignore banked directory
-banked/
-
 # Common ignores
 node_modules/
 dist/

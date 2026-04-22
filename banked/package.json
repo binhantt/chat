@@ -1,0 +1,27 @@
+{
+  "name": "banked-backend",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/infrastructure/webserver/main.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/infrastructure/webserver/main.js",
+    "dev": "npm run build && node dist/infrastructure/webserver/main.js",
+    "watch": "tsc -w -p tsconfig.json",
+    "test:unit": "npm run build && jest --runInBand tests/unit/use-cases.unit.test.js",
+    "db:setup": "npm run build && node dist/infrastructure/database/dbSetup.js",
+    "db:migrate": "npm run build && node dist/infrastructure/database/runMigrations.js",
+    "db:create": "npm run build && node dist/infrastructure/database/setupDatabase.js"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "typescript": "^6.0.3"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "knex": "^3.2.9",
+    "mysql2": "^3.22.2",
+    "nodemon": "^3.1.14"
+  }
+}
