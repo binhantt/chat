@@ -8,16 +8,19 @@ import { SendMessageUseCase } from "../../application/use-cases/chat/SendMessage
 import { PermissionCheck } from "../../domain/services/PermissionCheck";
 import { db } from "../database/connection";
 import { KnexMessageRepository } from "../database/repositories/KnexMessageRepository";
+import { KnexFeedbackRepository } from "../database/repositories/KnexFeedbackRepository";
 import { KnexRoomRepository } from "../database/repositories/KnexRoomRepository";
 import { KnexUserRepository } from "../database/repositories/KnexUserRepository";
 import { GoogleAuth } from "../external-services/GoogleAuth";
-import { createAbacMiddleware } from "../security/AbacMiddleware";
+import { createAbacMiddleware, createOptionalAbacMiddleware } from "../security/AbacMiddleware";
 import { JwtStrategy } from "../security/JwtStrategy";
 import { AuthController } from "./controllers/AuthController";
 import { ChatController } from "./controllers/ChatController";
+import { FeedbackController } from "./controllers/FeedbackController";
 import { UsersController } from "./controllers/UsersController";
 import { buildAuthRoutes } from "./routes/authRoutes";
 import { buildChatRoutes } from "./routes/chatRoutes";
+import { buildFeedbackRoutes } from "./routes/feedbackRoutes";
 import { buildNotificationRoutes } from "./routes/notificationRoutes";
 import { buildUsersRoutes } from "./routes/usersRoutes";
 import { AppError } from "../../shared/errors/AppError";
@@ -36,6 +39,7 @@ app.use(
 
 const userRepository = new KnexUserRepository(db);
 const messageRepository = new KnexMessageRepository(db);
+const feedbackRepository = new KnexFeedbackRepository(db);
 const roomRepository = new KnexRoomRepository(db);
 const permissionCheck = new PermissionCheck();
 const googleAuth = new GoogleAuth();
@@ -66,6 +70,7 @@ const chatController = new ChatController(
   userRepository,
   roomRepository
 );
+const feedbackController = new FeedbackController(feedbackRepository);
 const usersController = new UsersController(userRepository);
 
 app.get("/health", (_req: any, res: any) => {
@@ -87,15 +92,23 @@ app.use(
       createAbacMiddleware(userRepository, permissionCheck, jwtStrategy, "chat:send"),
       createAbacMiddleware(userRepository, permissionCheck, jwtStrategy, "chat:history"),
       createAbacMiddleware(userRepository, permissionCheck, jwtStrategy, "notifications:read"),
-      createAbacMiddleware(userRepository, permissionCheck, jwtStrategy, "room:join")
+      createAbacMiddleware(userRepository, permissionCheck, jwtStrategy, "room:join"),
+      createAbacMiddleware(userRepository, permissionCheck, jwtStrategy, "chat:history")
     )
 );
 app.use(
   "/api/users",
   buildUsersRoutes(
     usersController,
-    createAbacMiddleware(userRepository, permissionCheck, jwtStrategy, "notifications:read"),
+    createOptionalAbacMiddleware(userRepository, permissionCheck, jwtStrategy, "notifications:read"),
     createAbacMiddleware(userRepository, permissionCheck, jwtStrategy, "notifications:update")
+  )
+);
+app.use(
+  "/api/feedback",
+  buildFeedbackRoutes(
+    feedbackController,
+    createAbacMiddleware(userRepository, permissionCheck, jwtStrategy, "feedback:create")
   )
 );
 

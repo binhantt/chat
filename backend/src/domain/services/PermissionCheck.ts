@@ -22,6 +22,10 @@ export class PermissionCheck {
         return true;
       case "notifications:delete":
         return true;
+      case "feedback:create":
+        return true;
+      case "feedback:read":
+        return true;
       default:
         return false;
     }

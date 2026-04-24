@@ -5,4 +5,6 @@ export type PermissionAction =
   | "admin:moderate"
   | "notifications:read"
   | "notifications:update"
-  | "notifications:delete";
+  | "notifications:delete"
+  | "feedback:create"
+  | "feedback:read";

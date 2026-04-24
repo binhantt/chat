@@ -1,7 +1,7 @@
 import { GetHistoryUseCase } from "../../../application/use-cases/chat/GetHistory";
 import { SendMessageUseCase } from "../../../application/use-cases/chat/SendMessage";
 import { User } from "../../../domain/entities/User";
-import { IRoomRepository } from "../../../domain/repositories/IRoomRepository";
+import { IRoomRepository, RoomRecord } from "../../../domain/repositories/IRoomRepository";
 import { IUserRepository } from "../../../domain/repositories/IUserRepository";
 import { getNotificationService } from "../../external-services/NotificationService";
 
@@ -28,22 +28,62 @@ const statusPriority = (status: string): number => {
   return 2;
 };
 
+const ANONYMOUS_DISPLAY_NAME = "Người lạ bí mật";
+
 const toChatUserResponse = (user: User) => {
   const raw = user.toPrimitives();
   const attributes = raw.attributes ?? {};
-  const gender = normalizeGender(attributes.gender);
+  const gender = normalizeGender(raw.personalDetail?.gender ?? attributes.gender);
   const status = typeof attributes.status === "string" ? attributes.status : "Offline";
+  const pictureUrl =
+    typeof attributes.avatar === "string" && attributes.avatar.trim()
+      ? attributes.avatar
+      : typeof attributes.pictureUrl === "string" && attributes.pictureUrl.trim()
+        ? attributes.pictureUrl
+        : undefined;
 
   return {
     id: raw.id,
     displayName: raw.displayName,
     name: raw.displayName,
     email: raw.email,
-    avatar: typeof attributes.avatar === "string" ? attributes.avatar : undefined,
+    avatar: pictureUrl,
     status,
     address: typeof attributes.address === "string" ? attributes.address : undefined,
-    gender
+    gender,
+    birthDate: raw.personalDetail?.birthDate,
+    isAnonymous: false
   };
+};
+
+const toAnonymousChatUserResponse = (user: User) => {
+  const base = toChatUserResponse(user);
+
+  return {
+    ...base,
+    displayName: ANONYMOUS_DISPLAY_NAME,
+    name: ANONYMOUS_DISPLAY_NAME,
+    email: undefined,
+    avatar: undefined,
+    address: undefined,
+    gender: undefined,
+    birthDate: undefined,
+    isAnonymous: true
+  };
+};
+
+const isParticipantA = (room: RoomRecord, userId: string): boolean => room.participantA === userId;
+
+const hasCurrentUserLiked = (room: RoomRecord, userId: string): boolean =>
+  isParticipantA(room, userId) ? Boolean(room.participantALikedAt) : Boolean(room.participantBLikedAt);
+
+const hasPartnerLiked = (room: RoomRecord, userId: string): boolean =>
+  isParticipantA(room, userId) ? Boolean(room.participantBLikedAt) : Boolean(room.participantALikedAt);
+
+const getPartnerId = (room: RoomRecord, userId: string): string | null => {
+  if (room.participantA === userId) return room.participantB;
+  if (room.participantB === userId) return room.participantA;
+  return null;
 };
 
 interface MatchmakingQueueEntry {
@@ -106,6 +146,43 @@ export class ChatController {
     private readonly roomRepository: IRoomRepository
   ) {}
 
+  private getPartnerResponse = (partner: User, room: RoomRecord) =>
+    room.identityRevealed
+      ? toChatUserResponse(partner)
+      : toAnonymousChatUserResponse(partner);
+
+  private buildRoomSummary = (room: RoomRecord, currentUserId: string, partner: User) => ({
+    id: room.id,
+    active: room.active,
+    identityRevealed: room.identityRevealed,
+    currentUserLiked: hasCurrentUserLiked(room, currentUserId),
+    partnerLiked: hasPartnerLiked(room, currentUserId),
+    partner: this.getPartnerResponse(partner, room)
+  });
+
+  private loadRoomContext = async (roomId: string, currentUserId: string) => {
+    const room = await this.roomRepository.findById(roomId);
+    if (!room) {
+      return { status: 404 as const };
+    }
+
+    const partnerId = getPartnerId(room, currentUserId);
+    if (!partnerId) {
+      return { status: 403 as const };
+    }
+
+    const partner = await this.userRepository.findById(partnerId);
+    if (!partner) {
+      return { status: 404 as const };
+    }
+
+    return {
+      status: 200 as const,
+      room,
+      partner
+    };
+  };
+
   sendMessage = async (req: any, res: any, next: any): Promise<void> => {
     try {
       const payload = {
@@ -115,10 +192,25 @@ export class ChatController {
         content: req.body?.content
       };
 
+      const room = await this.roomRepository.findById(payload.roomId);
+      if (!room) {
+        res.status(404).json({ error: "Room not found." });
+        return;
+      }
+
+      if (!room.active) {
+        res.status(409).json({ error: "Room is no longer active." });
+        return;
+      }
+
+      if (room.participantA !== payload.senderId && room.participantB !== payload.senderId) {
+        res.status(403).json({ error: "You are not a participant of this room." });
+        return;
+      }
+
       const message = await this.sendMessageUseCase.execute(payload);
 
       const notificationService = getNotificationService();
-      const room = await this.roomRepository.findById(message.roomId);
       const roomMembersFromRoom = room
         ? [room.participantA, room.participantB]
         : [];
@@ -168,19 +260,145 @@ export class ChatController {
     }
   };
 
+  getRoom = async (req: any, res: any, next: any): Promise<void> => {
+    try {
+      const currentUser = req.currentUser as User;
+      const roomId = req.params?.roomId;
+
+      if (!roomId) {
+        res.status(400).json({ error: "Room id is required." });
+        return;
+      }
+
+      const context = await this.loadRoomContext(roomId, currentUser.id);
+      if (context.status === 404) {
+        res.status(404).json({ error: "Room not found." });
+        return;
+      }
+      if (context.status === 403) {
+        res.status(403).json({ error: "You are not a participant of this room." });
+        return;
+      }
+
+      res.status(200).json({
+        room: this.buildRoomSummary(context.room, currentUser.id, context.partner)
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  likeRoom = async (req: any, res: any, next: any): Promise<void> => {
+    try {
+      const currentUser = req.currentUser as User;
+      const roomId = req.params?.roomId;
+
+      if (!roomId) {
+        res.status(400).json({ error: "Room id is required." });
+        return;
+      }
+
+      const currentContext = await this.loadRoomContext(roomId, currentUser.id);
+      if (currentContext.status === 404) {
+        res.status(404).json({ error: "Room not found." });
+        return;
+      }
+      if (currentContext.status === 403) {
+        res.status(403).json({ error: "You are not a participant of this room." });
+        return;
+      }
+      if (!currentContext.room.active) {
+        res.status(409).json({ error: "Room is no longer active." });
+        return;
+      }
+
+      const wasRevealed = currentContext.room.identityRevealed;
+      const alreadyLiked = hasCurrentUserLiked(currentContext.room, currentUser.id);
+      if (wasRevealed && alreadyLiked) {
+        res.status(200).json({
+          room: this.buildRoomSummary(currentContext.room, currentUser.id, currentContext.partner)
+        });
+        return;
+      }
+
+      const updatedRoom = await this.roomRepository.likeRoom(roomId, currentUser.id);
+      if (!updatedRoom) {
+        res.status(404).json({ error: "Room not found." });
+        return;
+      }
+
+      const partnerId = getPartnerId(updatedRoom, currentUser.id);
+      if (!partnerId) {
+        res.status(403).json({ error: "You are not a participant of this room." });
+        return;
+      }
+
+      const [partner, refreshedCurrentUser] = await Promise.all([
+        this.userRepository.findById(partnerId),
+        this.userRepository.findById(currentUser.id)
+      ]);
+
+      if (!partner || !refreshedCurrentUser) {
+        res.status(404).json({ error: "Room partner not found." });
+        return;
+      }
+
+      if (!wasRevealed) {
+        const notificationService = getNotificationService();
+        const currentUserProfile = toChatUserResponse(refreshedCurrentUser);
+        const partnerProfile = toChatUserResponse(partner);
+
+        await Promise.allSettled([
+          notificationService.sendNotification({
+            userId: currentUser.id,
+            type: "SYSTEM",
+            title: "Đã mở tên",
+            content: "Một lượt thích đã mở tên cho cả hai bên.",
+            roomId: updatedRoom.id,
+            metadata: {
+              kind: "ROOM_IDENTITY_REVEALED",
+              roomId: updatedRoom.id,
+              partner: partnerProfile
+            }
+          }),
+          notificationService.sendNotification({
+            userId: partner.id,
+            type: "SYSTEM",
+            title: "Đã mở tên",
+            content: "Một lượt thích đã mở tên cho cả hai bên.",
+            roomId: updatedRoom.id,
+            metadata: {
+              kind: "ROOM_IDENTITY_REVEALED",
+              roomId: updatedRoom.id,
+              partner: currentUserProfile
+            }
+          })
+        ]);
+      }
+
+      res.status(200).json({
+        room: this.buildRoomSummary(updatedRoom, currentUser.id, partner)
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   getUsers = async (req: any, res: any, next: any): Promise<void> => {
     try {
       const keyword = typeof req.query?.q === "string" ? req.query.q : undefined;
       const users = await this.userRepository.search(keyword, 30);
       const currentUser = req.currentUser as User | undefined;
       const currentUserId = currentUser?.id;
-      const preferredGender = getOppositeGender(normalizeGender(currentUser?.attributes?.gender));
+      const preferredGender = getOppositeGender(
+        normalizeGender(currentUser?.personalDetail?.gender ?? currentUser?.attributes?.gender)
+      );
 
       const filteredUsers = users.filter((user) => {
         if (user.id === currentUserId) return false;
         if (!preferredGender) return true;
 
-        const gender = normalizeGender(user.attributes?.gender);
+        const gender = normalizeGender(user.personalDetail?.gender ?? user.attributes?.gender);
         return !gender || gender === preferredGender;
       });
 
@@ -201,7 +419,9 @@ export class ChatController {
   searchMatch = async (req: any, res: any, next: any): Promise<void> => {
     try {
       const currentUser = req.currentUser as User;
-      const currentUserGender = normalizeGender(currentUser.attributes?.gender);
+      const currentUserGender = normalizeGender(
+        currentUser.personalDetail?.gender ?? currentUser.attributes?.gender
+      );
       const currentUserPreferredGender = getOppositeGender(currentUserGender);
 
       cleanupQueue();
@@ -211,12 +431,13 @@ export class ChatController {
       if (pendingMatch) {
         pendingMatches.delete(currentUser.id);
         const pendingPartner = await this.userRepository.findById(pendingMatch.partnerId);
+        const pendingRoom = await this.roomRepository.findById(pendingMatch.roomId);
 
-        if (pendingPartner) {
+        if (pendingPartner && pendingRoom) {
           res.status(200).json({
             status: "matched",
             roomId: pendingMatch.roomId,
-            partner: toChatUserResponse(pendingPartner)
+            partner: this.getPartnerResponse(pendingPartner, pendingRoom)
           });
           return;
         }
@@ -235,7 +456,9 @@ export class ChatController {
           continue;
         }
 
-        const candidateGender = normalizeGender(candidate.attributes?.gender);
+        const candidateGender = normalizeGender(
+          candidate.personalDetail?.gender ?? candidate.attributes?.gender
+        );
         const compatible = isGenderCompatible(
           currentUserPreferredGender,
           entry.preferredGender,
@@ -294,10 +517,102 @@ export class ChatController {
         createdAt: pendingCreatedAt
       });
 
+      const notificationService = getNotificationService();
+      const currentUserProfile = this.getPartnerResponse(currentUser, room);
+      const partnerProfile = this.getPartnerResponse(partner, room);
+
+      await Promise.allSettled([
+        notificationService.sendNotification({
+          userId: currentUser.id,
+          type: "SYSTEM",
+          title: "Đã ghép cặp",
+          content: room.identityRevealed
+            ? `Bạn đã được ghép với ${partnerProfile.name}.`
+            : "Bạn đã được ghép với một người mới. Tên sẽ mở khi một trong hai bấm thích.",
+          roomId: room.id,
+          metadata: {
+            kind: "MATCHMAKING_MATCHED",
+            roomId: room.id,
+            partner: partnerProfile
+          }
+        }),
+        notificationService.sendNotification({
+          userId: partner.id,
+          type: "SYSTEM",
+          title: "Đã ghép cặp",
+          content: room.identityRevealed
+            ? `Bạn đã được ghép với ${currentUserProfile.name}.`
+            : "Bạn đã được ghép với một người mới. Tên sẽ mở khi một trong hai bấm thích.",
+          roomId: room.id,
+          metadata: {
+            kind: "MATCHMAKING_MATCHED",
+            roomId: room.id,
+            partner: currentUserProfile
+          }
+        })
+      ]);
+
       res.status(200).json({
         status: "matched",
         roomId: room.id,
-        partner: toChatUserResponse(partner)
+        partner: this.getPartnerResponse(partner, room)
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  leaveRoom = async (req: any, res: any, next: any): Promise<void> => {
+    try {
+      const currentUser = req.currentUser as User;
+      const roomId = req.params?.roomId;
+
+      if (!roomId) {
+        res.status(400).json({ error: "Room id is required." });
+        return;
+      }
+
+      const room = await this.roomRepository.findById(roomId);
+      if (!room) {
+        res.status(404).json({ error: "Room not found." });
+        return;
+      }
+
+      if (room.participantA !== currentUser.id && room.participantB !== currentUser.id) {
+        res.status(403).json({ error: "You are not a participant of this room." });
+        return;
+      }
+
+      if (!room.active) {
+        res.status(200).json({ status: "ended" });
+        return;
+      }
+
+      const partnerId = room.participantA === currentUser.id ? room.participantB : room.participantA;
+      const notificationService = getNotificationService();
+      const currentUserProfile = this.getPartnerResponse(currentUser, room);
+
+      await Promise.all([
+        this.roomRepository.deactivate(room.id),
+        notificationService.sendNotification({
+          userId: partnerId,
+          type: "SYSTEM",
+          title: "Cuộc trò chuyện đã kết thúc",
+          content: room.identityRevealed
+            ? `${currentUserProfile.name} đã rời cuộc trò chuyện.`
+            : "Người trò chuyện cùng bạn đã rời cuộc trò chuyện.",
+          roomId: room.id,
+          senderId: currentUser.id,
+          metadata: {
+            kind: "CONVERSATION_ENDED",
+            roomId: room.id,
+            byUser: currentUserProfile
+          }
+        })
+      ]);
+
+      res.status(200).json({
+        status: "ended"
       });
     } catch (error) {
       next(error);

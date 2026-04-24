@@ -4,6 +4,7 @@ import {
   TRUST_SCORE_MIN
 } from "../../shared/constants/AppConstants";
 import { ValidationError } from "../../shared/errors/AppError";
+import { PersonalDetail, PersonalDetailProps } from "./PersonalDetail";
 
 export type UserAttributes = Record<string, string | number | boolean | null>;
 
@@ -14,6 +15,7 @@ export interface UserProps {
   displayName: string;
   trustScore: number;
   attributes?: UserAttributes;
+  personalDetail?: PersonalDetailProps;
 }
 
 export class User {
@@ -21,6 +23,7 @@ export class User {
 
   constructor(props: Omit<UserProps, "trustScore"> & Partial<Pick<UserProps, "trustScore">>) {
     const trustScore = props.trustScore ?? TRUST_SCORE_DEFAULT;
+    const personalDetail = props.personalDetail ? new PersonalDetail(props.personalDetail) : null;
 
     if (!props.id) {
       throw new ValidationError("User id is required.");
@@ -38,7 +41,10 @@ export class User {
       email: props.email,
       displayName: props.displayName,
       trustScore,
-      attributes: props.attributes ?? {}
+      attributes: props.attributes ?? {},
+      personalDetail: personalDetail && !personalDetail.isEmpty()
+        ? personalDetail.toPrimitives()
+        : undefined
     };
   }
 
@@ -64,6 +70,10 @@ export class User {
 
   get attributes(): UserAttributes {
     return { ...this.props.attributes };
+  }
+
+  get personalDetail(): PersonalDetailProps | undefined {
+    return this.props.personalDetail ? { ...this.props.personalDetail } : undefined;
   }
 
   hasAttribute(key: string, expectedValue?: string | number | boolean | null): boolean {
@@ -92,7 +102,8 @@ export class User {
   toPrimitives(): UserProps {
     return {
       ...this.props,
-      attributes: this.props.attributes ? { ...this.props.attributes } : {}
+      attributes: this.props.attributes ? { ...this.props.attributes } : {},
+      personalDetail: this.props.personalDetail ? { ...this.props.personalDetail } : undefined
     };
   }
 }

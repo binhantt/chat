@@ -92,8 +92,6 @@ export class AuthController {
 
       res.status(200).json({
         user: toSerializableUser(user),
-        authToken: tokens.accessToken,
-        accessToken: tokens.accessToken,
         useCookieAuth: true
       });
     } catch (error) {
@@ -111,8 +109,6 @@ export class AuthController {
 
       res.status(200).json({
         user: toSerializableUser(user),
-        authToken: tokens.accessToken,
-        accessToken: tokens.accessToken,
         useCookieAuth: true
       });
     } catch (error) {
@@ -129,11 +125,13 @@ export class AuthController {
       const result = await this.refreshTokenUseCase.execute(refreshToken);
       setAuthCookies(res, result);
       res.setHeader("Authorization", `Bearer ${result.accessToken}`);
+      const user = await this.userRepository.findById(
+        (await this.jwtStrategy.verifyAccessToken(result.accessToken)).userId
+      );
 
       res.status(200).json({
-        authToken: result.accessToken,
-        accessToken: result.accessToken,
-        useCookieAuth: true
+        useCookieAuth: true,
+        ...(user ? { user: toSerializableUser(user) } : {})
       });
     } catch (error) {
       next(error);

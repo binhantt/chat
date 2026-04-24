@@ -3,4 +3,9 @@ export interface UserDTO {
   email?: string;
   displayName: string;
   trustScore: number;
+  attributes?: Record<string, string | number | boolean | null>;
+  personalDetail?: {
+    gender?: string;
+    birthDate?: string;
+  };
 }

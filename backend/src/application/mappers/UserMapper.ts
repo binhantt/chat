@@ -3,11 +3,15 @@ import { UserDTO } from "../dtos/UserDTO";
 
 export class UserMapper {
   static toDTO(user: User): UserDTO {
+    const data = user.toPrimitives();
+
     return {
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-      trustScore: user.trustScore
+      id: data.id,
+      email: data.email,
+      displayName: data.displayName,
+      trustScore: data.trustScore,
+      attributes: data.attributes,
+      personalDetail: data.personalDetail
     };
   }
 }
