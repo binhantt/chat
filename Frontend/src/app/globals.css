@@ -1,0 +1,54 @@
+@import "@radix-ui/themes/styles.css";
+@import "tailwindcss";
+
+:root {
+  --app-canvas: #eef4f8;
+  --app-canvas-strong: #dce9f0;
+  --app-surface: #ffffff;
+  --app-ink: #0f172a;
+  --app-ink-muted: #4b5563;
+  --app-line: rgba(15, 23, 42, 0.08);
+}
+
+@theme inline {
+  --color-background: var(--app-canvas);
+  --color-foreground: var(--app-ink);
+  --color-surface: var(--app-surface);
+  --color-border-subtle: var(--app-line);
+  --font-sans: var(--font-manrope);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(14, 165, 233, 0.18), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(8, 145, 178, 0.12), transparent 30%),
+    linear-gradient(180deg, #f7fbfd 0%, var(--app-canvas) 52%, #edf2f7 100%);
+  color: var(--app-ink);
+  font-family: var(--font-manrope), sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(8, 145, 178, 0.18);
+}

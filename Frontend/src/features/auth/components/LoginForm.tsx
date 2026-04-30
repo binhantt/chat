@@ -1,213 +1,167 @@
-import { useEffect, useRef, useState } from 'react';
-import { Alert, Card, Spin, Typography } from 'antd';
-import { SafetyOutlined, GoogleOutlined } from '@ant-design/icons';
-import { useAuthStore } from '../store/auth.store';
+"use client";
 
-const { Title, Text } = Typography;
+import {
+  Button,
+  Callout,
+  Checkbox,
+  Flex,
+  Text,
+  TextField,
+} from "@radix-ui/themes";
+import {
+  EyeNoneIcon,
+  EyeOpenIcon,
+  InfoCircledIcon,
+  LockClosedIcon,
+  PersonIcon,
+} from "@radix-ui/react-icons";
+import { useAuthSession } from "../hooks/useAuthSession";
 
-declare global {
-  interface Window {
-    google?: any;
-  }
-}
-
-const GOOGLE_SCRIPT_ID = 'google-gsi-client';
-const GOOGLE_BUTTON_WIDTH = 340;
-
-const cardStyles = {
-  width: 'min(92vw, 460px)',
-  borderRadius: 28,
-  border: '1px solid rgba(255, 255, 255, 0.44)',
-  background: 'rgba(255, 255, 255, 0.92)',
-  boxShadow: '0 28px 80px rgba(2, 6, 23, 0.38)',
-  backdropFilter: 'blur(18px)',
-};
-
-const cardBodyStyles = {
-  padding: 'clamp(20px, 2.4vw, 28px)',
-};
-
-const headerStyles = {
-  textAlign: 'center' as const,
-  marginBottom: 18,
-};
-
-const eyebrowStyles = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  gap: 8,
-  padding: '6px 12px',
-  borderRadius: 999,
-  background: 'rgba(37, 99, 235, 0.08)',
-  color: '#1d4ed8',
-  fontSize: 12,
-  fontWeight: 700,
-  letterSpacing: '0.08em',
-  textTransform: 'uppercase' as const,
-};
-
-const titleStyles = {
-  marginTop: 12,
-  marginBottom: 8,
-  color: '#0f172a',
-  lineHeight: 1.08,
-};
-
-const subtitleStyles = {
-  color: '#475569',
-  lineHeight: 1.55,
-  fontSize: 14,
-  margin: 0,
-};
-
-const alertStyles = {
-  marginBottom: 14,
-  borderRadius: 16,
-};
-
-const googleWrapStyles = {
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: 52,
-};
-
-const googleSlotStyles = {
-  width: '100%',
-  maxWidth: GOOGLE_BUTTON_WIDTH,
-  minHeight: 44,
-  display: 'flex',
-  justifyContent: 'center',
-};
-
-const noteStyles = {
-  marginTop: 14,
-  textAlign: 'center' as const,
-  color: '#64748b',
-  fontSize: 13,
-  lineHeight: 1.55,
-};
-
-const hintStyles = {
-  marginTop: 12,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 8,
-  color: '#94a3b8',
-  fontSize: 12,
-};
-
-export default function LoginForm() {
-  const [googleScriptLoaded, setGoogleScriptLoaded] = useState(false);
-  const googleButtonRef = useRef<HTMLDivElement | null>(null);
-  const { loginWithGoogle, isLoading, error, clearError } = useAuthStore();
-
-  useEffect(() => {
-    let active = true;
-
-    const initializeGoogleSignIn = () => {
-      if (!active || !window.google?.accounts?.id || !googleButtonRef.current) {
-        return;
-      }
-
-      googleButtonRef.current.innerHTML = '';
-      window.google.accounts.id.initialize({
-        client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
-        callback: async (response: any) => {
-          try {
-            clearError();
-            await loginWithGoogle(response.credential);
-          } catch (err: any) {
-            console.error('Google login error:', err.message);
-          }
-        },
-        auto_select: false,
-      });
-
-      window.google.accounts.id.renderButton(googleButtonRef.current, {
-        theme: 'outline',
-        size: 'large',
-        width: GOOGLE_BUTTON_WIDTH,
-        shape: 'pill',
-        text: 'continue_with',
-      });
-    };
-
-    const existingScript = document.getElementById(GOOGLE_SCRIPT_ID);
-
-    if (existingScript && window.google?.accounts?.id) {
-      setGoogleScriptLoaded(true);
-      initializeGoogleSignIn();
-      return () => {
-        active = false;
-      };
-    }
-
-    if (!existingScript) {
-      const script = document.createElement('script');
-      script.id = GOOGLE_SCRIPT_ID;
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.async = true;
-      script.defer = true;
-      script.onload = () => {
-        if (!active) return;
-        setGoogleScriptLoaded(true);
-        initializeGoogleSignIn();
-      };
-
-      document.head.appendChild(script);
-    }
-
-    return () => {
-      active = false;
-    };
-  }, []);
+export function LoginForm() {
+  const {
+    email,
+    password,
+    rememberEmail,
+    showPassword,
+    errors,
+    submitError,
+    isSubmitting,
+    isFormValid,
+    handleEmailChange,
+    handlePasswordChange,
+    handleRememberEmailChange,
+    handleEmailBlur,
+    handlePasswordBlur,
+    handleSubmit,
+    togglePasswordVisibility,
+  } = useAuthSession();
 
   return (
-    <Spin spinning={isLoading} tip="Đang đăng nhập...">
-      <Card bordered={false} style={cardStyles} bodyStyle={cardBodyStyles}>
-        <div style={headerStyles}>
-          <div style={eyebrowStyles}>
-            <SafetyOutlined />
-            Đăng nhập bằng Google
+    <div className="w-full space-y-8">
+      <div>
+        <h2 className="text-3xl font-semibold tracking-tight text-slate-900 mb-2">Dang nhap</h2>
+        <p className="text-slate-500">Dung tai khoan admin de tiep tuc</p>
+      </div>
+
+      {submitError && (
+        <Callout.Root color="red" role="alert" className="bg-red-50 border border-red-200">
+          <Callout.Icon>
+            <InfoCircledIcon />
+          </Callout.Icon>
+          <Callout.Text className="text-red-700">{submitError}</Callout.Text>
+        </Callout.Root>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="email" className="text-sm font-medium text-slate-700">
+              Email cong viec
+            </label>
+            <TextField.Root
+              id="email"
+              autoComplete="email"
+              color={errors.email ? "ruby" : "cyan"}
+              inputMode="email"
+              name="email"
+              placeholder="admin@example.com"
+              size="3"
+              type="email"
+              value={email}
+              variant="surface"
+              onBlur={handleEmailBlur}
+              onChange={(event) => handleEmailChange(event.target.value)}
+              className="bg-white border-slate-200/80 shadow-sm"
+            >
+              <TextField.Slot>
+                <PersonIcon height="16" width="16" className="text-slate-400" />
+              </TextField.Slot>
+            </TextField.Root>
+            {errors.email && (
+              <Text as="p" color="red" size="2" className="mt-1">
+                {errors.email}
+              </Text>
+            )}
           </div>
-          <Title level={2} style={titleStyles}>
-            Chọn tài khoản Google của bạn
-          </Title>
-          <Text style={subtitleStyles}>
-            Nhanh hơn, gọn hơn và phù hợp nếu hệ thống chỉ cho phép đăng nhập
-            bằng Gmail.
-          </Text>
+
+          <div className="space-y-2">
+            <Flex justify="between" align="center">
+              <label htmlFor="password" className="text-sm font-medium text-slate-700">
+                Mat khau
+              </label>
+            </Flex>
+            <TextField.Root
+              id="password"
+              autoComplete="current-password"
+              color={errors.password ? "ruby" : "cyan"}
+              name="password"
+              placeholder="........"
+              size="3"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              variant="surface"
+              onBlur={handlePasswordBlur}
+              onChange={(event) => handlePasswordChange(event.target.value)}
+              className="bg-white border-slate-200/80 shadow-sm"
+            >
+              <TextField.Slot>
+                <LockClosedIcon height="16" width="16" className="text-slate-400" />
+              </TextField.Slot>
+              <TextField.Slot side="right">
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="text-slate-400 hover:text-slate-700 transition-colors px-2 outline-none"
+                  onClick={togglePasswordVisibility}
+                >
+                  {showPassword ? <EyeNoneIcon width="18" height="18" /> : <EyeOpenIcon width="18" height="18" />}
+                </button>
+              </TextField.Slot>
+            </TextField.Root>
+            {errors.password && (
+              <Text as="p" color="red" size="2" className="mt-1">
+                {errors.password}
+              </Text>
+            )}
+          </div>
         </div>
 
-        {error && (
-          <Alert
-            message="Đăng nhập thất bại"
-            description={error}
-            type="error"
-            showIcon
-            closable
-            onClose={clearError}
-            style={alertStyles}
-          />
-        )}
+        <Flex align="center" justify="between" className="pt-2">
+          <label className="flex items-center gap-2 cursor-pointer group">
+            <Checkbox
+              checked={rememberEmail}
+              onCheckedChange={handleRememberEmailChange}
+              size="2"
+              color="cyan"
+              className="group-hover:opacity-80"
+              variant="surface"
+            />
+            <Text size="2" className="text-slate-600 group-hover:text-slate-900 transition-colors font-medium">
+              Nho tai khoan
+            </Text>
+          </label>
+          <a
+            href="#"
+            className="text-sm font-medium text-cyan-600 hover:text-cyan-700 hover:underline underline-offset-4 transition-all"
+          >
+            Quen mat khau?
+          </a>
+        </Flex>
 
-        <div style={googleWrapStyles}>
-          <div ref={googleButtonRef} style={googleSlotStyles} />
-        </div>
+        <Button
+          className="w-full h-12 text-base font-semibold transition-all hover:scale-[1.01] active:scale-[0.98] shadow-md shadow-cyan-500/20"
+          color="cyan"
+          disabled={!isFormValid || isSubmitting}
+          size="4"
+          type="submit"
+        >
+          {isSubmitting ? "Dang xu ly..." : "Dang nhap"}
+        </Button>
+      </form>
 
-        {!googleScriptLoaded && (
-          <div style={hintStyles}>
-            <GoogleOutlined />
-            <span>Đang chuẩn bị nút đăng nhập Google...</span>
-          </div>
-        )}
-
-        <Text style={noteStyles}>
-          Chỉ cần một tài khoản Google để truy cập đầy đủ vào hệ thống.
-        </Text>
-      </Card>
-    </Spin>
+      <div className="mt-8 pt-6 border-t border-slate-200 text-center">
+        <p className="text-sm text-slate-500">Khong chia se thong tin dang nhap.</p>
+      </div>
+    </div>
   );
 }

@@ -1,0 +1,27 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthCookieService } from '../auth/services/auth-cookie.service';
+import { AuthTokenService } from '../auth/services/auth-token.service';
+import { AbacGuard } from '../auth/guards/abac.guard';
+import { DemoAuthGuard } from '../auth/guards/demo-auth.guard';
+import { User } from './entities/user.entity';
+import { AdminUserController, UserController } from './user.controller';
+import { PasswordService } from './services/password.service';
+import { UserFactoryService } from './services/user-factory.service';
+import { UsersService } from './users.service';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([User])],
+  controllers: [UserController, AdminUserController],
+  providers: [
+    UsersService,
+    PasswordService,
+    UserFactoryService,
+    AuthTokenService,
+    AuthCookieService,
+    DemoAuthGuard,
+    AbacGuard,
+  ],
+  exports: [UsersService],
+})
+export class UsersModule {}
