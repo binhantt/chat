@@ -102,7 +102,7 @@ export function useProfileSetup() {
 
     try {
       const response = await fetch("/api/profile/me", {
-        method: "PATCH",
+        method: "POST",
         headers: {
           "content-type": "application/json",
         },

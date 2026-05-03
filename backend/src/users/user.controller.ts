@@ -21,6 +21,7 @@ import {
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserAccessDto } from './dto/update-user-access.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ProfileSetupDto } from './dto/profile-setup.dto';
 import { UsersService } from './users.service';
 
 @Controller('users')
@@ -38,6 +39,14 @@ export class UserController {
   @CheckPolicies(canUpdateUser)
   update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.usersService.update(id, updateUserDto);
+  }
+
+  @Post('setup-profile')
+  setupProfile(
+    @Body() profileSetupDto: ProfileSetupDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.usersService.setupProfile(request.user!.id, profileSetupDto);
   }
 }
 

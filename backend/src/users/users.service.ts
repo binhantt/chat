@@ -9,6 +9,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
+import { ProfileSetupDto } from './dto/profile-setup.dto';
 import { UpdateUserAccessDto } from './dto/update-user-access.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserRole } from './entities/user.entity';
@@ -145,6 +146,20 @@ export class UsersService implements OnModuleInit {
     user.role = updateUserAccessDto.role;
     user.isActive = updateUserAccessDto.isActive;
     user.updatedAt = new Date();
+
+    return this.saveSafeUser(await this.usersRepository.save(user));
+  }
+
+  async setupProfile(
+    userId: string,
+    profileSetupDto: ProfileSetupDto,
+  ): Promise<User> {
+    const user = await this.findByIdOrFail(userId);
+
+    Object.assign(user, {
+      ...profileSetupDto,
+      updatedAt: new Date(),
+    });
 
     return this.saveSafeUser(await this.usersRepository.save(user));
   }

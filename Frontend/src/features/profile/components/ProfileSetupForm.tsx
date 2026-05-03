@@ -2,7 +2,6 @@
 
 import {
   Button,
-  Card,
   Flex,
   RadioGroup,
   Separator,
@@ -32,15 +31,15 @@ export function ProfileSetupForm() {
   return (
     <div
       style={{
-        minHeight: "100%",
+        minHeight: "100vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         padding: 32,
-        background: "linear-gradient(135deg,#f0f9ff 0%,#f8fafc 100%)",
+        background: "#ffffff",
       }}
     >
-      <Card style={{ width: "100%", maxWidth: 480, padding: 40 }}>
+      <div style={{ width: "100%", maxWidth: 480 }}>
         <Flex direction="column" gap="1" style={{ marginBottom: 28 }}>
           <Text
             size="6"
@@ -147,7 +146,7 @@ export function ProfileSetupForm() {
             {isHydrating ? "Dang tai thong tin..." : "Bat dau tim nguoi la"}
           </Button>
         </Flex>
-      </Card>
+      </div>
     </div>
   );
 }

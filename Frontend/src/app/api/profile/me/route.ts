@@ -14,6 +14,10 @@ export async function PATCH(request: NextRequest) {
   return proxyProfileRequest(request, "PATCH");
 }
 
+export async function POST(request: NextRequest) {
+  return proxyProfileSetupRequest(request);
+}
+
 async function proxyProfileRequest(request: NextRequest, method: "GET" | "PATCH") {
   const backendUrl = getBackendUrl();
   const userId = await getAuthenticatedUserId();
@@ -49,9 +53,7 @@ async function proxyProfileRequest(request: NextRequest, method: "GET" | "PATCH"
       method,
       headers: {
         ...(body ? { "content-type": "application/json" } : {}),
-        ...(request.headers.get("cookie")
-          ? { cookie: request.headers.get("cookie")! }
-          : {}),
+        ...(request.headers.get("cookie") ? { cookie: request.headers.get("cookie")! } : {}),
       },
       body,
       cache: "no-store",
@@ -62,6 +64,54 @@ async function proxyProfileRequest(request: NextRequest, method: "GET" | "PATCH"
       { status: 503 },
     );
   }
+
+  const rawText = await backendResponse.text();
+
+  return new NextResponse(rawText || null, {
+    status: backendResponse.status,
+    headers: {
+      "content-type":
+        backendResponse.headers.get("content-type") ??
+        "application/json; charset=utf-8",
+    },
+  });
+}
+
+async function proxyProfileSetupRequest(request: NextRequest) {
+  const backendUrl = getBackendUrl();
+  const userId = await getAuthenticatedUserId();
+
+  if (!userId) {
+    return NextResponse.json({ message: UNAUTHORIZED_MESSAGE }, { status: 401 });
+  }
+
+  if (!backendUrl) {
+    return NextResponse.json(
+      { message: "May chu backend chua duoc cau hinh." },
+      { status: 503 },
+    );
+  }
+
+  let body: string | undefined;
+
+  try {
+    body = JSON.stringify(await request.json());
+  } catch {
+    return NextResponse.json(
+      { message: "Dữ liệu không hợp lệ." },
+      { status: 400 },
+    );
+  }
+
+  const backendResponse = await fetch(`${backendUrl}/users/setup-profile`, {
+    method: "POST",
+    headers: {
+      ...(body ? { "content-type": "application/json" } : {}),
+      ...(request.headers.get("cookie") ? { cookie: request.headers.get("cookie")! } : {}),
+    },
+    body,
+    cache: "no-store",
+  });
 
   const rawText = await backendResponse.text();
 
