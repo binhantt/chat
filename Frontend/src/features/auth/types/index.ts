@@ -3,6 +3,17 @@ export interface AdminLoginPayload {
   password: string;
 }
 
+export interface GoogleLoginPayload {
+  idToken: string;
+}
+
+export interface GoogleLoginResponse {
+  message: string;
+  accessToken: string;
+  refreshToken: string;
+  user: AdminUser;
+}
+
 export interface AdminUser {
   id: string;
   email: string;

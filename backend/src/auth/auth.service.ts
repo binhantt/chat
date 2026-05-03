@@ -14,7 +14,7 @@ export class AuthService {
   ) {}
 
   async googleLogin(idToken: string) {
-    const payload = this.googleAuthService.verifyToken(idToken);
+    const payload = await this.googleAuthService.verifyToken(idToken);
     const user = await this.usersService.upsertFromGoogle(
       this.toGoogleUserProfile(payload),
     );

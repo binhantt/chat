@@ -1,4 +1,4 @@
-import type { AdminLoginPayload, AdminLoginResponse } from "../types";
+import type { AdminLoginPayload, AdminLoginResponse, GoogleLoginPayload, GoogleLoginResponse } from "../types";
 
 export class AuthRequestError extends Error {
   constructor(
@@ -42,6 +42,40 @@ export async function emailLogin(
   }
 
   return payloadData as AdminLoginResponse;
+}
+
+export async function googleLogin(
+  payload: GoogleLoginPayload,
+): Promise<GoogleLoginResponse> {
+  let response: Response;
+
+  try {
+    response = await fetch("/api/auth/google-login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(payload),
+      cache: "no-store",
+      credentials: "same-origin",
+    });
+  } catch {
+    throw new AuthRequestError(
+      "Không thể kết nối tới máy chủ. Vui lòng thử lại.",
+      0,
+    );
+  }
+
+  const payloadData = await parseResponse(response);
+
+  if (!response.ok) {
+    throw new AuthRequestError(
+      getErrorMessage(payloadData, response.status),
+      response.status,
+    );
+  }
+
+  return payloadData as GoogleLoginResponse;
 }
 
 async function parseResponse(response: Response): Promise<unknown> {
