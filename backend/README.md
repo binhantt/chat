@@ -1,53 +1,397 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Chat Backend API Documentation
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## Overview
+This is the backend API for a chat application built with NestJS. It provides user authentication, chat functionality, matching services, and reporting capabilities.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Features
+- **User Authentication**: JWT-based authentication with role-based access control
+- **Chat System**: Real-time messaging with conversation management
+- **Matching System**: User matching and pairing functionality
+- **Report System**: User reporting and admin management
+- **Database**: PostgreSQL with TypeORM
+- **API Documentation**: Comprehensive API documentation
 
-## Description
+## Tech Stack
+- **Framework**: NestJS
+- **Language**: TypeScript
+- **Database**: PostgreSQL
+- **ORM**: TypeORM
+- **Authentication**: JWT
+- **Validation**: class-validator
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## API Documentation
 
-## Project setup
+### Authentication Endpoints
 
-```bash
-$ pnpm install
+#### Register User
+```http
+POST /auth/register
 ```
 
-## Compile and run the project
-
-```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123",
+  "fullName": "John Doe"
+}
 ```
 
-## Run tests
+**Response:**
+```json
+{
+  "id": "uuid",
+  "email": "user@example.com",
+  "fullName": "John Doe",
+  "role": "user"
+}
+```
 
+#### Login
+```http
+POST /auth/login
+```
+
+**Request Body:**
+```json
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+```
+
+**Response:**
+```json
+{
+  "accessToken": "jwt-token",
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "fullName": "John Doe",
+    "role": "user"
+  }
+}
+```
+
+### Chat Endpoints
+
+#### Get Conversations
+```http
+GET /chat/conversations
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "user1": {
+      "id": "uuid",
+      "fullName": "John Doe",
+      "avatarUrl": "url"
+    },
+    "user2": {
+      "id": "uuid",
+      "fullName": "Jane Smith",
+      "avatarUrl": "url"
+    },
+    "lastMessage": {
+      "id": "uuid",
+      "content": "Hello!",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  }
+]
+```
+
+#### Get Messages
+```http
+GET /chat/conversations/:id/messages
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "content": "Hello!",
+    "senderId": "uuid",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+]
+```
+
+#### Send Message
+```http
+POST /chat/conversations/:id/messages
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "content": "Hello!"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "content": "Hello!",
+  "senderId": "uuid",
+  "createdAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### Matching Endpoints
+
+#### Get Matches
+```http
+GET /match/matches
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "userId": "uuid",
+    "matchedUserId": "uuid",
+    "status": "pending",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+]
+```
+
+#### Create Match Request
+```http
+POST /match/matches
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "userId": "uuid"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "userId": "uuid",
+  "matchedUserId": "uuid",
+  "status": "pending",
+  "createdAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+### Report Endpoints
+
+#### Create Report
+```http
+POST /reports
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "reportedUserId": "uuid",
+  "reason": "spam",
+  "description": "Optional description"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "reason": "spam",
+  "description": "Optional description",
+  "status": "pending",
+  "createdAt": "2024-01-01T00:00:00.000Z"
+}
+```
+
+#### Get All Reports (Admin Only)
+```http
+GET /reports
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "reason": "spam",
+    "description": "Description",
+    "status": "pending",
+    "createdAt": "2024-01-01T00:00:00.000Z",
+    "reporter": {
+      "id": "uuid",
+      "fullName": "John Doe",
+      "email": "john@example.com"
+    },
+    "reportedUser": {
+      "id": "uuid",
+      "fullName": "Jane Smith",
+      "email": "jane@example.com"
+    }
+  }
+]
+```
+
+#### Update Report Status (Admin Only)
+```http
+PATCH /reports/:id/status
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "status": "reviewed"
+}
+```
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "reason": "spam",
+  "description": "Description",
+  "status": "reviewed",
+  "createdAt": "2024-01-01T00:00:00.000Z",
+  "updatedAt": "2024-01-01T01:00:00.000Z"
+}
+```
+
+## Database Schema
+
+### Users Table
+```sql
+CREATE TABLE users (
+  id UUID PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  full_name VARCHAR(255),
+  avatar_url VARCHAR(255),
+  role VARCHAR(20) DEFAULT 'user',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### Conversations Table
+```sql
+CREATE TABLE conversations (
+  id UUID PRIMARY KEY,
+  user1_id UUID NOT NULL,
+  user2_id UUID NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user1_id) REFERENCES users(id),
+  FOREIGN KEY (user2_id) REFERENCES users(id)
+);
+```
+
+### Messages Table
+```sql
+CREATE TABLE messages (
+  id UUID PRIMARY KEY,
+  conversation_id UUID NOT NULL,
+  sender_id UUID NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (conversation_id) REFERENCES conversations(id),
+  FOREIGN KEY (sender_id) REFERENCES users(id)
+);
+```
+
+### Reports Table
+```sql
+CREATE TABLE reports (
+  id UUID PRIMARY KEY,
+  reporter_id UUID NOT NULL,
+  reported_user_id UUID NOT NULL,
+  reason VARCHAR(50) NOT NULL,
+  description TEXT,
+  status VARCHAR(20) DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (reporter_id) REFERENCES users(id),
+  FOREIGN KEY (reported_user_id) REFERENCES users(id)
+);
+```
+
+## Environment Variables
+
+```env
+# Database
+DATABASE_URL=postgresql://username:password@localhost:5432/chat_db
+
+# JWT
+JWT_SECRET=your-secret-key
+JWT_EXPIRES_IN=1d
+
+# Server
+PORT=3000
+```
+
+## Error Handling
+
+The API uses standard HTTP status codes and returns error responses in the following format:
+
+```json
+{
+  "message": "Error description",
+  "error": "Error type",
+  "statusCode": 400
+}
+```
+
+Common error codes:
+- 400: Bad Request
+- 401: Unauthorized
+- 403: Forbidden
+- 404: Not Found
+- 500: Internal Server Error
+
+## Authentication
+
+All protected endpoints require a JWT token in the Authorization header:
+```
+Authorization: Bearer <token>
+```
+
+The token is obtained by logging in or registering.
+
+## Rate Limiting
+
+Implement rate limiting to prevent abuse:
+- Authentication endpoints: 5 requests per minute
+- API endpoints: 100 requests per minute
+- Report creation: 10 requests per minute
+
+## Security Considerations
+
+1. **Password Hashing**: Use bcrypt for password hashing
+2. **JWT Security**: Use strong JWT secrets and appropriate expiration times
+3. **Input Validation**: Validate all user inputs
+4. **SQL Injection**: Use parameterized queries
+5. **CORS**: Configure CORS properly for your frontend
+6. **HTTPS**: Always use HTTPS in production
+
+## Testing
+
+Run tests with:
 ```bash
-# unit tests
 $ pnpm run test
 
 # e2e tests
@@ -57,42 +401,14 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
-## Deployment
+## Contributing
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+This project is licensed under the MIT License.

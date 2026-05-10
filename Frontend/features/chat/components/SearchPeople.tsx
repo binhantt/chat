@@ -1,10 +1,10 @@
 "use client";
 
-import { Flex, Text, TextField, Box, Avatar, Spinner, Badge } from "@radix-ui/themes";
-import { MagnifyingGlassIcon, ChatBubbleIcon } from "@radix-ui/react-icons";
-import { useState, useEffect, useCallback } from "react";
+import { Flex, Text, TextField, Box, Avatar, Spinner } from "@radix-ui/themes";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getConversations } from "@/features/athu";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface BackendConversation {
   id: string;
@@ -25,14 +25,27 @@ interface ChatPartner {
   partnerAvatar: string | null;
   lastTime: string;
   status: "active" | "ended" | "blocked";
+  lastMessage?: string;
 }
 
 export function SearchPeople() {
   const [query, setQuery] = useState("");
-  const [open, setOpen] = useState(false);
   const [conversations, setConversations] = useState<ChatPartner[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [selectedConv, setSelectedConv] = useState<string | null>(null);
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Theme colors
+  const bgPrimary = isDark ? "#1a1a2e" : "#f8fafc";
+  const bgSecondary = isDark ? "#16213e" : "#ffffff";
+  const bgHover = isDark ? "rgba(255,255,255,0.08)" : "rgba(99, 102, 241, 0.06)";
+  const textPrimary = isDark ? "#e2e8f0" : "#1e293b";
+  const textSecondary = isDark ? "#94a3b8" : "#64748b";
+  const accentColor = "#6366f1";
+  const borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
 
   const fetchConversations = useCallback(async () => {
     setLoading(true);
@@ -69,12 +82,6 @@ export function SearchPeople() {
     }
   }, [user, fetchConversations]);
 
-  useEffect(() => {
-    if (open && user) {
-      fetchConversations();
-    }
-  }, [open, user, fetchConversations]);
-
   const filtered = conversations.filter((c) =>
     c.partnerName.toLowerCase().includes(query.toLowerCase()) ||
     c.partnerEmail.toLowerCase().includes(query.toLowerCase())
@@ -89,171 +96,277 @@ export function SearchPeople() {
     const diffDays = Math.floor(diffHours / 24);
 
     if (diffMins < 1) return "Vừa xong";
-    if (diffMins < 60) return `${diffMins} phút`;
-    if (diffHours < 24) return `${diffHours} giờ`;
-    if (diffDays < 7) return `${diffDays} ngày`;
+    if (diffMins < 60) return `${diffMins}p`;
+    if (diffHours < 24) return `${diffHours}gi`;
+    if (diffDays < 7) return `${diffDays}ng`;
     return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
   };
 
-  return (
-    <Box position="relative">
-      <TextField.Root
-        placeholder="Tìm kiếm cuộc trò chuyện..."
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          setOpen(true);
-        }}
-        onFocus={() => {
-          setOpen(true);
-          if (user) fetchConversations();
-        }}
-        style={{
-          background: "var(--bg-secondary, var(--white))",
-          borderRadius: "var(--radius-3)",
-        }}
-      >
-        <TextField.Slot>
-          <MagnifyingGlassIcon width={16} height={16} color="var(--gray-9)" />
-        </TextField.Slot>
-      </TextField.Root>
+  const getUserInitials = (name: string) => {
+    if (!name) return "??";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
+  };
 
-      {open && (
-        <Box
-          position="absolute"
-          top="calc(100% + 4px)"
-          left="0"
-          right="0"
-          style={{
-            background: "var(--bg-secondary, var(--white))",
-            borderRadius: "var(--radius-3)",
-            boxShadow: "0 8px 24px rgba(99,102,241,0.12)",
-            zIndex: 100,
-            maxHeight: 400,
-            overflowY: "auto",
-            border: "1px solid var(--indigo-5)",
-          }}
-        >
-          {loading ? (
-            <Flex p="5" align="center" justify="center" direction="column" gap="3">
-              <Spinner size="3" />
-              <Text size="2" color="gray">Đang tải lịch sử trò chuyện...</Text>
-            </Flex>
-          ) : filtered.length === 0 && query ? (
-            <Flex p="4" align="center" justify="center" direction="column" gap="2">
-              <Text size="2" color="gray">Không tìm thấy cuộc trò chuyện nào</Text>
-              <Text size="1" color="gray">Thử tìm kiếm với từ khóa khác</Text>
-            </Flex>
-          ) : filtered.length === 0 ? (
-            <Flex p="4" align="center" justify="center" direction="column" gap="2">
-              <ChatBubbleIcon width={32} height={32} color="var(--gray-6)" />
-              <Text size="2" color="gray">Chưa có cuộc trò chuyện nào</Text>
-              <Text size="1" color="gray">Bắt đầu trò chuyện mới với Ghép đôi ngẫu nhiên</Text>
-            </Flex>
-          ) : (
-            filtered.map((chat) => (
-              <ConversationItem
-                key={chat.conversationId}
-                chat={chat}
-                onClose={() => {
-                  setOpen(false);
-                  setQuery("");
-                }}
-              />
-            ))
-          )}
-        </Box>
-      )}
-    </Box>
-  );
-}
-
-function ConversationItem({
-  chat,
-  onClose,
-}: {
-  chat: ChatPartner;
-  onClose: () => void;
-}) {
-  const [clicked, setClicked] = useState(false);
-
-  const handleClick = () => {
-    if (clicked) return;
-    setClicked(true);
-    onClose();
+  const handleSelectConversation = (chat: ChatPartner) => {
     window.location.href = `/chat?conv=${chat.conversationId}&user=${chat.partnerId}`;
   };
 
-  const statusColor = {
-    active: "green",
-    ended: "gray",
-    blocked: "red",
-  } as const;
-
   return (
     <Flex
+      direction="column"
       align="center"
-      gap="3"
-      px="4"
-      py="3"
-      onClick={handleClick}
-      style={{
-        cursor: "pointer",
-        borderBottom: "1px solid var(--indigo-4)",
-        transition: "background 0.15s",
-        background: "transparent",
-      }}
-      onMouseEnter={(e) => e.currentTarget.style.background = "var(--indigo-2)"}
-      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+      gap="5"
+      style={{ width: "100%", maxWidth: 500 }}
     >
-      <Box position="relative">
-        <Avatar
-          size="2"
-          radius="full"
-          fallback={chat.partnerName.slice(0, 2).toUpperCase()}
-          color="indigo"
-          src={chat.partnerAvatar || undefined}
-          style={{
-            background: "linear-gradient(135deg, var(--indigo-6), var(--violet-6))",
-            color: "white",
-          }}
-        />
-        <Box
-          position="absolute"
-          bottom="0"
-          right="0"
-          style={{
-            width: 10,
-            height: 10,
-            borderRadius: "50%",
-            background: chat.status === "active" ? "var(--green-9)" : "var(--gray-7)",
-            border: "2px solid var(--bg-secondary, var(--white))",
-          }}
-        />
+      {/* Icon */}
+      <Box
+        style={{
+          width: 100,
+          height: 100,
+          borderRadius: "50%",
+          background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: `0 12px 40px rgba(99, 102, 241, 0.35)`,
+        }}
+      >
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
       </Box>
 
-      <Flex direction="column" gap="0" style={{ flex: 1 }}>
-        <Flex align="center" gap="2">
-          <Text size="2" weight="medium">{chat.partnerName}</Text>
-          <Badge color={statusColor[chat.status]} variant="soft" size="1">
-            {chat.status === "active" ? "Hoạt động" : chat.status === "ended" ? "Đã kết thúc" : "Đã chặn"}
-          </Badge>
-        </Flex>
-        <Text
-          size="1"
-          color="gray"
-          style={{
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-            maxWidth: 200,
-          }}
-        >
-          {chat.partnerEmail}
+      {/* Title */}
+      <Flex direction="column" align="center" gap="2">
+        <Text size="5" weight="bold" style={{ color: textPrimary }}>
+          Tìm kiếm cuộc trò chuyện
+        </Text>
+        <Text size="2" style={{ color: textSecondary, textAlign: "center" }}>
+          Tìm theo tên người dùng hoặc email
         </Text>
       </Flex>
 
-      <Text size="1" color="gray">{chat.lastTime}</Text>
+      {/* Search Input */}
+      <Box
+        style={{
+          width: "100%",
+          position: "relative",
+        }}
+      >
+        <Box
+          style={{
+            display: "flex",
+            alignItems: "center",
+            background: bgSecondary,
+            border: `2px solid ${borderColor}`,
+            borderRadius: 16,
+            padding: "4px 8px 4px 16px",
+            transition: "all 0.2s",
+            boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.3)" : "0 4px 16px rgba(0,0,0,0.06)",
+          }}
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={textSecondary} strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Nhập tên hoặc email..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            style={{
+              flex: 1,
+              border: "none",
+              background: "transparent",
+              padding: "14px 12px",
+              fontSize: "15px",
+              color: textPrimary,
+              outline: "none",
+            }}
+          />
+          {query && (
+            <Box
+              as="button"
+              onClick={() => setQuery("")}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: "50%",
+                background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
+                border: "none",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={textSecondary} strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </Box>
+          )}
+        </Box>
+      </Box>
+
+      {/* Results */}
+      <Box
+        style={{
+          width: "100%",
+          maxHeight: 400,
+          overflowY: "auto",
+          background: bgSecondary,
+          borderRadius: 20,
+          border: `1px solid ${borderColor}`,
+          boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.2)" : "0 4px 16px rgba(0,0,0,0.04)",
+        }}
+      >
+        {loading ? (
+          <Flex direction="column" align="center" justify="center" gap="4" py="8">
+            <Box
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                border: `3px solid ${borderColor}`,
+                borderTopColor: accentColor,
+                animation: "spin 0.8s linear infinite",
+              }}
+            />
+            <Text size="2" style={{ color: textSecondary }}>Đang tải...</Text>
+          </Flex>
+        ) : filtered.length === 0 ? (
+          <Flex direction="column" align="center" justify="center" gap="3" py="8" px="4">
+            <Box
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: "50%",
+                background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={textSecondary} strokeWidth="2">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              </svg>
+            </Box>
+            <Text size="2" weight="medium" style={{ color: textSecondary }}>
+              {query ? "Không tìm thấy kết quả" : "Chưa có cuộc trò chuyện nào"}
+            </Text>
+            {query && (
+              <Text size="1" style={{ color: textSecondary, opacity: 0.7 }}>
+                Thử tìm với từ khóa khác
+              </Text>
+            )}
+          </Flex>
+        ) : (
+          <Box>
+            {filtered.map((chat, index) => (
+              <Box
+                key={chat.conversationId}
+                onClick={() => handleSelectConversation(chat)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  padding: "16px",
+                  cursor: "pointer",
+                  borderBottom: index < filtered.length - 1 ? `1px solid ${borderColor}` : "none",
+                  transition: "background 0.15s",
+                }}
+                onMouseOver={(e) => {
+                  e.currentTarget.style.background = bgHover;
+                }}
+                onMouseOut={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                }}
+              >
+                {/* Avatar */}
+                <Box position="relative">
+                  <Avatar
+                    size="3"
+                    radius="full"
+                    src={chat.partnerAvatar || undefined}
+                    fallback={getUserInitials(chat.partnerName)}
+                    style={{
+                      background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
+                      color: "white",
+                      fontSize: "14px",
+                      fontWeight: 600,
+                    }}
+                  />
+                  <Box
+                    position="absolute"
+                    bottom={0}
+                    right={0}
+                    style={{
+                      width: 12,
+                      height: 12,
+                      borderRadius: "50%",
+                      background: chat.status === "active" ? "#22c55e" : "#94a3b8",
+                      border: "2px solid",
+                      borderColor: bgSecondary,
+                    }}
+                  />
+                </Box>
+
+                {/* Info */}
+                <Flex direction="column" gap="0" style={{ flex: 1, minWidth: 0 }}>
+                  <Flex align="center" gap="2">
+                    <Text size="2" weight="medium" style={{ color: textPrimary }}>
+                      {chat.partnerName}
+                    </Text>
+                    <Box
+                      style={{
+                        padding: "2px 8px",
+                        borderRadius: 10,
+                        background: chat.status === "active"
+                          ? "rgba(34, 197, 94, 0.15)"
+                          : "rgba(148, 163, 184, 0.15)",
+                      }}
+                    >
+                      <Text size="1" style={{ color: chat.status === "active" ? "#22c55e" : "#94a3b8" }}>
+                        {chat.status === "active" ? "Hoạt động" : "Đã kết thúc"}
+                      </Text>
+                    </Box>
+                  </Flex>
+                  <Text
+                    size="1"
+                    style={{
+                      color: textSecondary,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {chat.partnerEmail}
+                  </Text>
+                </Flex>
+
+                {/* Time */}
+                <Text size="1" style={{ color: textSecondary, flexShrink: 0 }}>
+                  {chat.lastTime}
+                </Text>
+              </Box>
+            ))}
+          </Box>
+        )}
+      </Box>
+
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
     </Flex>
   );
 }

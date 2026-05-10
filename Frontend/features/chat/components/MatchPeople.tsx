@@ -1,8 +1,9 @@
 'use client';
 
-import { Flex, Text, Box, Button, Spinner, Avatar } from "@radix-ui/themes";
+import { Flex, Text, Box, Button } from "@radix-ui/themes";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const API_URL = "/api/match";
 
@@ -33,9 +34,19 @@ interface MatchPeopleProps {
 
 export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
+  // Theme colors
+  const bgPrimary = isDark ? "#1a1a2e" : "#ffffff";
+  const textPrimary = isDark ? "#e2e8f0" : "#1e293b";
+  const textSecondary = isDark ? "#94a3b8" : "#64748b";
+  const accentColor = "#6366f1";
+  const greenColor = "#22c55e";
+  const borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+
   const [status, setStatus] = useState<MatchStatus>(MatchStatus.Idle);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string>("");
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const checkMatchStatus = useCallback(async () => {
@@ -48,11 +59,9 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
         const data = await res.json();
 
         if (data.conversationId && data.matchedWithUserId) {
-          // Đã match thành công
           setStatus(MatchStatus.Matched);
           stopPolling();
 
-          // matchedUser đã có sẵn trong status response
           setMatchResult({
             conversationId: data.conversationId,
             matchedUserId: data.matchedWithUserId,
@@ -89,7 +98,6 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
 
   const handleStartSearch = async () => {
     setStatus(MatchStatus.Searching);
-    setErrorMessage("");
 
     try {
       const res = await fetch(`${API_URL}/join`, {
@@ -98,17 +106,13 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
       });
 
       if (!res.ok) {
-        const error = await res.json();
         setStatus(MatchStatus.Idle);
-        setErrorMessage(error.message || "Không thể bắt đầu tìm kiếm");
         return;
       }
 
-      // Bắt đầu polling để kiểm tra trạng thái match
       startPolling();
     } catch (error) {
       setStatus(MatchStatus.Idle);
-      setErrorMessage("Đã xảy ra lỗi khi tìm kiếm");
     }
   };
 
@@ -133,11 +137,9 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
     }
   };
 
-  // Cleanup when unmount
   useEffect(() => {
     return () => {
       stopPolling();
-      // Khi unmount mà đang tìm kiếm, tự động leave queue
       if (status === MatchStatus.Searching) {
         fetch(`${API_URL}/leave`, {
           method: "DELETE",
@@ -156,212 +158,296 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
     return name.slice(0, 2).toUpperCase();
   };
 
+  // Helper to get search text based on user gender
+  const getSearchText = () => {
+    if (user?.gender === "male") return "Tìm kiếm nữ cùng thành phố";
+    if (user?.gender === "female") return "Tìm kiếm nam cùng thành phố";
+    return "Cập nhật giới tính để tìm người phù hợp";
+  };
+
   return (
-    <Flex direction="column" align="center" justify={"center"} gap="4" style={{ padding: "20px" }}>
+    <Flex
+      direction="column"
+      align="center"
+      justify="center"
+      style={{
+        minHeight: "calc(100vh - 200px)",
+        background: bgPrimary,
+        borderRadius: 24,
+        padding: "60px 40px",
+        width: "100%",
+      }}
+    >
+      {/* Idle State - Default view */}
       {status === MatchStatus.Idle && (
-        <>
-          <Box style={{ perspective: 600 }}>
-            <Box style={{ animation: "searchPulse 1.5s ease-in-out infinite" }}>
-              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-9)" strokeWidth="1.5">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </Box>
+        <Flex direction="column" align="center" gap="5" style={{ width: "100%", maxWidth: 400 }}>
+          {/* Icon Circle */}
+          <Box
+            style={{
+              width: 120,
+              height: 120,
+              borderRadius: "50%",
+              background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: `0 12px 40px rgba(99, 102, 241, 0.35)`,
+            }}
+          >
+            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
           </Box>
 
+          {/* Title & Description */}
           <Flex direction="column" align="center" gap="2">
-            <Text size="5" weight="bold" color="indigo">
+            <Text size="6" weight="bold" style={{ color: textPrimary }}>
               Tìm người trò chuyện
             </Text>
-            <Text size="2" color="gray" align="center" style={{ maxWidth: 300 }}>
-              {user?.gender === "male"
-                ? "Tìm kiếm nữ cùng thành phố"
-                : user?.gender === "female"
-                ? "Tìm kiếm nam cùng thành phố"
-                : "Cập nhật giới tính để tìm người phù hợp"
-              }
+            <Text size="3" style={{ color: textSecondary }}>
+              {getSearchText()}
             </Text>
           </Flex>
 
-          {errorMessage && (
-            <Text size="2" color="red">{errorMessage}</Text>
+          {/* Warning if missing info */}
+          {(!user?.gender || !user?.city) && (
+            <Box
+              style={{
+                padding: "12px 20px",
+                borderRadius: 12,
+                background: "rgba(245, 158, 11, 0.1)",
+                maxWidth: 320,
+              }}
+            >
+              <Text size="2" style={{ color: "#f59e0b", textAlign: "center" }}>
+                Vui lòng cập nhật giới tính và thành phố trong phần giới thiệu trước
+              </Text>
+            </Box>
           )}
 
+          {/* Action Button */}
           <Button
             size="3"
-            color="indigo"
             onClick={handleStartSearch}
             disabled={!user?.gender || !user?.city}
-            style={{ cursor: "pointer", padding: "12px 32px" }}
+            style={{
+              padding: "14px 40px",
+              fontSize: "15px",
+              fontWeight: 600,
+              borderRadius: 12,
+              background: user?.gender && user?.city
+                ? `linear-gradient(135deg, ${greenColor}, #10b981)`
+                : isDark ? "#374151" : "#cbd5e1",
+              color: "white",
+              border: "none",
+              boxShadow: user?.gender && user?.city
+                ? "0 6px 20px rgba(34, 197, 94, 0.35)"
+                : "none",
+            }}
           >
             Bắt đầu tìm kiếm
           </Button>
-
-          {(!user?.gender || !user?.city) && (
-            <Text size="1" color="orange" align="center" style={{ maxWidth: 250 }}>
-              Vui lòng cập nhật giới tính và thành phố trong phần giới thiệu trước
-            </Text>
-          )}
-        </>
+        </Flex>
       )}
 
+      {/* Searching State */}
       {status === MatchStatus.Searching && (
-        <>
-          <Box>
-            <Spinner size="3" />
+        <Flex direction="column" align="center" gap="5">
+          {/* Animated Icon */}
+          <Box
+            style={{
+              width: 120,
+              height: 120,
+              borderRadius: "50%",
+              background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: `0 12px 40px rgba(99, 102, 241, 0.4)`,
+              animation: "pulse 2s ease-in-out infinite",
+            }}
+          >
+            <Box
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.3)",
+                animation: "bounce 1s ease-in-out infinite",
+              }}
+            />
           </Box>
 
+          {/* Text */}
           <Flex direction="column" align="center" gap="2">
-            <Text size="5" weight="bold" color="indigo">
+            <Text size="6" weight="bold" style={{ color: accentColor }}>
               Đang tìm kiếm...
             </Text>
-            <Text size="2" color="gray" align="center">
+            <Text size="3" style={{ color: textSecondary }}>
               Vui lòng đợi trong giây lát
             </Text>
           </Flex>
 
-          <Flex gap="2" style={{ marginTop: 20 }}>
-            <Box
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: "50%",
-                background: "var(--indigo-9)",
-                animation: "dotPulse 1s ease-in-out infinite",
-              }}
-            />
-            <Box
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: "50%",
-                background: "var(--indigo-7)",
-                animation: "dotPulse 1s ease-in-out infinite 0.2s",
-              }}
-            />
-            <Box
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: "50%",
-                background: "var(--indigo-5)",
-                animation: "dotPulse 1s ease-in-out infinite 0.4s",
-              }}
-            />
-          </Flex>
-
+          {/* Cancel Button */}
           <Button
-            variant="outline"
-            color="red"
-            size="2"
+            variant="soft"
+            size="3"
             onClick={handleStopSearch}
-            style={{ cursor: "pointer", marginTop: 20 }}
+            style={{
+              padding: "12px 32px",
+              fontWeight: 600,
+              borderRadius: 12,
+              color: textSecondary,
+            }}
           >
-            Hủy tìm kiếm
+            Hủy
           </Button>
-        </>
+        </Flex>
       )}
 
+      {/* Not Found State */}
       {status === MatchStatus.NotFound && (
-        <>
-          <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="var(--gray-9)" strokeWidth="1.5">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="15" y1="9" x2="9" y2="15" />
-            <line x1="9" y1="9" x2="15" y2="15" />
-          </svg>
+        <Flex direction="column" align="center" gap="5">
+          {/* Icon */}
+          <Box
+            style={{
+              width: 120,
+              height: 120,
+              borderRadius: "50%",
+              background: isDark ? "#374151" : "#e5e7eb",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke={textSecondary} strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          </Box>
 
+          {/* Text */}
           <Flex direction="column" align="center" gap="2">
-            <Text size="5" weight="bold" color="gray">
+            <Text size="6" weight="bold" style={{ color: textPrimary }}>
               Không tìm thấy ai
             </Text>
-            <Text size="2" color="gray" align="center">
+            <Text size="3" style={{ color: textSecondary }}>
               Hiện không có người nào cùng thành phố đang online
             </Text>
           </Flex>
 
+          {/* Retry Button */}
           <Button
-            variant="outline"
-            color="indigo"
+            variant="soft"
+            size="3"
             onClick={() => setStatus(MatchStatus.Idle)}
-            style={{ cursor: "pointer" }}
+            style={{
+              padding: "12px 32px",
+              fontWeight: 600,
+              borderRadius: 12,
+            }}
           >
             Thử lại
           </Button>
-        </>
+        </Flex>
       )}
 
+      {/* Matched State */}
       {status === MatchStatus.Matched && matchResult && (
-        <>
+        <Flex direction="column" align="center" gap="5">
+          {/* Avatar Circle */}
           <Box
             style={{
-              width: 100,
-              height: 100,
+              width: 120,
+              height: 120,
               borderRadius: "50%",
-              background: "var(--indigo-3)",
+              background: `linear-gradient(135deg, ${greenColor}, #10b981)`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              animation: "matchGlow 1.5s ease-in-out infinite",
+              boxShadow: `0 12px 40px rgba(34, 197, 94, 0.4)`,
             }}
           >
-            <Avatar
-              size="5"
-              radius="full"
-              src={matchResult.matchedUser.avatarUrl || undefined}
-              fallback={getUserInitials(matchResult.matchedUser.fullName, matchResult.matchedUser.email)}
-              style={{ background: "var(--indigo-9)", color: "white" }}
-            />
+            <Box
+              style={{
+                width: 90,
+                height: 90,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.2)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 32,
+                fontWeight: "bold",
+                color: "white",
+              }}
+            >
+              {getUserInitials(matchResult.matchedUser.fullName, matchResult.matchedUser.email)}
+            </Box>
           </Box>
 
+          {/* User Info */}
           <Flex direction="column" align="center" gap="2">
-            <Text size="5" weight="bold" color="green">
+            <Text size="6" weight="bold" style={{ color: greenColor }}>
               Đã tìm thấy!
             </Text>
-            <Text size="3" weight="medium">
+            <Text size="4" weight="medium" style={{ color: textPrimary }}>
               {matchResult.matchedUser.fullName || matchResult.matchedUser.email}
             </Text>
             {matchResult.matchedUser.city && (
-              <Text size="2" color="gray">
+              <Text size="2" style={{ color: textSecondary }}>
                 📍 {matchResult.matchedUser.city}
               </Text>
             )}
           </Flex>
 
-          <Flex gap="3" style={{ marginTop: 20 }}>
+          {/* Action Buttons */}
+          <Flex gap="3">
             <Button
-              variant="outline"
-              color="red"
+              variant="soft"
+              size="3"
               onClick={() => {
                 setMatchResult(null);
                 setStatus(MatchStatus.Idle);
               }}
-              style={{ cursor: "pointer" }}
+              style={{
+                padding: "12px 28px",
+                fontWeight: 600,
+                borderRadius: 12,
+                color: textSecondary,
+              }}
             >
               Hủy
             </Button>
             <Button
-              color="green"
+              size="3"
               onClick={handleMatchedAccept}
-              style={{ cursor: "pointer" }}
+              style={{
+                padding: "12px 28px",
+                fontWeight: 600,
+                borderRadius: 12,
+                background: `linear-gradient(135deg, ${greenColor}, #10b981)`,
+                color: "white",
+                border: "none",
+                boxShadow: "0 6px 20px rgba(34, 197, 94, 0.35)",
+              }}
             >
               Bắt đầu trò chuyện
             </Button>
           </Flex>
-        </>
+        </Flex>
       )}
 
       <style>{`
-        @keyframes searchPulse {
-          0%, 100% { transform: scale(1) rotate(0deg); }
-          50% { transform: scale(1.1) rotate(5deg); }
+        @keyframes pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.05); }
         }
-        @keyframes dotPulse {
-          0%, 100% { opacity: 0.3; transform: scale(0.8); }
-          50% { opacity: 1; transform: scale(1.2); }
-        }
-        @keyframes matchGlow {
-          0%, 100% { box-shadow: 0 0 20px var(--indigo-5); }
-          50% { box-shadow: 0 0 40px var(--indigo-9); }
+        @keyframes bounce {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
         }
       `}</style>
     </Flex>

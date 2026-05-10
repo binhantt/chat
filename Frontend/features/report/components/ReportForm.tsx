@@ -1,6 +1,6 @@
 "use client";
 
-import { Flex, Text, Card, TextField, Button, Select, TextArea } from "@radix-ui/themes";
+import { Flex, Text, Card, TextField, Button, Select, TextArea, Badge } from "@radix-ui/themes";
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -12,16 +12,55 @@ export function ReportForm() {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!title.trim() || !content.trim() || !category) return;
-    setSubmitted(true);
-    setTimeout(() => {
-      setTitle("");
-      setContent("");
-      setCategory("");
-      setSubmitted(false);
-    }, 2000);
+    
+    setLoading(true);
+    setError("");
+
+    try {
+      const response = await fetch('/api/reports', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reportedUserId: 'placeholder-user-id', // This should be replaced with actual user ID
+          reason: mapCategoryToReason(category),
+          description: `${title}\n\n${content}`,
+        }),
+      });
+
+      if (response.ok) {
+        setSubmitted(true);
+        setTimeout(() => {
+          setTitle("");
+          setContent("");
+          setCategory("");
+          setSubmitted(false);
+        }, 3000);
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || "Không thể gửi báo cáo. Vui lòng thử lại.");
+      }
+    } catch (err) {
+      setError("Không thể kết nối đến server. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mapCategoryToReason = (category: string) => {
+    const categoryMap: Record<string, string> = {
+      'bug': 'spam',
+      'suggest': 'other',
+      'abuse': 'harassment',
+      'other': 'other'
+    };
+    return categoryMap[category] || 'other';
   };
 
   return (
@@ -76,13 +115,20 @@ export function ReportForm() {
           />
         </Flex>
 
+        {error && (
+          <Text size="2" color="red">
+            {error}
+          </Text>
+        )}
+        
         <Button
           size="3"
           color="indigo"
           onClick={handleSubmit}
-          disabled={submitted || !title.trim() || !content.trim() || !category}
+          disabled={submitted || loading || !title.trim() || !content.trim() || !category}
+          loading={loading}
         >
-          {submitted ? "✅ Đã gửi báo cáo" : "📤 Gửi báo cáo"}
+          {submitted ? "✅ Đã gửi báo cáo" : loading ? "Đang gửi..." : "📤 Gửi báo cáo"}
         </Button>
       </Flex>
     </Card>
