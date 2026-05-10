@@ -58,7 +58,7 @@ export class AuthController {
   }
 }
 
-@Controller('api/admin/v1')
+@Controller('admin/v1')
 export class AdminAuthController {
   constructor(
     private readonly authService: AuthService,

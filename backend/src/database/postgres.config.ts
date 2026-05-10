@@ -1,5 +1,9 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { User } from '../users/entities/user.entity';
+import { MatchQueue } from '../match/entities/match-queue.entity';
+import { Conversation } from '../chat/entities/conversation.entity';
+import { Message } from '../chat/entities/message.entity';
+import { Report } from '../report/entities/report.entity';
 
 export function createPostgresConfig(): TypeOrmModuleOptions {
   const url = process.env.DATABASE_URL;
@@ -15,7 +19,7 @@ function createUrlConfig(url: string): TypeOrmModuleOptions {
   return {
     type: 'postgres',
     url,
-    entities: [User],
+    entities: [User, MatchQueue, Conversation, Message, Report],
     synchronize: process.env.DB_SYNC === 'true',
     ssl: process.env.DB_SSL === 'true',
   };
@@ -29,7 +33,7 @@ function createHostConfig(): TypeOrmModuleOptions {
     username: process.env.DB_USERNAME ?? 'postgres',
     password: process.env.DB_PASSWORD ?? 'postgres',
     database: process.env.DB_DATABASE ?? 'chat',
-    entities: [User],
+    entities: [User, MatchQueue, Conversation, Message, Report],
     synchronize: process.env.DB_SYNC === 'true',
     ssl: process.env.DB_SSL === 'true',
   };

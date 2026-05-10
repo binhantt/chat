@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsDateString, IsPhoneNumber } from 'class-validator';
+import { IsOptional, IsString, IsDateString, IsPhoneNumber, IsEnum, IsNumber, Min, Max } from 'class-validator';
+import { UserGender } from '../entities/user.entity';
 
 export class ProfileSetupDto {
   @IsOptional()
@@ -21,4 +22,12 @@ export class ProfileSetupDto {
   @IsOptional()
   @IsString()
   avatarUrl?: string;
+
+  @IsOptional()
+  @IsEnum(UserGender)
+  gender?: UserGender;
+
+  @IsOptional()
+  @IsString()
+  city?: string;
 }

@@ -29,6 +29,19 @@ import { UsersService } from './users.service';
 export class UserController {
   constructor(private readonly usersService: UsersService) {}
 
+  @Get('me')
+  getCurrentUser(@Req() request: AuthenticatedRequest) {
+    return request.user;
+  }
+
+  @Patch('me')
+  updateCurrentUser(
+    @Body() updateUserDto: UpdateUserDto,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.usersService.update(request.user!.id, updateUserDto);
+  }
+
   @Get(':id')
   @CheckPolicies(canReadUser)
   findOne(@Param('id') id: string) {

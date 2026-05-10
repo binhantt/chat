@@ -8,6 +8,10 @@ import {
 interface RefreshSession {
   userId: string;
   expiresAt: number;
+  // New ban tracking fields
+  banStatus: string; // 'active' or 'banned'
+  violationCount: number;
+  lastViolationDate: Date | null;
 }
 
 @Injectable()
@@ -41,10 +45,37 @@ export class AuthTokenService {
     return REFRESH_TOKEN_TTL_MS;
   }
 
+  verifyAccessToken(token: string | null): string | null {
+    if (!token) {
+      return null;
+    }
+
+    try {
+      const parts = token.split(':');
+      if (parts.length !== 3 || parts[0] !== 'user') {
+        return null;
+      }
+
+      const userId = parts[1];
+      const expiration = parseInt(parts[2], 10);
+
+      if (isNaN(expiration) || expiration <= Date.now()) {
+        return null;
+      }
+
+      return userId;
+    } catch {
+      return null;
+    }
+  }
+
   private createSession(userId: string): RefreshSession {
     return {
       userId,
       expiresAt: Date.now() + REFRESH_TOKEN_TTL_MS,
+      banStatus: 'active',
+      violationCount: 0,
+      lastViolationDate: null,
     };
   }
 
@@ -60,5 +91,35 @@ export class AuthTokenService {
     }
 
     return session.userId;
+  }
+
+  // New ban management methods
+  banUser(userId: string): void {
+    // Find all sessions for this user and set ban status
+    for (const [token, session] of this.refreshSessions.entries()) {
+      if (session.userId === userId) {
+        session.banStatus = 'banned';
+        session.violationCount += 1;
+        session.lastViolationDate = new Date();
+      }
+    }
+  }
+
+  incrementViolationCount(userId: string): void {
+    for (const [token, session] of this.refreshSessions.entries()) {
+      if (session.userId === userId) {
+        session.violationCount += 1;
+        session.lastViolationDate = new Date();
+      }
+    }
+  }
+
+  isUserBanned(userId: string): boolean {
+    for (const session of this.refreshSessions.values()) {
+      if (session.userId === userId && session.banStatus === 'banned') {
+        return true;
+      }
+    }
+    return false;
   }
 }
