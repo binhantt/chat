@@ -1,8 +1,7 @@
 "use client";
 
-import { Flex, Text, Box, Separator } from "@radix-ui/themes";
+import { Flex, Text, Box } from "@radix-ui/themes";
 import { AboutForm } from "../components/AboutForm";
-import { ProfileDisplay } from "../components/ProfileDisplay";
 
 function DecorTopLeft() {
   return (
@@ -54,8 +53,7 @@ export function AboutPage() {
       <Flex
         direction="column"
         align="center"
-        justify="center"
-        style={{ minHeight: "100%", padding: "24px 16px" }}
+        style={{ minHeight: "100%", padding: "28px 16px 48px" }}
       >
         <Flex direction="column" gap="5" style={{ maxWidth: 520, width: "100%" }}>
           <Flex direction="column" gap="2" align="center">
@@ -71,14 +69,7 @@ export function AboutPage() {
             </Text>
           </Flex>
 
-          <Box
-            p="5"
-            style={{
-              background: "var(--white)",
-              borderRadius: "var(--radius-4)",
-              boxShadow: "0 2px 12px rgba(99, 102, 241, 0.06)",
-            }}
-          >
+          <Box p="5">
             <AboutForm />
           </Box>
         </Flex>

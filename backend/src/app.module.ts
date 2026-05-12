@@ -8,8 +8,8 @@ import { UsersModule } from './users/users.module';
 import { ChatModule } from './chat/chat.module';
 import { MatchModule } from './match/match.module';
 import { ReportModule } from './report/report.module';
+import { ConductModule } from './conduct/conduct.module';
 import { createPostgresConfig } from './database/postgres.config';
-
 
 @Module({
   imports: [
@@ -20,6 +20,7 @@ import { createPostgresConfig } from './database/postgres.config';
     ChatModule,
     MatchModule,
     ReportModule,
+    ConductModule,
   ],
   controllers: [AppController],
   providers: [AppService],

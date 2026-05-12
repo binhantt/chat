@@ -1,7 +1,7 @@
 import { UserRole } from '../entities/user.entity';
 
 export class UpdateUserAccessDto {
-  role!: UserRole;
+  role?: UserRole;
 
-  isActive!: boolean;
+  isActive?: boolean;
 }

@@ -60,13 +60,15 @@ export class AuthCookieService {
     const authHeader = request.headers.authorization;
 
     if (authHeader?.startsWith('Bearer user:')) {
-      return this.parseAccessToken(authHeader.replace('Bearer ', '').trim());
+      return this.authTokenService.verifyAccessToken(
+        authHeader.replace('Bearer ', '').trim(),
+      );
     }
 
     const cookieToken = this.getAccessToken(request.headers.cookie);
 
     if (cookieToken?.startsWith('user:')) {
-      return this.parseAccessToken(cookieToken);
+      return this.authTokenService.verifyAccessToken(cookieToken);
     }
 
     const refreshToken = this.getRefreshToken(request.headers.cookie);
@@ -77,18 +79,6 @@ export class AuthCookieService {
       if (refreshUserId) {
         return refreshUserId;
       }
-    }
-
-    const cookieUserId = this.getUserId(request.headers.cookie);
-
-    if (cookieUserId) {
-      return cookieUserId;
-    }
-
-    const headerUserId = request.headers['x-user-id'];
-
-    if (typeof headerUserId === 'string') {
-      return headerUserId;
     }
 
     return null;
@@ -106,20 +96,6 @@ export class AuthCookieService {
       ...this.baseCookieOptions(false),
       maxAge: this.authTokenService.getRefreshTokenMaxAge(),
     });
-  }
-
-  private parseAccessToken(accessToken: string): string | null {
-    const [, userId, expiresAt] = accessToken.split(':');
-
-    if (!userId) {
-      return null;
-    }
-
-    if (expiresAt && Number(expiresAt) <= Date.now()) {
-      return null;
-    }
-
-    return userId;
   }
 
   private tryVerifyRefreshToken(refreshToken: string): string | null {

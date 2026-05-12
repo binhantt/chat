@@ -25,8 +25,12 @@ export class DemoAuthGuard implements CanActivate {
 
     const user = await this.usersService.findById(userId);
 
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('User khong ton tai hoac da bi khoa');
+    if (!user || this.usersService.isLoginLocked(user)) {
+      throw new UnauthorizedException(
+        user
+          ? this.usersService.getLockMessage(user)
+          : 'User khong ton tai hoac da bi khoa',
+      );
     }
 
     request.user = user;

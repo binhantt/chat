@@ -2,9 +2,11 @@
 
 import { Flex, Text, Box, Card, Heading, Button, Callout, Badge, TextField, Avatar } from "@radix-ui/themes";
 import { ReloadIcon, EyeOpenIcon, LockClosedIcon, MagnifyingGlassIcon, ChatBubbleIcon } from "@radix-ui/react-icons";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { getConversations, type Conversation } from "@/features/athu";
 import { ChatDetailDialog } from "../components/chat";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { usePagination } from "@/hooks/usePagination";
 
 function formatTimeAgo(date: string) {
   const now = new Date();
@@ -39,6 +41,8 @@ export function ChatsPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "ended" | "blocked">("all");
   const [selectedChat, setSelectedChat] = useState<Conversation | null>(null);
+  const pageSize = 8;
+  const debouncedSearch = useDebouncedValue(search);
 
   const fetchConversations = useCallback(async () => {
     setLoading(true);
@@ -58,23 +62,37 @@ export function ChatsPage() {
     fetchConversations();
   }, [fetchConversations]);
 
-  const filtered = conversations.filter((c) => {
+  const filtered = useMemo(() => conversations.filter((c) => {
+    const normalizedSearch = debouncedSearch.trim().toLowerCase();
     const user1Info = c.user1?.fullName || c.user1?.email || c.user1Id || "";
     const user2Info = c.user2?.fullName || c.user2?.email || c.user2Id || "";
     const matchesSearch =
-      user1Info.toLowerCase().includes(search.toLowerCase()) ||
-      user2Info.toLowerCase().includes(search.toLowerCase()) ||
-      c.id.toLowerCase().includes(search.toLowerCase());
+      !normalizedSearch ||
+      user1Info.toLowerCase().includes(normalizedSearch) ||
+      user2Info.toLowerCase().includes(normalizedSearch) ||
+      c.id.toLowerCase().includes(normalizedSearch);
     const matchesStatus = statusFilter === "all" || c.status === statusFilter;
     return matchesSearch && matchesStatus;
+  }), [conversations, debouncedSearch, statusFilter]);
+
+  const {
+    currentPage: safePage,
+    pageItems: paginated,
+    setPage,
+    showingFrom,
+    showingTo,
+    totalPages,
+  } = usePagination(filtered, {
+    pageSize,
+    resetKeys: [debouncedSearch, statusFilter],
   });
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: conversations.length,
     active: conversations.filter((c) => c.status === "active").length,
     ended: conversations.filter((c) => c.status === "ended").length,
     blocked: conversations.filter((c) => c.status === "blocked").length,
-  };
+  }), [conversations]);
 
   const statusConfig = {
     active: { label: "Đang hoạt động", color: "green" as const },
@@ -210,7 +228,7 @@ export function ChatsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((chat) => (
+              {paginated.map((chat) => (
                 <tr
                   key={chat.id}
                   style={{ borderBottom: "1px solid var(--gray-3)", cursor: "pointer" }}
@@ -284,6 +302,42 @@ export function ChatsPage() {
             </Flex>
           )}
         </Box>
+        {filtered.length > 0 && (
+          <Flex
+            align="center"
+            justify="between"
+            gap="3"
+            wrap="wrap"
+            mt="4"
+            pt="3"
+            style={{ borderTop: "1px solid var(--gray-4)" }}
+          >
+            <Text size="2" color="gray">
+              Hiển thị {showingFrom}-{showingTo} / {filtered.length} cuộc trò chuyện
+            </Text>
+            <Flex align="center" gap="2">
+              <Button
+                variant="soft"
+                size="1"
+                disabled={safePage <= 1}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
+              >
+                Trước
+              </Button>
+              <Text size="2" weight="medium">
+                Trang {safePage} / {totalPages}
+              </Text>
+              <Button
+                variant="soft"
+                size="1"
+                disabled={safePage >= totalPages}
+                onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+              >
+                Sau
+              </Button>
+            </Flex>
+          </Flex>
+        )}
       </Card>
 
       {/* Detail Dialog */}

@@ -1,10 +1,18 @@
-import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { MatchQueue, MatchQueueStatus } from './entities/match-queue.entity';
 import { User, UserGender } from '../users/entities/user.entity';
-import { Conversation, ConversationStatus } from '../chat/entities/conversation.entity';
+import {
+  Conversation,
+  ConversationStatus,
+} from '../chat/entities/conversation.entity';
 
 @Injectable()
 export class MatchService {
@@ -97,7 +105,10 @@ export class MatchService {
       joinedAt: status.createdAt,
     };
 
-    if (status.status === MatchQueueStatus.Matched && status.matchedWithUserId) {
+    if (
+      status.status === MatchQueueStatus.Matched &&
+      status.matchedWithUserId
+    ) {
       const matchedUser = await this.userRepository.findOne({
         where: { id: status.matchedWithUserId },
       });
@@ -136,7 +147,9 @@ export class MatchService {
       const match = await this.findMatch(queue);
       if (match) {
         await this.createMatch(queue, match);
-        this.logger.log(`Background match: ${queue.userId} <-> ${match.userId}`);
+        this.logger.log(
+          `Background match: ${queue.userId} <-> ${match.userId}`,
+        );
       }
     }
   }
@@ -174,7 +187,8 @@ export class MatchService {
       status: ConversationStatus.Active,
     });
 
-    const savedConversation = await this.conversationRepository.save(conversation);
+    const savedConversation =
+      await this.conversationRepository.save(conversation);
 
     queue.status = MatchQueueStatus.Matched;
     queue.matchedWithUserId = matchedQueue.userId;
@@ -186,7 +200,9 @@ export class MatchService {
     matchedQueue.conversationId = savedConversation.id;
     await this.matchQueueRepository.save(matchedQueue);
 
-    this.logger.log(`Match created: ${queue.userId} <-> ${matchedQueue.userId}`);
+    this.logger.log(
+      `Match created: ${queue.userId} <-> ${matchedQueue.userId}`,
+    );
 
     return queue;
   }

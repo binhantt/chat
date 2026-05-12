@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -40,6 +41,12 @@ export class UserController {
     @Req() request: AuthenticatedRequest,
   ) {
     return this.usersService.update(request.user!.id, updateUserDto);
+  }
+
+  @Delete('me')
+  async deleteCurrentUser(@Req() request: AuthenticatedRequest) {
+    await this.usersService.deleteOwnAccount(request.user!.id);
+    return { success: true };
   }
 
   @Get(':id')

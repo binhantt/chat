@@ -1,58 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-// Mock data for user reports
-const mockUserReports = [
-  {
-    id: '1',
-    reason: 'spam',
-    description: 'User is sending spam messages',
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-    reporter: {
-      id: 'current-user',
-      fullName: 'Current User',
-      email: 'current@example.com'
-    },
-    reportedUser: {
-      id: 'user2',
-      fullName: 'Jane Smith',
-      email: 'jane@example.com'
-    }
-  },
-  {
-    id: '2',
-    reason: 'harassment',
-    description: 'User is sending harassing messages',
-    status: 'reviewed',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    reporter: {
-      id: 'current-user',
-      fullName: 'Current User',
-      email: 'current@example.com'
-    },
-    reportedUser: {
-      id: 'user4',
-      fullName: 'Bob Wilson',
-      email: 'bob@example.com'
-    }
-  }
-];
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    // In a real implementation, this would get the current user from authentication
-    const currentUserId = 'current-user';
-    
-    // Filter reports for the current user
-    const userReports = mockUserReports.filter(report => 
-      report.reporter.id === currentUserId
-    );
+    const res = await fetch(`${BACKEND_URL}/api/reports/my-reports`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: request.headers.get('cookie') || '',
+      },
+      credentials: 'include',
+    });
 
-    return NextResponse.json(userReports);
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
   } catch (error) {
+    console.error('Error fetching my reports:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
+      { message: 'Da xay ra loi khi lay lich su bao cao' },
+      { status: 500 },
     );
   }
 }

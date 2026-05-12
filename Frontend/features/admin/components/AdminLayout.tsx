@@ -16,8 +16,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <Box
         style={{
           marginLeft: 260,
-          paddingTop: 60,
-          padding: "24px 24px 24px",
+          padding: "84px 24px 24px",
           minHeight: "100vh",
         }}
       >

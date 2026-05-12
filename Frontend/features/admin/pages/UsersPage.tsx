@@ -1,6 +1,6 @@
 "use client";
 
-import { Flex, Text, Box, Card, Heading, TextField, Button, Badge, Avatar, Callout, Spinner } from "@radix-ui/themes";
+import { Flex, Text, Box, Card, Heading, TextField, Button, Badge, Avatar, Callout, Spinner, Dialog, Separator } from "@radix-ui/themes";
 import {
   PersonIcon,
   MagnifyingGlassIcon,
@@ -9,19 +9,32 @@ import {
   TrashIcon,
   LockOpen1Icon,
   ReloadIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
 } from "@radix-ui/react-icons";
-import { useState, useEffect, useCallback } from "react";
-import { getAdminUsers, updateAdminUserAccess, type AdminUser } from "@/features/athu";
+import { memo, useState, useEffect, useCallback, useMemo } from "react";
+import { getAdminUser, getAdminUsers, updateAdminUserAccess, type AdminUser } from "@/features/athu";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { usePagination } from "@/hooks/usePagination";
 
-function StatusBadge({ isActive }: { isActive: boolean }) {
+const USERS_PER_PAGE = 10;
+
+const StatusBadge = memo(function StatusBadge({ user }: { user: AdminUser }) {
+  const isLocked = !user.isActive || (user.lockType && user.lockType !== "none");
+  const lockLabel: Record<string, string> = {
+    "15_days": "Khóa 15 ngày",
+    "30_days": "Khóa 30 ngày",
+    permanent: "Khóa vĩnh viễn",
+  };
+
   return (
-    <Badge color={isActive ? "green" : "red"} variant="soft" style={{ padding: "4px 12px" }}>
-      {isActive ? "Hoạt động" : "Đã khóa"}
+    <Badge color={isLocked ? "red" : "green"} variant="soft" style={{ padding: "4px 12px" }}>
+      {isLocked ? lockLabel[user.lockType || "permanent"] || "Đã khóa" : "Hoạt động"}
     </Badge>
   );
-}
+});
 
-function RoleBadge({ role }: { role: string }) {
+const RoleBadge = memo(function RoleBadge({ role }: { role: string }) {
   const config: Record<string, { label: string; color: string }> = {
     user: { label: "Người dùng", color: "gray" },
     admin: { label: "Quản trị viên", color: "indigo" },
@@ -33,14 +46,153 @@ function RoleBadge({ role }: { role: string }) {
       {label}
     </Text>
   );
+});
+
+function formatDateTime(date?: string | null) {
+  if (!date) return "Chưa cập nhật";
+
+  return new Date(date).toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatValue(value?: string | null) {
+  return value && value.trim() ? value : "Chưa cập nhật";
+}
+
+function genderLabel(gender?: AdminUser["gender"]) {
+  const labels: Record<string, string> = {
+    male: "Nam",
+    female: "Nữ",
+    other: "Khác",
+  };
+
+  return gender ? labels[gender] || gender : "Chưa cập nhật";
+}
+
+function UserDetailDialog({
+  user,
+  open,
+  onOpenChange,
+}: {
+  user: AdminUser | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const getInitials = (name: string | null, email: string) => {
+    if (name) {
+      const parts = name.trim().split(" ");
+      if (parts.length >= 2) {
+        return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+      }
+      return name.slice(0, 2).toUpperCase();
+    }
+    return email.slice(0, 2).toUpperCase();
+  };
+
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Content style={{ maxWidth: 720 }}>
+        <Dialog.Title>Chi tiết tài khoản</Dialog.Title>
+        <Dialog.Description>
+          Thông tin hồ sơ và trạng thái truy cập của người dùng.
+        </Dialog.Description>
+
+        {user ? (
+          <Flex direction="column" gap="4" mt="4">
+            <Flex align="center" gap="4">
+              <Avatar
+                size="5"
+                radius="full"
+                src={user.avatarUrl || undefined}
+                fallback={getInitials(user.fullName, user.email)}
+                color="indigo"
+              />
+              <Flex direction="column" gap="1">
+                <Heading size="5">{user.fullName || "Chưa đặt tên"}</Heading>
+                <Text size="2" color="gray">{user.email}</Text>
+                <Flex gap="2" align="center" wrap="wrap">
+                  <RoleBadge role={user.role} />
+                  <StatusBadge user={user} />
+                </Flex>
+              </Flex>
+            </Flex>
+
+            <Separator size="4" />
+
+            <Box
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 16,
+              }}
+            >
+              <DetailItem label="ID" value={user.id} />
+              <DetailItem label="Google ID" value={formatValue(user.googleId)} />
+              <DetailItem label="Số điện thoại" value={formatValue(user.phoneNumber)} />
+              <DetailItem label="Giới tính" value={genderLabel(user.gender)} />
+              <DetailItem label="Ngày sinh" value={user.dateOfBirth ? formatDateTime(user.dateOfBirth) : "Chưa cập nhật"} />
+              <DetailItem label="Thành phố" value={formatValue(user.city)} />
+              <DetailItem label="Ngày tạo" value={formatDateTime(user.createdAt)} />
+              <DetailItem label="Cập nhật lần cuối" value={formatDateTime(user.updatedAt)} />
+              <DetailItem label="Loại khóa" value={user.lockType && user.lockType !== "none" ? user.lockType : "Không khóa"} />
+              <DetailItem label="Khóa đến" value={formatDateTime(user.lockedUntil)} />
+              <DetailItem label="Lý do khóa" value={formatValue(user.lockReason)} />
+              <DetailItem label="Report liên quan" value={formatValue(user.lockedByReportId)} />
+            </Box>
+
+            <Flex direction="column" gap="2">
+              <Text size="2" weight="medium" color="gray">Tiểu sử</Text>
+              <Box
+                style={{
+                  minHeight: 72,
+                  padding: 12,
+                  borderRadius: 8,
+                  background: "var(--gray-2)",
+                  border: "1px solid var(--gray-4)",
+                }}
+              >
+                <Text size="2">{formatValue(user.bio)}</Text>
+              </Box>
+            </Flex>
+
+            <Flex justify="end">
+              <Dialog.Close>
+                <Button variant="soft">Đóng</Button>
+              </Dialog.Close>
+            </Flex>
+          </Flex>
+        ) : (
+          <Flex align="center" justify="center" p="6">
+            <Spinner size="3" />
+          </Flex>
+        )}
+      </Dialog.Content>
+    </Dialog.Root>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <Flex direction="column" gap="1">
+      <Text size="1" color="gray" weight="medium">{label}</Text>
+      <Text size="2" style={{ wordBreak: "break-word" }}>{value}</Text>
+    </Flex>
+  );
 }
 
 function UserActions({
   user,
   onUpdate,
+  onView,
 }: {
   user: AdminUser;
   onUpdate: () => void;
+  onView: (user: AdminUser) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -109,7 +261,10 @@ function UserActions({
               gap="2"
               p="2"
               style={{ padding: "8px 12px", borderRadius: 4, cursor: "pointer" }}
-              onClick={() => setOpen(false)}
+              onClick={() => {
+                onView(user);
+                setOpen(false);
+              }}
               onMouseEnter={(e) => e.currentTarget.style.background = "var(--gray-3)"}
               onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
             >
@@ -149,6 +304,9 @@ export function UsersPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "banned">("all");
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const debouncedSearch = useDebouncedValue(search);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -168,22 +326,49 @@ export function UsersPage() {
     fetchUsers();
   }, [fetchUsers]);
 
-  const filteredUsers = users.filter((user) => {
+  const handleViewUser = async (user: AdminUser) => {
+    setSelectedUser(null);
+    setDetailOpen(true);
+
+    try {
+      const data = await getAdminUser(user.id);
+      setSelectedUser(data);
+    } catch (err) {
+      console.error("Error fetching user detail:", err);
+      setDetailOpen(false);
+      setError("Không thể tải chi tiết tài khoản");
+    }
+  };
+
+  const filteredUsers = useMemo(() => users.filter((user) => {
+    const normalizedSearch = debouncedSearch.trim().toLowerCase();
     const matchesSearch =
-      user.fullName?.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase());
+      !normalizedSearch ||
+      user.fullName?.toLowerCase().includes(normalizedSearch) ||
+      user.email.toLowerCase().includes(normalizedSearch);
     const matchesStatus =
       statusFilter === "all" ||
-      (statusFilter === "active" && user.isActive) ||
-      (statusFilter === "banned" && !user.isActive);
+      (statusFilter === "active" && user.isActive && (!user.lockType || user.lockType === "none")) ||
+      (statusFilter === "banned" && (!user.isActive || (user.lockType && user.lockType !== "none")));
     return matchesSearch && matchesStatus;
+  }), [debouncedSearch, statusFilter, users]);
+
+  const {
+    currentPage,
+    pageItems: paginatedUsers,
+    pageStart,
+    setPage,
+    totalPages,
+  } = usePagination(filteredUsers, {
+    pageSize: USERS_PER_PAGE,
+    resetKeys: [debouncedSearch, statusFilter],
   });
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: users.length,
-    active: users.filter((u) => u.isActive).length,
-    banned: users.filter((u) => !u.isActive).length,
-  };
+    active: users.filter((u) => u.isActive && (!u.lockType || u.lockType === "none")).length,
+    banned: users.filter((u) => !u.isActive || (u.lockType && u.lockType !== "none")).length,
+  }), [users]);
 
   const getInitials = (name: string | null, email: string) => {
     if (name) {
@@ -335,7 +520,7 @@ export function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
+              {paginatedUsers.map((user) => (
                 <tr key={user.id} style={{ borderBottom: "1px solid var(--gray-3)" }}>
                   <td style={{ padding: "12px 16px" }}>
                     <Flex gap="3" align="center">
@@ -361,13 +546,13 @@ export function UsersPage() {
                     <RoleBadge role={user.role} />
                   </td>
                   <td style={{ padding: "12px 16px" }}>
-                    <StatusBadge isActive={user.isActive} />
+                    <StatusBadge user={user} />
                   </td>
                   <td style={{ padding: "12px 16px" }}>
                     <Text size="2" color="gray">{formatDate(user.createdAt)}</Text>
                   </td>
                   <td style={{ padding: "12px 16px" }}>
-                    <UserActions user={user} onUpdate={fetchUsers} />
+                    <UserActions user={user} onUpdate={fetchUsers} onView={handleViewUser} />
                   </td>
                 </tr>
               ))}
@@ -381,7 +566,44 @@ export function UsersPage() {
             </Flex>
           )}
         </Box>
+
+        {filteredUsers.length > 0 && (
+          <Flex justify="between" align="center" gap="3" mt="4" wrap="wrap">
+            <Text size="2" color="gray">
+              Hiển thị {pageStart + 1}-{Math.min(pageStart + USERS_PER_PAGE, filteredUsers.length)} / {filteredUsers.length}
+            </Text>
+            <Flex align="center" gap="2">
+              <Button
+                size="2"
+                variant="soft"
+                disabled={currentPage === 1}
+                onClick={() => setPage((value) => Math.max(1, value - 1))}
+              >
+                <ChevronLeftIcon width={16} height={16} />
+                Trước
+              </Button>
+              <Text size="2" color="gray">
+                Trang {currentPage} / {totalPages}
+              </Text>
+              <Button
+                size="2"
+                variant="soft"
+                disabled={currentPage === totalPages}
+                onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+              >
+                Sau
+                <ChevronRightIcon width={16} height={16} />
+              </Button>
+            </Flex>
+          </Flex>
+        )}
       </Card>
+
+      <UserDetailDialog
+        user={selectedUser}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+      />
     </Flex>
   );
 }

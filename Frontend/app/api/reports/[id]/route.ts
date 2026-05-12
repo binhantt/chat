@@ -1,121 +1,62 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
-// Mock data - in production, this would connect to the actual backend
-const mockReports = [
-  {
-    id: '1',
-    reason: 'spam',
-    description: 'User is sending spam messages',
-    status: 'pending',
-    createdAt: new Date().toISOString(),
-    reporter: {
-      id: 'user1',
-      fullName: 'John Doe',
-      email: 'john@example.com'
-    },
-    reportedUser: {
-      id: 'user2',
-      fullName: 'Jane Smith',
-      email: 'jane@example.com'
-    }
-  },
-  {
-    id: '2',
-    reason: 'harassment',
-    description: 'User is sending harassing messages',
-    status: 'reviewed',
-    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-    reporter: {
-      id: 'user3',
-      fullName: 'Alice Johnson',
-      email: 'alice@example.com'
-    },
-    reportedUser: {
-      id: 'user4',
-      fullName: 'Bob Wilson',
-      email: 'bob@example.com'
-    }
-  }
-];
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
+function getCookieHeader(request: Request) {
+  return request.headers.get('cookie') || '';
+}
+
+async function proxyJson(res: Response) {
+  const data = await res.json().catch(() => ({}));
+  return NextResponse.json(data, { status: res.status });
+}
+
+export async function GET(request: Request, { params }: RouteParams) {
   try {
-    const report = mockReports.find(r => r.id === params.id);
-    
-    if (!report) {
-      return NextResponse.json(
-        { message: 'Report not found' },
-        { status: 404 }
-      );
-    }
+    const { id } = await params;
+    const res = await fetch(`${BACKEND_URL}/api/reports/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: getCookieHeader(request),
+      },
+      credentials: 'include',
+    });
 
-    // In a real implementation, this would check for admin role
-    const isAdmin = true; // This would come from authentication
-    
-    if (!isAdmin) {
-      return NextResponse.json(
-        { message: 'Only admins can view reports' },
-        { status: 403 }
-      );
-    }
-
-    return NextResponse.json(report);
+    return proxyJson(res);
   } catch (error) {
+    console.error('Error fetching report:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
+      { message: 'Da xay ra loi khi lay chi tiet bao cao' },
+      { status: 500 },
     );
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(request: Request, { params }: RouteParams) {
   try {
+    const { id } = await params;
     const body = await request.json();
-    
-    if (!body.status) {
-      return NextResponse.json(
-        { message: 'Status is required' },
-        { status: 400 }
-      );
-    }
+    const res = await fetch(`${BACKEND_URL}/api/reports/${id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: getCookieHeader(request),
+      },
+      credentials: 'include',
+      body: JSON.stringify(body),
+    });
 
-    const reportIndex = mockReports.findIndex(r => r.id === params.id);
-    
-    if (reportIndex === -1) {
-      return NextResponse.json(
-        { message: 'Report not found' },
-        { status: 404 }
-      );
-    }
-
-    // In a real implementation, this would check for admin role
-    const isAdmin = true; // This would come from authentication
-    
-    if (!isAdmin) {
-      return NextResponse.json(
-        { message: 'Only admins can update reports' },
-        { status: 403 }
-      );
-    }
-
-    // Update report status
-    mockReports[reportIndex] = {
-      ...mockReports[reportIndex],
-      status: body.status,
-      updatedAt: new Date().toISOString()
-    };
-
-    return NextResponse.json(mockReports[reportIndex]);
+    return proxyJson(res);
   } catch (error) {
+    console.error('Error updating report:', error);
     return NextResponse.json(
-      { message: 'Internal server error' },
-      { status: 500 }
+      { message: 'Da xay ra loi khi cap nhat bao cao' },
+      { status: 500 },
     );
   }
 }

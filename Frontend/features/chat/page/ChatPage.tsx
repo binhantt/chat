@@ -17,6 +17,16 @@ interface MatchedUser {
   city: string | null;
 }
 
+const CHAT_SESSION_KEY = "chat.activeConversation";
+
+interface ChatSessionState {
+  selectedUser: string | null;
+  showSearch: boolean;
+  showMatch: boolean;
+  conversationId: string | null;
+  matchedUser: MatchedUser | null;
+}
+
 export function ChatPage() {
   const searchParams = useSearchParams();
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
@@ -24,6 +34,7 @@ export function ChatPage() {
   const [showMatch, setShowMatch] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [matchedUser, setMatchedUser] = useState<MatchedUser | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -32,6 +43,32 @@ export function ChatPage() {
   const textPrimary = isDark ? "#e2e8f0" : "#1e293b";
   const textSecondary = isDark ? "#94a3b8" : "#64748b";
   const accentColor = "#6366f1";
+
+  useEffect(() => {
+    const convParam = searchParams.get("conv");
+    const userParam = searchParams.get("user");
+
+    if (convParam && userParam) {
+      setSessionReady(true);
+      return;
+    }
+
+    try {
+      const raw = window.sessionStorage.getItem(CHAT_SESSION_KEY);
+      if (raw) {
+        const saved = JSON.parse(raw) as Partial<ChatSessionState>;
+        setSelectedUser(saved.selectedUser ?? null);
+        setShowSearch(saved.showSearch === true);
+        setShowMatch(saved.showMatch === true);
+        setConversationId(saved.conversationId ?? null);
+        setMatchedUser(saved.matchedUser ?? null);
+      }
+    } catch {
+      window.sessionStorage.removeItem(CHAT_SESSION_KEY);
+    } finally {
+      setSessionReady(true);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     const convParam = searchParams.get("conv");
@@ -47,8 +84,28 @@ export function ChatPage() {
         gender: null,
         city: null,
       });
+      setSessionReady(true);
     }
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+
+    const state: ChatSessionState = {
+      selectedUser,
+      showSearch,
+      showMatch,
+      conversationId,
+      matchedUser,
+    };
+
+    if (!selectedUser && !showSearch && !showMatch && !conversationId && !matchedUser) {
+      window.sessionStorage.removeItem(CHAT_SESSION_KEY);
+      return;
+    }
+
+    window.sessionStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(state));
+  }, [conversationId, matchedUser, selectedUser, sessionReady, showMatch, showSearch]);
 
   const handleSelectUser = (userId: string) => {
     setSelectedUser(userId);
@@ -84,6 +141,14 @@ export function ChatPage() {
     setShowMatch(false);
   };
 
+  const handleSelectConversation = (convId: string, partner: MatchedUser) => {
+    setConversationId(convId);
+    setMatchedUser(partner);
+    setSelectedUser(partner.id);
+    setShowSearch(false);
+    setShowMatch(false);
+  };
+
   const handleCancelMatch = () => {
     setMatchedUser(null);
     setConversationId(null);
@@ -97,7 +162,7 @@ export function ChatPage() {
       <Box
         style={{
           width: "100%",
-          height: "100vh",
+          height: "100%",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -135,8 +200,7 @@ export function ChatPage() {
           {/* Action Buttons */}
           <Flex gap="4" justify="center" wrap="wrap">
             {/* Tìm kiếm Button */}
-            <Box
-              as="button"
+            <button
               onClick={handleSearchClick}
               style={{
                 display: "flex",
@@ -181,11 +245,10 @@ export function ChatPage() {
                 <Text size="3" weight="bold" style={{ color: textPrimary }}>Tìm kiếm</Text>
                 <Text size="2" style={{ color: textSecondary }}>Tìm theo tên</Text>
               </Flex>
-            </Box>
+            </button>
 
             {/* Ghép đôi Button */}
-            <Box
-              as="button"
+            <button
               onClick={handleMatchClick}
               style={{
                 display: "flex",
@@ -232,7 +295,7 @@ export function ChatPage() {
                 <Text size="3" weight="bold" style={{ color: textPrimary }}>Ghép đôi</Text>
                 <Text size="2" style={{ color: textSecondary }}>Cùng thành phố</Text>
               </Flex>
-            </Box>
+            </button>
           </Flex>
         </Flex>
       </Box>
@@ -242,8 +305,19 @@ export function ChatPage() {
   // Search Screen
   if (!selectedUser && showSearch) {
     return (
-      <Box style={{ width: "100%", height: "100vh", background: bgPrimary, padding: 24 }}>
-        <Flex align="center" gap="3" mb="5">
+      <Box
+        style={{
+          width: "100%",
+          height: "100%",
+          background: bgPrimary,
+          padding: 18,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          overflow: "hidden",
+        }}
+      >
+        <Flex align="center" gap="3" style={{ flexShrink: 0 }}>
           <Button variant="ghost" size="2" onClick={handleBack} style={{ color: textSecondary }}>
             ← Quay lại
           </Button>
@@ -252,7 +326,7 @@ export function ChatPage() {
           </Text>
         </Flex>
         <Box style={{ maxWidth: 520, margin: "0 auto" }}>
-          <SearchPeople />
+          <SearchPeople onSelectConversation={handleSelectConversation} />
         </Box>
       </Box>
     );
@@ -261,7 +335,7 @@ export function ChatPage() {
   // Match Screen
   if (!selectedUser && showMatch) {
     return (
-      <Box style={{ width: "100%", height: "100vh", background: bgPrimary, padding: 24 }}>
+      <Box style={{ width: "100%", height: "100%", background: bgPrimary, padding: 24 }}>
         <Flex align="center" gap="3" mb="5">
           <Button variant="ghost" size="2" onClick={handleBack} style={{ color: textSecondary }}>
             ← Quay lại
@@ -270,7 +344,7 @@ export function ChatPage() {
             Ghép đôi ngẫu nhiên
           </Text>
         </Flex>
-        <Box style={{ maxWidth: 480, margin: "0 auto" }}>
+        <Box style={{ flex: 1, minHeight: 0 }}>
           <MatchPeople onMatched={handleMatched} onCancel={handleCancelMatch} />
         </Box>
       </Box>
@@ -280,7 +354,7 @@ export function ChatPage() {
   // Matched Result Screen
   if (matchedUser && conversationId && !selectedUser) {
     return (
-      <Box style={{ width: "100%", height: "100vh", background: bgPrimary, padding: 24 }}>
+      <Box style={{ width: "100%", height: "100%", background: bgPrimary, padding: 24 }}>
         <Flex align="center" gap="3" mb="5">
           <Button variant="ghost" size="2" onClick={handleCancelMatch} style={{ color: textSecondary }}>
             ← Quay lại
@@ -295,7 +369,7 @@ export function ChatPage() {
 
   // Chat Area
   return (
-    <Box style={{ width: "100%", height: "100vh" }}>
+    <Box style={{ width: "100%", height: "100%" }}>
       <ChatArea
         selectedUser={selectedUser!}
         matchedUser={matchedUser}

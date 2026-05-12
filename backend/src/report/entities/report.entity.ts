@@ -6,7 +6,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+import { User, UserLockType } from '../../users/entities/user.entity';
 
 export enum ReportReason {
   Spam = 'spam',
@@ -58,6 +58,16 @@ export class Report {
     default: ReportStatus.Pending,
   })
   status!: ReportStatus;
+
+  @Column({
+    type: 'enum',
+    enum: UserLockType,
+    default: UserLockType.None,
+  })
+  lockType!: UserLockType;
+
+  @Column({ name: 'reviewed_by_admin_id', type: 'uuid', nullable: true })
+  reviewedByAdminId!: string | null;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt!: Date;

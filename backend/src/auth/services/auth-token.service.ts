@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { randomUUID } from 'node:crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
   ACCESS_TOKEN_TTL_MS,
   REFRESH_TOKEN_TTL_MS,
@@ -8,8 +8,7 @@ import {
 interface RefreshSession {
   userId: string;
   expiresAt: number;
-  // New ban tracking fields
-  banStatus: string; // 'active' or 'banned'
+  banStatus: string;
   violationCount: number;
   lastViolationDate: Date | null;
 }
@@ -19,22 +18,31 @@ export class AuthTokenService {
   private readonly refreshSessions = new Map<string, RefreshSession>();
 
   createAccessToken(userId: string): string {
-    return `user:${userId}:${Date.now() + ACCESS_TOKEN_TTL_MS}`;
+    const expiresAt = Date.now() + ACCESS_TOKEN_TTL_MS;
+    const signature = this.signAccessToken(userId, expiresAt);
+
+    return `user:${userId}:${expiresAt}:${signature}`;
   }
 
   createRefreshToken(userId: string): string {
-    const refreshToken = `refresh:${randomUUID()}`;
-    this.refreshSessions.set(refreshToken, this.createSession(userId));
-    return refreshToken;
+    const tokenId = randomUUID();
+    const expiresAt = Date.now() + REFRESH_TOKEN_TTL_MS;
+    const signature = this.signRefreshToken(tokenId, expiresAt);
+
+    this.refreshSessions.set(tokenId, this.createSession(userId, expiresAt));
+
+    return `refresh:${tokenId}:${expiresAt}:${signature}`;
   }
 
   verifyRefreshToken(refreshToken: string | null): string {
     if (!refreshToken) {
-      throw new UnauthorizedException('Thiếu refresh token');
+      throw new UnauthorizedException('Thieu refresh token');
     }
 
-    const session = this.refreshSessions.get(refreshToken);
-    return this.getSessionUserId(refreshToken, session);
+    const tokenId = this.verifyRefreshTokenSignature(refreshToken);
+    const session = this.refreshSessions.get(tokenId);
+
+    return this.getSessionUserId(tokenId, session);
   }
 
   getAccessTokenMaxAge(): number {
@@ -52,27 +60,34 @@ export class AuthTokenService {
 
     try {
       const parts = token.split(':');
-      if (parts.length !== 3 || parts[0] !== 'user') {
+
+      if (parts.length !== 4 || parts[0] !== 'user') {
         return null;
       }
 
-      const userId = parts[1];
-      const expiration = parseInt(parts[2], 10);
+      const [, userId, expiresAtRaw, signature] = parts;
+      const expiresAt = Number(expiresAtRaw);
 
-      if (isNaN(expiration) || expiration <= Date.now()) {
+      if (!userId || !signature || !Number.isFinite(expiresAt)) {
         return null;
       }
 
-      return userId;
+      if (expiresAt <= Date.now()) {
+        return null;
+      }
+
+      const expectedSignature = this.signAccessToken(userId, expiresAt);
+
+      return this.safeCompare(signature, expectedSignature) ? userId : null;
     } catch {
       return null;
     }
   }
 
-  private createSession(userId: string): RefreshSession {
+  private createSession(userId: string, expiresAt: number): RefreshSession {
     return {
       userId,
-      expiresAt: Date.now() + REFRESH_TOKEN_TTL_MS,
+      expiresAt,
       banStatus: 'active',
       violationCount: 0,
       lastViolationDate: null,
@@ -80,23 +95,88 @@ export class AuthTokenService {
   }
 
   private getSessionUserId(
-    refreshToken: string,
+    tokenId: string,
     session: RefreshSession | undefined,
   ): string {
     if (!session || session.expiresAt <= Date.now()) {
-      this.refreshSessions.delete(refreshToken);
+      this.refreshSessions.delete(tokenId);
       throw new UnauthorizedException(
-        'Refresh token không hợp lệ hoặc đã hết hạn',
+        'Refresh token khong hop le hoac da het han',
       );
     }
 
     return session.userId;
   }
 
-  // New ban management methods
+  private verifyRefreshTokenSignature(refreshToken: string): string {
+    const parts = refreshToken.split(':');
+
+    if (parts.length !== 4 || parts[0] !== 'refresh') {
+      throw new UnauthorizedException('Refresh token khong hop le');
+    }
+
+    const [, tokenId, expiresAtRaw, signature] = parts;
+    const expiresAt = Number(expiresAtRaw);
+
+    if (!tokenId || !signature || !Number.isFinite(expiresAt)) {
+      throw new UnauthorizedException('Refresh token khong hop le');
+    }
+
+    if (expiresAt <= Date.now()) {
+      this.refreshSessions.delete(tokenId);
+      throw new UnauthorizedException('Refresh token da het han');
+    }
+
+    const expectedSignature = this.signRefreshToken(tokenId, expiresAt);
+
+    if (!this.safeCompare(signature, expectedSignature)) {
+      throw new UnauthorizedException('Refresh token sai chu ky');
+    }
+
+    return tokenId;
+  }
+
+  private signRefreshToken(tokenId: string, expiresAt: number): string {
+    return createHmac('sha256', this.getRefreshTokenSecret())
+      .update(`${tokenId}:${expiresAt}`)
+      .digest('base64url');
+  }
+
+  private signAccessToken(userId: string, expiresAt: number): string {
+    return createHmac('sha256', this.getAccessTokenSecret())
+      .update(`${userId}:${expiresAt}`)
+      .digest('base64url');
+  }
+
+  private safeCompare(value: string, expected: string): boolean {
+    const valueBuffer = Buffer.from(value);
+    const expectedBuffer = Buffer.from(expected);
+
+    if (valueBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+
+    return timingSafeEqual(valueBuffer, expectedBuffer);
+  }
+
+  private getRefreshTokenSecret(): string {
+    return (
+      process.env.REFRESH_TOKEN_SECRET ||
+      process.env.AUTH_TOKEN_SECRET ||
+      'dev-refresh-token-secret-change-me'
+    );
+  }
+
+  private getAccessTokenSecret(): string {
+    return (
+      process.env.ACCESS_TOKEN_SECRET ||
+      process.env.AUTH_TOKEN_SECRET ||
+      'dev-access-token-secret-change-me'
+    );
+  }
+
   banUser(userId: string): void {
-    // Find all sessions for this user and set ban status
-    for (const [token, session] of this.refreshSessions.entries()) {
+    for (const session of this.refreshSessions.values()) {
       if (session.userId === userId) {
         session.banStatus = 'banned';
         session.violationCount += 1;
@@ -106,7 +186,7 @@ export class AuthTokenService {
   }
 
   incrementViolationCount(userId: string): void {
-    for (const [token, session] of this.refreshSessions.entries()) {
+    for (const session of this.refreshSessions.values()) {
       if (session.userId === userId) {
         session.violationCount += 1;
         session.lastViolationDate = new Date();
@@ -120,6 +200,7 @@ export class AuthTokenService {
         return true;
       }
     }
+
     return false;
   }
 }

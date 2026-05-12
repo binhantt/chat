@@ -2,7 +2,7 @@
 
 import { Flex, Text, Box } from "@radix-ui/themes";
 import { useTheme } from "@/contexts/ThemeContext";
-import { ReportManagement } from "../../../components/ReportManagement";
+import { ReportManagement } from "../../components/ReportManagement";
 
 export default function AdminReportsPage() {
   const { theme } = useTheme();

@@ -1,11 +1,23 @@
 "use client";
 
-import { Flex, Text, Box, TextField, Avatar } from "@radix-ui/themes";
-import { MagnifyingGlassIcon, BellIcon, EnvelopeOpenIcon } from "@radix-ui/react-icons";
+import { Flex, Text, Box, TextField, Avatar, Button } from "@radix-ui/themes";
+import { MagnifyingGlassIcon, BellIcon, EnvelopeOpenIcon, ExitIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 
 export function AdminNavbar() {
   const [search, setSearch] = useState("");
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = () => {
+    setLoggingOut(true);
+
+    void fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    }).finally(() => {
+      window.location.href = "/admin/login";
+    });
+  };
 
   return (
     <Flex
@@ -101,6 +113,17 @@ export function AdminNavbar() {
             <Text size="1" color="indigo" style={{ opacity: 0.7 }}>Quản trị viên</Text>
           </Flex>
         </Flex>
+
+        <Button
+          color="red"
+          variant="soft"
+          onClick={handleLogout}
+          disabled={loggingOut}
+          style={{ height: 40, cursor: loggingOut ? "default" : "pointer" }}
+        >
+          <ExitIcon width={16} height={16} />
+          {loggingOut ? "Đang xuất..." : "Đăng xuất"}
+        </Button>
       </Flex>
     </Flex>
   );

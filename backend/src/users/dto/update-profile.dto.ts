@@ -1,5 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, IsNumber, Min, Max, IsDate } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsString,
+  IsNumber,
+  Min,
+  Max,
+  IsDate,
+} from 'class-validator';
 import { UserGender } from '../entities/user.entity';
 
 export class UpdateProfileDto {

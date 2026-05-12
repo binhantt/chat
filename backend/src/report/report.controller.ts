@@ -12,7 +12,6 @@ import {
 import { ReportService } from './report.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { DemoAuthGuard } from '../auth/guards/demo-auth.guard';
-import { ReportStatus } from './entities/report.entity';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 
 @Controller('reports')
@@ -23,6 +22,16 @@ export class ReportController {
   @Post()
   create(@Body() dto: CreateReportDto, @Req() request: AuthenticatedRequest) {
     return this.reportService.create(request.user!.id, dto);
+  }
+
+  @Get('reportable-users')
+  findReportableUsers(@Req() request: AuthenticatedRequest) {
+    return this.reportService.getReportableUsers(request.user!.id);
+  }
+
+  @Get('my-reports')
+  findMyReports(@Req() request: AuthenticatedRequest) {
+    return this.reportService.findMyReports(request.user!.id);
   }
 
   @Get()
@@ -44,12 +53,12 @@ export class ReportController {
   @Patch(':id/status')
   updateStatus(
     @Param('id') id: string,
-    @Body() body: { status: ReportStatus },
+    @Body() body: Parameters<ReportService['updateStatus']>[1],
     @Req() request: AuthenticatedRequest,
   ) {
     if (request.user!.role !== 'admin') {
       throw new ForbiddenException('Chỉ admin mới có quyền cập nhật báo cáo');
     }
-    return this.reportService.updateStatus(id, body.status, request.user!.id);
+    return this.reportService.updateStatus(id, body, request.user!.id);
   }
 }

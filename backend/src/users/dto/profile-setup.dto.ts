@@ -1,4 +1,13 @@
-import { IsOptional, IsString, IsDateString, IsPhoneNumber, IsEnum, IsNumber, Min, Max } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsDateString,
+  IsPhoneNumber,
+  IsEnum,
+  IsNumber,
+  Min,
+  Max,
+} from 'class-validator';
 import { UserGender } from '../entities/user.entity';
 
 export class ProfileSetupDto {

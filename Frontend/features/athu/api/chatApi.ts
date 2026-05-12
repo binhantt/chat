@@ -1,11 +1,7 @@
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 async function fetchWithCookie(url: string, options: RequestInit = {}) {
-  const cookieStore = typeof document !== 'undefined'
-    ? document.cookie
-    : '';
-
-  return fetch(url, {
+  const request = () => fetch(url, {
     ...options,
     credentials: 'include',
     headers: {
@@ -13,6 +9,24 @@ async function fetchWithCookie(url: string, options: RequestInit = {}) {
       ...options.headers,
     },
   });
+
+  let response = await request();
+
+  if (response.status === 401 || response.status === 403) {
+    const refresh = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (refresh.ok) {
+      response = await request();
+    }
+  }
+
+  return response;
 }
 
 // ============ CHAT API ============

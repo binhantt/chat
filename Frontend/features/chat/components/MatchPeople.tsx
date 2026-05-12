@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Flex, Text, Box, Button } from "@radix-ui/themes";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { Badge, Box, Button, Flex, Text } from "@radix-ui/themes";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -37,57 +37,15 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
-  // Theme colors
-  const bgPrimary = isDark ? "#1a1a2e" : "#ffffff";
-  const textPrimary = isDark ? "#e2e8f0" : "#1e293b";
+  const textPrimary = isDark ? "#e2e8f0" : "#0f172a";
   const textSecondary = isDark ? "#94a3b8" : "#64748b";
   const accentColor = "#6366f1";
-  const greenColor = "#22c55e";
-  const borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+  const greenColor = "#16a34a";
+  const borderColor = isDark ? "rgba(255,255,255,0.12)" : "rgba(99,102,241,0.14)";
 
   const [status, setStatus] = useState<MatchStatus>(MatchStatus.Idle);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const checkMatchStatus = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_URL}/status`, {
-        credentials: "include",
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-
-        if (data.conversationId && data.matchedWithUserId) {
-          setStatus(MatchStatus.Matched);
-          stopPolling();
-
-          setMatchResult({
-            conversationId: data.conversationId,
-            matchedUserId: data.matchedWithUserId,
-            matchedUser: data.matchedUser || {
-              id: data.matchedWithUserId,
-              email: "",
-              fullName: null,
-              avatarUrl: null,
-              gender: null,
-              city: null,
-            },
-          });
-        } else if (data.status === "cancelled" || data.status === "expired") {
-          setStatus(MatchStatus.NotFound);
-          stopPolling();
-        }
-      }
-    } catch (error) {
-      console.error("Error checking match status:", error);
-    }
-  }, [user?.id]);
-
-  const startPolling = useCallback(() => {
-    if (pollingIntervalRef.current) return;
-    pollingIntervalRef.current = setInterval(checkMatchStatus, 5000);
-  }, [checkMatchStatus]);
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -95,6 +53,42 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
       pollingIntervalRef.current = null;
     }
   }, []);
+
+  const checkMatchStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_URL}/status`, { credentials: "include" });
+      if (!res.ok) return;
+
+      const data = await res.json();
+
+      if (data.conversationId && data.matchedWithUserId) {
+        setStatus(MatchStatus.Matched);
+        stopPolling();
+        setMatchResult({
+          conversationId: data.conversationId,
+          matchedUserId: data.matchedWithUserId,
+          matchedUser: data.matchedUser || {
+            id: data.matchedWithUserId,
+            email: "",
+            fullName: null,
+            avatarUrl: null,
+            gender: null,
+            city: null,
+          },
+        });
+      } else if (data.status === "cancelled" || data.status === "expired") {
+        setStatus(MatchStatus.NotFound);
+        stopPolling();
+      }
+    } catch (error) {
+      console.error("Error checking match status:", error);
+    }
+  }, [stopPolling]);
+
+  const startPolling = useCallback(() => {
+    if (pollingIntervalRef.current) return;
+    pollingIntervalRef.current = setInterval(checkMatchStatus, 5000);
+  }, [checkMatchStatus]);
 
   const handleStartSearch = async () => {
     setStatus(MatchStatus.Searching);
@@ -111,7 +105,7 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
       }
 
       startPolling();
-    } catch (error) {
+    } catch {
       setStatus(MatchStatus.Idle);
     }
   };
@@ -131,12 +125,6 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
     setStatus(MatchStatus.Idle);
   };
 
-  const handleMatchedAccept = () => {
-    if (matchResult) {
-      onMatched(matchResult.conversationId, matchResult.matchedUser);
-    }
-  };
-
   useEffect(() => {
     return () => {
       stopPolling();
@@ -147,7 +135,7 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
         }).catch(console.error);
       }
     };
-  }, []);
+  }, [status, stopPolling]);
 
   const getUserInitials = (name: string | null | undefined, email: string) => {
     if (!name) return email.slice(0, 2).toUpperCase();
@@ -158,298 +146,410 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
     return name.slice(0, 2).toUpperCase();
   };
 
-  // Helper to get search text based on user gender
   const getSearchText = () => {
     if (user?.gender === "male") return "Tìm kiếm nữ cùng thành phố";
     if (user?.gender === "female") return "Tìm kiếm nam cùng thành phố";
     return "Cập nhật giới tính để tìm người phù hợp";
   };
 
+  const canMatch = !!user?.gender && !!user?.city;
+
   return (
-    <Flex
-      direction="column"
-      align="center"
-      justify="center"
+    <Box
       style={{
-        minHeight: "calc(100vh - 200px)",
-        background: bgPrimary,
-        borderRadius: 24,
-        padding: "60px 40px",
+        position: "relative",
         width: "100%",
+        minHeight: "100%",
+        overflow: "hidden",
+        borderRadius: 8,
       }}
     >
-      {/* Idle State - Default view */}
-      {status === MatchStatus.Idle && (
-        <Flex direction="column" align="center" gap="5" style={{ width: "100%", maxWidth: 400 }}>
-          {/* Icon Circle */}
-          <Box
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: "50%",
-              background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: `0 12px 40px rgba(99, 102, 241, 0.35)`,
-            }}
-          >
-            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-          </Box>
+      <Decorations isDark={isDark} />
 
-          {/* Title & Description */}
-          <Flex direction="column" align="center" gap="2">
-            <Text size="6" weight="bold" style={{ color: textPrimary }}>
-              Tìm người trò chuyện
-            </Text>
-            <Text size="3" style={{ color: textSecondary }}>
-              {getSearchText()}
-            </Text>
-          </Flex>
+      <Flex
+        direction="column"
+        align="center"
+        justify="center"
+        style={{
+          position: "relative",
+          zIndex: 1,
+          width: "100%",
+          minHeight: "100%",
+          padding: "18px 16px",
+        }}
+      >
+        <Box
+          style={{
+            width: "min(100%, 460px)",
+            border: `1px solid ${borderColor}`,
+            borderRadius: 8,
+            background: isDark ? "rgba(15,23,42,0.86)" : "rgba(255,255,255,0.92)",
+            boxShadow: isDark
+              ? "0 24px 60px rgba(0,0,0,0.28)"
+              : "0 24px 60px rgba(79,70,229,0.13)",
+            backdropFilter: "blur(16px)",
+            padding: "22px 22px 20px",
+          }}
+        >
+          {status === MatchStatus.Idle && (
+            <Flex direction="column" align="center" gap="4">
+              <StatusBadge label="Sẵn sàng ghép đôi" color="green" />
+              <SignalOrb mode="idle" />
+              <Flex direction="column" align="center" gap="2" style={{ textAlign: "center" }}>
+                <Text size="6" weight="bold" style={{ color: textPrimary }}>
+                  Tìm người trò chuyện
+                </Text>
+                <Text size="3" style={{ color: textSecondary }}>
+                  {getSearchText()}
+                </Text>
+              </Flex>
 
-          {/* Warning if missing info */}
-          {(!user?.gender || !user?.city) && (
-            <Box
-              style={{
-                padding: "12px 20px",
-                borderRadius: 12,
-                background: "rgba(245, 158, 11, 0.1)",
-                maxWidth: 320,
-              }}
-            >
-              <Text size="2" style={{ color: "#f59e0b", textAlign: "center" }}>
-                Vui lòng cập nhật giới tính và thành phố trong phần giới thiệu trước
-              </Text>
-            </Box>
+              {!canMatch && (
+                <Box
+                  style={{
+                    width: "100%",
+                    borderRadius: 8,
+                    background: "rgba(245,158,11,0.12)",
+                    padding: "10px 12px",
+                    textAlign: "center",
+                  }}
+                >
+                  <Text size="2" style={{ color: "#b45309", lineHeight: 1.5 }}>
+                    Vui lòng cập nhật giới tính và thành phố trong phần giới thiệu trước.
+                  </Text>
+                </Box>
+              )}
+
+              <Button
+                size="3"
+                onClick={handleStartSearch}
+                disabled={!canMatch}
+                style={{
+                  width: "100%",
+                  maxWidth: 240,
+                  height: 46,
+                  fontWeight: 700,
+                  borderRadius: 8,
+                  background: canMatch
+                    ? `linear-gradient(135deg, ${greenColor}, #10b981)`
+                    : isDark
+                      ? "#374151"
+                      : "#cbd5e1",
+                  color: "white",
+                  border: "none",
+                }}
+              >
+                Bắt đầu tìm kiếm
+              </Button>
+            </Flex>
           )}
 
-          {/* Action Button */}
-          <Button
-            size="3"
-            onClick={handleStartSearch}
-            disabled={!user?.gender || !user?.city}
-            style={{
-              padding: "14px 40px",
-              fontSize: "15px",
-              fontWeight: 600,
-              borderRadius: 12,
-              background: user?.gender && user?.city
-                ? `linear-gradient(135deg, ${greenColor}, #10b981)`
-                : isDark ? "#374151" : "#cbd5e1",
-              color: "white",
-              border: "none",
-              boxShadow: user?.gender && user?.city
-                ? "0 6px 20px rgba(34, 197, 94, 0.35)"
-                : "none",
-            }}
-          >
-            Bắt đầu tìm kiếm
-          </Button>
-        </Flex>
-      )}
+          {status === MatchStatus.Searching && (
+            <Flex direction="column" align="center" gap="4">
+              <StatusBadge label="Ghép đôi ngẫu nhiên" color="indigo" />
+              <SignalOrb mode="searching" />
+              <Flex direction="column" align="center" gap="2" style={{ textAlign: "center" }}>
+                <Text size="6" weight="bold" style={{ color: textPrimary }}>
+                  Đang tìm người phù hợp
+                </Text>
+                <Text
+                  size="3"
+                  style={{ color: textSecondary, lineHeight: 1.55, maxWidth: 340 }}
+                >
+                  Hệ thống đang ưu tiên người cùng thành phố và phù hợp với hồ sơ của bạn.
+                </Text>
+              </Flex>
 
-      {/* Searching State */}
-      {status === MatchStatus.Searching && (
-        <Flex direction="column" align="center" gap="5">
-          {/* Animated Icon */}
-          <Box
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: "50%",
-              background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: `0 12px 40px rgba(99, 102, 241, 0.4)`,
-              animation: "pulse 2s ease-in-out infinite",
-            }}
-          >
-            <Box
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.3)",
-                animation: "bounce 1s ease-in-out infinite",
-              }}
-            />
-          </Box>
+              <Flex gap="2" wrap="wrap" justify="center">
+                <Badge color="green" variant="soft">Online</Badge>
+                <Badge color="violet" variant="soft">Cùng thành phố</Badge>
+                <Badge color="gray" variant="soft">Tự làm mới</Badge>
+              </Flex>
 
-          {/* Text */}
-          <Flex direction="column" align="center" gap="2">
-            <Text size="6" weight="bold" style={{ color: accentColor }}>
-              Đang tìm kiếm...
-            </Text>
-            <Text size="3" style={{ color: textSecondary }}>
-              Vui lòng đợi trong giây lát
-            </Text>
-          </Flex>
+              <ProgressLine isDark={isDark} />
 
-          {/* Cancel Button */}
-          <Button
-            variant="soft"
-            size="3"
-            onClick={handleStopSearch}
-            style={{
-              padding: "12px 32px",
-              fontWeight: 600,
-              borderRadius: 12,
-              color: textSecondary,
-            }}
-          >
-            Hủy
-          </Button>
-        </Flex>
-      )}
+              <Button
+                variant="soft"
+                size="3"
+                onClick={handleStopSearch}
+                style={{
+                  minWidth: 180,
+                  height: 44,
+                  fontWeight: 700,
+                  borderRadius: 8,
+                  color: textSecondary,
+                }}
+              >
+                Hủy tìm kiếm
+              </Button>
+            </Flex>
+          )}
 
-      {/* Not Found State */}
-      {status === MatchStatus.NotFound && (
-        <Flex direction="column" align="center" gap="5">
-          {/* Icon */}
-          <Box
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: "50%",
-              background: isDark ? "#374151" : "#e5e7eb",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke={textSecondary} strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <line x1="15" y1="9" x2="9" y2="15" />
-              <line x1="9" y1="9" x2="15" y2="15" />
-            </svg>
-          </Box>
+          {status === MatchStatus.NotFound && (
+            <Flex direction="column" align="center" gap="4">
+              <StatusBadge label="Chưa có kết quả" color="amber" />
+              <SignalOrb mode="empty" />
+              <Flex direction="column" align="center" gap="2" style={{ textAlign: "center" }}>
+                <Text size="6" weight="bold" style={{ color: textPrimary }}>
+                  Chưa tìm thấy ai
+                </Text>
+                <Text size="3" style={{ color: textSecondary, lineHeight: 1.55 }}>
+                  Hiện chưa có người phù hợp đang online. Bạn có thể thử lại sau ít phút.
+                </Text>
+              </Flex>
+              <Button
+                variant="soft"
+                size="3"
+                onClick={() => setStatus(MatchStatus.Idle)}
+                style={{ minWidth: 160, height: 44, fontWeight: 700, borderRadius: 8 }}
+              >
+                Thử lại
+              </Button>
+            </Flex>
+          )}
 
-          {/* Text */}
-          <Flex direction="column" align="center" gap="2">
-            <Text size="6" weight="bold" style={{ color: textPrimary }}>
-              Không tìm thấy ai
-            </Text>
-            <Text size="3" style={{ color: textSecondary }}>
-              Hiện không có người nào cùng thành phố đang online
-            </Text>
-          </Flex>
+          {status === MatchStatus.Matched && matchResult && (
+            <Flex direction="column" align="center" gap="4">
+              <StatusBadge label="Đã ghép đôi" color="green" />
+              <Box
+                style={{
+                  width: 96,
+                  height: 96,
+                  borderRadius: "50%",
+                  background: `linear-gradient(135deg, ${greenColor}, #10b981)`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "white",
+                  fontSize: 30,
+                  fontWeight: 800,
+                  boxShadow: "0 18px 36px rgba(16,185,129,0.25)",
+                }}
+              >
+                {getUserInitials(matchResult.matchedUser.fullName, matchResult.matchedUser.email)}
+              </Box>
 
-          {/* Retry Button */}
-          <Button
-            variant="soft"
-            size="3"
-            onClick={() => setStatus(MatchStatus.Idle)}
-            style={{
-              padding: "12px 32px",
-              fontWeight: 600,
-              borderRadius: 12,
-            }}
-          >
-            Thử lại
-          </Button>
-        </Flex>
-      )}
+              <Flex direction="column" align="center" gap="1" style={{ textAlign: "center" }}>
+                <Text size="6" weight="bold" style={{ color: greenColor }}>
+                  Đã tìm thấy!
+                </Text>
+                <Text size="4" weight="medium" style={{ color: textPrimary }}>
+                  {matchResult.matchedUser.fullName || matchResult.matchedUser.email}
+                </Text>
+                {matchResult.matchedUser.city && (
+                  <Text size="2" style={{ color: textSecondary }}>
+                    {matchResult.matchedUser.city}
+                  </Text>
+                )}
+              </Flex>
 
-      {/* Matched State */}
-      {status === MatchStatus.Matched && matchResult && (
-        <Flex direction="column" align="center" gap="5">
-          {/* Avatar Circle */}
-          <Box
-            style={{
-              width: 120,
-              height: 120,
-              borderRadius: "50%",
-              background: `linear-gradient(135deg, ${greenColor}, #10b981)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: `0 12px 40px rgba(34, 197, 94, 0.4)`,
-            }}
-          >
-            <Box
-              style={{
-                width: 90,
-                height: 90,
-                borderRadius: "50%",
-                background: "rgba(255,255,255,0.2)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 32,
-                fontWeight: "bold",
-                color: "white",
-              }}
-            >
-              {getUserInitials(matchResult.matchedUser.fullName, matchResult.matchedUser.email)}
-            </Box>
-          </Box>
-
-          {/* User Info */}
-          <Flex direction="column" align="center" gap="2">
-            <Text size="6" weight="bold" style={{ color: greenColor }}>
-              Đã tìm thấy!
-            </Text>
-            <Text size="4" weight="medium" style={{ color: textPrimary }}>
-              {matchResult.matchedUser.fullName || matchResult.matchedUser.email}
-            </Text>
-            {matchResult.matchedUser.city && (
-              <Text size="2" style={{ color: textSecondary }}>
-                📍 {matchResult.matchedUser.city}
-              </Text>
-            )}
-          </Flex>
-
-          {/* Action Buttons */}
-          <Flex gap="3">
-            <Button
-              variant="soft"
-              size="3"
-              onClick={() => {
-                setMatchResult(null);
-                setStatus(MatchStatus.Idle);
-              }}
-              style={{
-                padding: "12px 28px",
-                fontWeight: 600,
-                borderRadius: 12,
-                color: textSecondary,
-              }}
-            >
-              Hủy
-            </Button>
-            <Button
-              size="3"
-              onClick={handleMatchedAccept}
-              style={{
-                padding: "12px 28px",
-                fontWeight: 600,
-                borderRadius: 12,
-                background: `linear-gradient(135deg, ${greenColor}, #10b981)`,
-                color: "white",
-                border: "none",
-                boxShadow: "0 6px 20px rgba(34, 197, 94, 0.35)",
-              }}
-            >
-              Bắt đầu trò chuyện
-            </Button>
-          </Flex>
-        </Flex>
-      )}
+              <Flex gap="3" wrap="wrap" justify="center">
+                <Button
+                  variant="soft"
+                  size="3"
+                  onClick={() => {
+                    setMatchResult(null);
+                    setStatus(MatchStatus.Idle);
+                    onCancel();
+                  }}
+                  style={{ minWidth: 120, height: 44, fontWeight: 700, borderRadius: 8 }}
+                >
+                  Hủy
+                </Button>
+                <Button
+                  size="3"
+                  onClick={() => onMatched(matchResult.conversationId, matchResult.matchedUser)}
+                  style={{
+                    minWidth: 180,
+                    height: 44,
+                    fontWeight: 700,
+                    borderRadius: 8,
+                    background: `linear-gradient(135deg, ${greenColor}, #10b981)`,
+                    color: "white",
+                    border: "none",
+                  }}
+                >
+                  Bắt đầu trò chuyện
+                </Button>
+              </Flex>
+            </Flex>
+          )}
+        </Box>
+      </Flex>
 
       <style>{`
-        @keyframes pulse {
-          0%, 100% { transform: scale(1); }
-          50% { transform: scale(1.05); }
+        @keyframes radarPing {
+          0% { transform: scale(0.72); opacity: 0.75; }
+          80%, 100% { transform: scale(1.22); opacity: 0; }
         }
-        @keyframes bounce {
+        @keyframes floatSoft {
           0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes searchProgress {
+          0% { transform: translateX(-110%); }
+          50% { transform: translateX(80%); }
+          100% { transform: translateX(250%); }
         }
       `}</style>
-    </Flex>
+    </Box>
+  );
+}
+
+function StatusBadge({ label, color }: { label: string; color: "green" | "indigo" | "amber" }) {
+  return (
+    <Badge color={color} variant="soft" style={{ fontWeight: 700 }}>
+      {label}
+    </Badge>
+  );
+}
+
+function SignalOrb({ mode }: { mode: "idle" | "searching" | "empty" }) {
+  const active = mode === "searching";
+  const muted = mode === "empty";
+
+  return (
+    <Box
+      style={{
+        position: "relative",
+        width: 124,
+        height: 124,
+        borderRadius: "50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: muted
+          ? "rgba(148,163,184,0.14)"
+          : "radial-gradient(circle, rgba(99,102,241,0.23) 0%, rgba(99,102,241,0.08) 58%, transparent 62%)",
+        animation: "floatSoft 3.4s ease-in-out infinite",
+      }}
+    >
+      {active && (
+        <>
+          <Box
+            style={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              border: "1px solid rgba(99,102,241,0.25)",
+              animation: "radarPing 2.2s ease-out infinite",
+            }}
+          />
+          <Box
+            style={{
+              position: "absolute",
+              inset: 22,
+              borderRadius: "50%",
+              border: "1px solid rgba(99,102,241,0.30)",
+              animation: "radarPing 2.2s ease-out infinite 0.45s",
+            }}
+          />
+        </>
+      )}
+
+      <Box
+        style={{
+          width: 78,
+          height: 78,
+          borderRadius: "50%",
+          background: muted
+            ? "linear-gradient(135deg, #94a3b8, #64748b)"
+            : "linear-gradient(135deg, #6366f1, #8b5cf6)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: muted
+            ? "0 16px 30px rgba(100,116,139,0.22)"
+            : "0 18px 34px rgba(99,102,241,0.32)",
+        }}
+      >
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          {muted ? (
+            <>
+              <circle cx="12" cy="12" r="8" />
+              <path d="M9 9l6 6" />
+              <path d="M15 9l-6 6" />
+            </>
+          ) : (
+            <>
+              <path d="M17 8a5 5 0 0 0-10 0" />
+              <path d="M3 14a9 9 0 0 1 18 0" />
+              <path d="M7 14a5 5 0 0 1 10 0" />
+              <path d="M12 14v4" />
+              <circle cx="12" cy="20" r="1" fill="white" />
+            </>
+          )}
+        </svg>
+      </Box>
+    </Box>
+  );
+}
+
+function ProgressLine({ isDark }: { isDark: boolean }) {
+  return (
+    <Box
+      style={{
+        width: "100%",
+        height: 6,
+        borderRadius: 999,
+        overflow: "hidden",
+        background: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.08)",
+      }}
+    >
+      <Box
+        style={{
+          width: "42%",
+          height: "100%",
+          borderRadius: 999,
+          background: "linear-gradient(90deg, #6366f1, #22c55e)",
+          animation: "searchProgress 1.6s ease-in-out infinite",
+        }}
+      />
+    </Box>
+  );
+}
+
+function Decorations({ isDark }: { isDark: boolean }) {
+  const soft = isDark ? "rgba(99,102,241,0.18)" : "rgba(99,102,241,0.12)";
+  const green = isDark ? "rgba(34,197,94,0.16)" : "rgba(34,197,94,0.12)";
+
+  return (
+    <>
+      <Box
+        style={{
+          position: "absolute",
+          width: 220,
+          height: 220,
+          borderRadius: "50%",
+          left: "8%",
+          top: "10%",
+          background: soft,
+          filter: "blur(28px)",
+        }}
+      />
+      <Box
+        style={{
+          position: "absolute",
+          width: 180,
+          height: 180,
+          borderRadius: "50%",
+          right: "10%",
+          bottom: "8%",
+          background: green,
+          filter: "blur(26px)",
+        }}
+      />
+      <Box
+        style={{
+          position: "absolute",
+          inset: "12px",
+          borderRadius: 8,
+          border: isDark
+            ? "1px dashed rgba(255,255,255,0.08)"
+            : "1px dashed rgba(99,102,241,0.16)",
+          pointerEvents: "none",
+        }}
+      />
+    </>
   );
 }

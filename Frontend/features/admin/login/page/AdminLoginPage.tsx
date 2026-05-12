@@ -20,6 +20,7 @@ export function AdminLoginPage() {
     try {
       const response = await fetch("/api/admin/v1/login", {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
@@ -27,7 +28,8 @@ export function AdminLoginPage() {
       if (response.ok) {
         window.location.href = "/admin";
       } else {
-        setError("Email hoặc mật khẩu không đúng");
+        const data = await response.json().catch(() => null);
+        setError(data?.message || "Email hoặc mật khẩu không đúng, hoặc tài khoản không có quyền admin");
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -82,7 +84,7 @@ export function AdminLoginPage() {
                 <Text size="2" weight="medium" color="gray">Email quản trị</Text>
                 <TextField.Root
                   type="email"
-                  placeholder="admin@chatapp.com"
+                  placeholder="admin@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required

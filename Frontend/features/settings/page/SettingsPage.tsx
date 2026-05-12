@@ -67,23 +67,11 @@ export function SettingsPage() {
             </Text>
           </Flex>
 
-          <Box
-            p="5"
-            style={{
-              background: "var(--white)",
-              boxShadow: "0 2px 12px rgba(99, 102, 241, 0.06)",
-            }}
-          >
+          <Box p="5">
             <SettingsForm />
           </Box>
 
-          <Box
-            p="5"
-            style={{
-              background: "var(--white)",
-              boxShadow: "0 2px 12px rgba(99, 102, 241, 0.06)",
-            }}
-          >
+          <Box p="5">
             <Avatar3D />
           </Box>
         </Flex>

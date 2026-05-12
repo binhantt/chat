@@ -1,6 +1,6 @@
 "use client";
 
-import { Flex, Text, Card } from "@radix-ui/themes";
+import { Flex, Text, Card, Badge } from "@radix-ui/themes";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useState, useEffect } from "react";
 
@@ -9,9 +9,20 @@ interface ReportStatsData {
   pendingReports: number;
   reviewedReports: number;
   resolvedReports: number;
+  rejectedReports?: number;
+  reportsByCategory?: Record<string, number>;
+  reportsByUser?: Array<{
+    userId: string;
+    fullName: string;
+    reportCount: number;
+  }>;
 }
 
-export function ReportStats() {
+interface ReportStatsProps {
+  detailed?: boolean;
+}
+
+export function ReportStats({ detailed = false }: ReportStatsProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [stats, setStats] = useState<ReportStatsData>({
@@ -92,24 +103,84 @@ export function ReportStats() {
   }
 
   return (
-    <Flex gap="4" wrap="wrap">
-      {statCards.map((stat) => (
+    <Flex direction="column" gap="4">
+      <Flex gap="4" wrap="wrap">
+        {statCards.map((stat) => (
+          <Card
+            key={stat.label}
+            size="2"
+            style={{
+              flex: "1 1 180px",
+              background: isDark ? "var(--gray-11)" : "var(--white)",
+              padding: "20px",
+            }}
+          >
+            <Flex direction="column" gap="2" align="center">
+              <Text size="6">{stat.icon}</Text>
+              <Text size="8" weight="bold" color={stat.color as any}>{stat.value}</Text>
+              <Text size="2" color="gray">{stat.label}</Text>
+            </Flex>
+          </Card>
+        ))}
+      </Flex>
+
+      {detailed && (
         <Card
-          key={stat.label}
           size="2"
           style={{
-            flex: "1 1 180px",
-            background: isDark ? "var(--gray-11)" : "var(--white)",
+            background: isDark ? "var(--gray-10)" : "var(--gray-1)",
             padding: "20px",
+            marginTop: "16px",
           }}
         >
-          <Flex direction="column" gap="2" align="center">
-            <Text size="6">{stat.icon}</Text>
-            <Text size="8" weight="bold" color={stat.color as any}>{stat.value}</Text>
-            <Text size="2" color="gray">{stat.label}</Text>
+          <Flex direction="column" gap="3">
+            <Text size="3" weight="bold">Thống kê chi tiết</Text>
+            <Flex gap="2" wrap="wrap">
+              <Badge color="indigo" variant="soft">
+                Tổng: {stats.totalReports}
+              </Badge>
+              <Badge color="yellow" variant="soft">
+                Chờ xử lý: {stats.pendingReports}
+              </Badge>
+              <Badge color="violet" variant="soft">
+                Đã xem xét: {stats.reviewedReports}
+              </Badge>
+              <Badge color="green" variant="soft">
+                Đã giải quyết: {stats.resolvedReports}
+              </Badge>
+              <Badge color="red" variant="soft">
+                Từ chối: {stats.rejectedReports || 0}
+              </Badge>
+            </Flex>
+
+            {stats.reportsByCategory && Object.keys(stats.reportsByCategory).length > 0 && (
+              <Flex direction="column" gap="2" style={{ marginTop: "12px" }}>
+                <Text size="2" weight="medium">Theo danh mục:</Text>
+                <Flex gap="2" wrap="wrap">
+                  {Object.entries(stats.reportsByCategory).map(([category, count]) => (
+                    <Badge key={category} color="cyan" variant="soft">
+                      {category}: {count}
+                    </Badge>
+                  ))}
+                </Flex>
+              </Flex>
+            )}
+
+            {stats.reportsByUser && stats.reportsByUser.length > 0 && (
+              <Flex direction="column" gap="2" style={{ marginTop: "12px" }}>
+                <Text size="2" weight="medium">Theo người dùng:</Text>
+                <Flex gap="2" wrap="wrap">
+                  {stats.reportsByUser.slice(0, 5).map((user) => (
+                    <Badge key={user.userId} color="orange" variant="soft">
+                      {user.fullName}: {user.reportCount}
+                    </Badge>
+                  ))}
+                </Flex>
+              </Flex>
+            )}
           </Flex>
         </Card>
-      ))}
+      )}
     </Flex>
   );
 }

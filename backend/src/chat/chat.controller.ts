@@ -7,16 +7,27 @@ import {
   Body,
   Query,
   Req,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ChatService } from './chat.service';
+import { ChatRealtimeService } from './chat-realtime.service';
 import { DemoAuthGuard } from '../auth/guards/demo-auth.guard';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 
 @Controller('chat')
 @UseGuards(DemoAuthGuard)
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private readonly chatRealtimeService: ChatRealtimeService,
+  ) {}
+
+  @Get('stream')
+  stream(@Req() request: AuthenticatedRequest, @Res() response: Response) {
+    return this.chatRealtimeService.subscribe(request.user!.id, response);
+  }
 
   @Get('conversations')
   async getConversations(@Req() request: AuthenticatedRequest) {
@@ -24,7 +35,10 @@ export class ChatController {
   }
 
   @Get('conversations/:id')
-  async getConversation(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
+  async getConversation(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
     return this.chatService.findConversationById(id);
   }
 
@@ -52,19 +66,65 @@ export class ChatController {
     );
   }
 
+  @Get('admin/conversations/:id/messages')
+  async getMessagesForAdmin(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    if (request.user!.role !== 'admin') {
+      return this.chatService.getConversationMessages(
+        id,
+        request.user!.id,
+        limit ? parseInt(limit) : 100,
+        offset ? parseInt(offset) : 0,
+      );
+    }
+
+    return this.chatService.getConversationMessagesForAdmin(
+      id,
+      limit ? parseInt(limit) : 100,
+      offset ? parseInt(offset) : 0,
+    );
+  }
+
   @Patch('conversations/:id/read')
-  async markAsRead(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
+  async markAsRead(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
     await this.chatService.markMessagesAsRead(id, request.user!.id);
     return { message: 'Đã đánh dấu tin nhắn là đã đọc' };
   }
 
+  @Patch('conversations/:id/typing')
+  async typing(
+    @Param('id') id: string,
+    @Body() body: { isTyping?: boolean },
+    @Req() request: AuthenticatedRequest,
+  ) {
+    await this.chatService.notifyTyping(
+      id,
+      request.user!.id,
+      body.isTyping === true,
+    );
+    return { ok: true };
+  }
+
   @Patch('conversations/:id/block')
-  async blockConversation(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
+  async blockConversation(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
     return this.chatService.blockConversation(id, request.user!.id);
   }
 
   @Patch('conversations/:id/end')
-  async endConversation(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
+  async endConversation(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
     return this.chatService.endConversation(id, request.user!.id);
   }
 }

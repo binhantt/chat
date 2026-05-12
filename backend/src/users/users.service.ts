@@ -12,7 +12,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { ProfileSetupDto } from './dto/profile-setup.dto';
 import { UpdateUserAccessDto } from './dto/update-user-access.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User, UserRole } from './entities/user.entity';
+import { User, UserLockType, UserRole } from './entities/user.entity';
 import { GoogleUserProfile } from './interfaces/google-user-profile.interface';
 import { PasswordService } from './services/password.service';
 import { UserFactoryService } from './services/user-factory.service';
@@ -35,7 +35,11 @@ export class UsersService implements OnModuleInit {
   }
 
   async findById(id: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { id } });
+    const user = await this.usersRepository.findOne({ where: { id } });
+    if (user) {
+      await this.clearExpiredLock(user);
+    }
+    return user;
   }
 
   async findAll(): Promise<User[]> {
@@ -126,6 +130,80 @@ export class UsersService implements OnModuleInit {
     return this.saveSafeUser(await this.usersRepository.save(user));
   }
 
+  async deleteOwnAccount(userId: string): Promise<void> {
+    await this.findByIdOrFail(userId);
+
+    await this.dataSource.transaction(async (manager) => {
+      const conversations = await manager.query(
+        `
+          SELECT id
+          FROM conversations
+          WHERE user1_id = $1 OR user2_id = $1
+        `,
+        [userId],
+      );
+      const conversationIds = conversations.map(
+        (conversation) => conversation.id,
+      );
+
+      if (conversationIds.length > 0) {
+        await manager.query(
+          `
+            DELETE FROM messages
+            WHERE conversation_id = ANY($1::uuid[])
+          `,
+          [conversationIds],
+        );
+      }
+
+      await manager.query(
+        `
+          DELETE FROM messages
+          WHERE sender_id = $1
+        `,
+        [userId],
+      );
+
+      await manager.query(
+        `
+          DELETE FROM match_queue
+          WHERE "userId" = $1 OR "matchedWithUserId" = $1
+        `,
+        [userId],
+      );
+
+      await manager.query(
+        `
+          DELETE FROM reports
+          WHERE reporter_id = $1
+            OR reported_user_id = $1
+            OR reviewed_by_admin_id = $1
+        `,
+        [userId],
+      );
+
+      if (conversationIds.length > 0) {
+        await manager.query(
+          `
+            DELETE FROM conversations
+            WHERE id = ANY($1::uuid[])
+          `,
+          [conversationIds],
+        );
+      }
+
+      await manager.query(
+        `
+          DELETE FROM users
+          WHERE id = $1
+        `,
+        [userId],
+      );
+    });
+
+    this.logger.log(`Deleted user account and related data: ${userId}`);
+  }
+
   async updateAccess(
     id: string,
     updateUserAccessDto: UpdateUserAccessDto,
@@ -143,11 +221,71 @@ export class UsersService implements OnModuleInit {
       );
     }
 
-    user.role = updateUserAccessDto.role;
-    user.isActive = updateUserAccessDto.isActive;
+    user.role = updateUserAccessDto.role ?? user.role;
+    user.isActive = updateUserAccessDto.isActive ?? user.isActive;
+    if (user.isActive && user.lockType === UserLockType.Permanent) {
+      user.lockType = UserLockType.None;
+      user.lockedUntil = null;
+      user.lockReason = null;
+      user.lockedByReportId = null;
+    }
     user.updatedAt = new Date();
 
     return this.saveSafeUser(await this.usersRepository.save(user));
+  }
+
+  async lockFromReport(
+    userId: string,
+    lockType: UserLockType,
+    reportId: string,
+    reason: string,
+  ): Promise<User> {
+    const user = await this.findByIdOrFail(userId);
+    const now = Date.now();
+
+    user.lockType = lockType;
+    user.lockedByReportId = reportId;
+    user.lockReason = reason;
+    user.updatedAt = new Date();
+
+    if (lockType === UserLockType.FifteenDays) {
+      user.lockedUntil = new Date(now + 15 * 24 * 60 * 60 * 1000);
+      user.isActive = true;
+    } else if (lockType === UserLockType.ThirtyDays) {
+      user.lockedUntil = new Date(now + 30 * 24 * 60 * 60 * 1000);
+      user.isActive = true;
+    } else if (lockType === UserLockType.Permanent) {
+      user.lockedUntil = null;
+      user.isActive = false;
+    } else {
+      user.lockedUntil = null;
+      user.lockReason = null;
+      user.lockedByReportId = null;
+      user.isActive = true;
+    }
+
+    return this.saveSafeUser(await this.usersRepository.save(user));
+  }
+
+  isLoginLocked(user: User): boolean {
+    if (!user.isActive || user.lockType === UserLockType.Permanent) {
+      return true;
+    }
+
+    return !!user.lockedUntil && user.lockedUntil.getTime() > Date.now();
+  }
+
+  getLockMessage(user: User): string {
+    if (user.lockType === UserLockType.Permanent || !user.isActive) {
+      return 'Nguoi dung da vi pham va bi khoa vinh vien';
+    }
+
+    if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
+      const date = user.lockedUntil.toLocaleDateString('vi-VN');
+      return `Nguoi dung da vi pham va bi khoa den ngay ${date}`;
+    }
+
+    return 'Tai khoan dang hoat dong';
   }
 
   async setupProfile(
@@ -173,6 +311,10 @@ export class UsersService implements OnModuleInit {
       existingAdmin.passwordHash = this.passwordService.hash(adminPassword);
       existingAdmin.role = UserRole.Admin;
       existingAdmin.isActive = true;
+      existingAdmin.lockType = UserLockType.None;
+      existingAdmin.lockedUntil = null;
+      existingAdmin.lockReason = null;
+      existingAdmin.lockedByReportId = null;
       existingAdmin.fullName = existingAdmin.fullName ?? 'System Admin';
       existingAdmin.updatedAt = new Date();
       await this.usersRepository.save(existingAdmin);
@@ -220,11 +362,31 @@ export class UsersService implements OnModuleInit {
   }
 
   private async findByEmailWithPassword(email: string): Promise<User | null> {
-    return this.usersRepository
+    const user = await this.usersRepository
       .createQueryBuilder('user')
       .addSelect('user.passwordHash')
       .where('LOWER(user.email) = LOWER(:email)', { email })
       .getOne();
+    if (user) {
+      await this.clearExpiredLock(user);
+    }
+    return user;
+  }
+
+  private async clearExpiredLock(user: User): Promise<void> {
+    if (
+      user.lockedUntil &&
+      user.lockedUntil.getTime() <= Date.now() &&
+      user.lockType !== UserLockType.Permanent
+    ) {
+      user.lockType = UserLockType.None;
+      user.lockedUntil = null;
+      user.lockReason = null;
+      user.lockedByReportId = null;
+      user.isActive = true;
+      user.updatedAt = new Date();
+      await this.usersRepository.save(user);
+    }
   }
 
   private toSafeUser(user: User): User {

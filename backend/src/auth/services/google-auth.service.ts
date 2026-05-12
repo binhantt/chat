@@ -22,12 +22,10 @@ type GoogleJwtPayload = GoogleTokenPayload & {
 
 @Injectable()
 export class GoogleAuthService {
-  private cachedCertificates:
-    | {
-        certificates: Record<string, string>;
-        expiresAt: number;
-      }
-    | null = null;
+  private cachedCertificates: {
+    certificates: Record<string, string>;
+    expiresAt: number;
+  } | null = null;
 
   async verifyToken(idToken: string): Promise<GoogleTokenPayload> {
     if (!idToken) {
@@ -45,7 +43,9 @@ export class GoogleAuthService {
     const certificate = certificates[header.kid];
 
     if (!certificate) {
-      throw new UnauthorizedException('Khong tim thay Google signing key phu hop');
+      throw new UnauthorizedException(
+        'Khong tim thay Google signing key phu hop',
+      );
     }
 
     const isValidSignature = verifySignature(
@@ -95,7 +95,9 @@ export class GoogleAuthService {
     const segments = idToken.split('.');
 
     if (segments.length !== 3) {
-      throw new UnauthorizedException('Google idToken khong dung dinh dang JWT');
+      throw new UnauthorizedException(
+        'Google idToken khong dung dinh dang JWT',
+      );
     }
 
     const [encodedHeader, encodedPayload, encodedSignature] = segments;
@@ -104,8 +106,12 @@ export class GoogleAuthService {
     let payload: GoogleJwtPayload;
 
     try {
-      header = JSON.parse(this.decodeBase64Url(encodedHeader)) as GoogleJwtHeader;
-      payload = JSON.parse(this.decodeBase64Url(encodedPayload)) as GoogleJwtPayload;
+      header = JSON.parse(
+        this.decodeBase64Url(encodedHeader),
+      ) as GoogleJwtHeader;
+      payload = JSON.parse(
+        this.decodeBase64Url(encodedPayload),
+      ) as GoogleJwtPayload;
     } catch {
       throw new UnauthorizedException('Khong doc duoc Google idToken');
     }
@@ -134,7 +140,10 @@ export class GoogleAuthService {
   }
 
   private async getGoogleCertificates(): Promise<Record<string, string>> {
-    if (this.cachedCertificates && this.cachedCertificates.expiresAt > Date.now()) {
+    if (
+      this.cachedCertificates &&
+      this.cachedCertificates.expiresAt > Date.now()
+    ) {
       return this.cachedCertificates.certificates;
     }
 
@@ -145,7 +154,9 @@ export class GoogleAuthService {
         cache: 'no-store',
       });
     } catch {
-      throw new UnauthorizedException('Khong the ket noi toi Google de xac thuc token');
+      throw new UnauthorizedException(
+        'Khong the ket noi toi Google de xac thuc token',
+      );
     }
 
     if (!response.ok) {
@@ -189,7 +200,9 @@ export class GoogleAuthService {
     }
 
     if (payload.iat && payload.iat * 1000 > Date.now() + 60_000) {
-      throw new UnauthorizedException('Google token co thoi gian tao khong hop le');
+      throw new UnauthorizedException(
+        'Google token co thoi gian tao khong hop le',
+      );
     }
 
     if (payload.email_verified === false) {

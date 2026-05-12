@@ -45,7 +45,7 @@ export function Avatar3D() {
               border: selected === av.id ? "3px solid var(--indigo-9)" : "3px solid transparent",
               transform: selected === av.id ? "scale(1.1)" : "scale(1)",
               transition: "all 0.2s",
-              boxShadow: selected === av.id ? "0 4px 16px rgba(99,102,241,0.3)" : "none",
+              boxShadow: "none",
             }}
           >
             <span style={{ fontSize: 28, filter: "drop-shadow(0 2px 4px rgba(0,0,0,0.3))" }}>
@@ -70,7 +70,7 @@ export function Avatar3D() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: "0 8px 32px rgba(99,102,241,0.25)",
+            boxShadow: "none",
             animation: "float 3s ease-in-out infinite",
           }}
         >

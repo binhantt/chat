@@ -24,8 +24,7 @@ import {
   SunIcon,
   MoonIcon,
   ReloadIcon,
-  CheckIcon,
-} from "@radix-ui/react-icons";
+  CheckIcon, } from "@radix-ui/react-icons";
 import { useState } from "react";
 
 interface SettingSectionProps {

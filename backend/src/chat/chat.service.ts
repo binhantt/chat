@@ -1,13 +1,26 @@
-import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  ForbiddenException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Conversation, ConversationStatus } from './entities/conversation.entity';
+import { LessThan, Repository } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import {
+  Conversation,
+  ConversationStatus,
+} from './entities/conversation.entity';
 import { Message, MessageStatus } from './entities/message.entity';
 import { AuthTokenService } from '../auth/services/auth-token.service';
+import { ChatRealtimeService } from './chat-realtime.service';
+import { ConductService } from '../conduct/conduct.service';
 
 @Injectable()
-export class ChatService {
+export class ChatService implements OnModuleInit {
   private readonly logger = new Logger(ChatService.name);
+  private readonly messageRetentionDays = 90;
 
   constructor(
     @InjectRepository(Conversation)
@@ -15,7 +28,32 @@ export class ChatService {
     @InjectRepository(Message)
     private readonly messageRepository: Repository<Message>,
     private readonly authTokenService: AuthTokenService,
+    private readonly chatRealtimeService: ChatRealtimeService,
+    private readonly conductService: ConductService,
   ) {}
+
+  onModuleInit(): void {
+    void this.deleteExpiredMessages();
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async deleteExpiredMessages(): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - this.messageRetentionDays);
+
+    const result = await this.messageRepository.delete({
+      createdAt: LessThan(cutoffDate),
+    });
+    const deletedCount = result.affected ?? 0;
+
+    if (deletedCount > 0) {
+      this.logger.log(
+        `Deleted ${deletedCount} chat messages older than ${this.messageRetentionDays} days`,
+      );
+    }
+
+    return deletedCount;
+  }
 
   async findConversationById(conversationId: string): Promise<Conversation> {
     const conversation = await this.conversationRepository.findOne({
@@ -37,10 +75,7 @@ export class ChatService {
     }
 
     return this.conversationRepository.find({
-      where: [
-        { user1Id: userId },
-        { user2Id: userId },
-      ],
+      where: [{ user1Id: userId }, { user2Id: userId }],
       relations: ['user1', 'user2'],
       order: { updatedAt: 'DESC' },
     });
@@ -59,8 +94,13 @@ export class ChatService {
       throw new NotFoundException('Không tìm thấy cuộc trò chuyện');
     }
 
-    if (conversation.user1Id !== senderId && conversation.user2Id !== senderId) {
-      throw new ForbiddenException('Bạn không có quyền gửi tin nhắn trong cuộc trò chuyện này');
+    if (
+      conversation.user1Id !== senderId &&
+      conversation.user2Id !== senderId
+    ) {
+      throw new ForbiddenException(
+        'Bạn không có quyền gửi tin nhắn trong cuộc trò chuyện này',
+      );
     }
 
     if (conversation.user1Blocked && conversation.user1Id === senderId) {
@@ -77,8 +117,15 @@ export class ChatService {
 
     // Check if sender is banned
     if (this.authTokenService.isUserBanned(senderId)) {
-      throw new ForbiddenException('Bạn đã bị cấm sử dụng chat stream'
-        + ' (vi phạm quá giới hạn trong 1 ngày)');
+      throw new ForbiddenException(
+        'Bạn đã bị cấm sử dụng chat stream' +
+          ' (vi phạm quá giới hạn trong 1 ngày)',
+      );
+    }
+
+    const conductCheck = await this.conductService.checkMessage(content);
+    if (conductCheck.violated) {
+      throw new ForbiddenException('Không thể nhắn tin vì đã vi phạm ứng xử');
     }
 
     const message = this.messageRepository.create({
@@ -92,7 +139,13 @@ export class ChatService {
 
     conversation.updatedAt = new Date();
     await this.conversationRepository.save(conversation);
-    this.logger.log(`Message created: ${savedMessage.id} in conversation ${conversationId}`);
+    this.chatRealtimeService.emitMessage(
+      [conversation.user1Id, conversation.user2Id],
+      savedMessage,
+    );
+    this.logger.log(
+      `Message created: ${savedMessage.id} in conversation ${conversationId}`,
+    );
     return savedMessage;
   }
 
@@ -112,7 +165,9 @@ export class ChatService {
       }
 
       if (conversation.user1Id !== userId && conversation.user2Id !== userId) {
-        throw new ForbiddenException('Bạn không có quyền xem cuộc trò chuyện này');
+        throw new ForbiddenException(
+          'Bạn không có quyền xem cuộc trò chuyện này',
+        );
       }
 
       return this.messageRepository.find({
@@ -123,9 +178,34 @@ export class ChatService {
         relations: ['sender'],
       });
     } catch (error) {
-      this.logger.error(`Error fetching messages for conversation ${conversationId}:`, error);
+      this.logger.error(
+        `Error fetching messages for conversation ${conversationId}:`,
+        error,
+      );
       throw error;
     }
+  }
+
+  async getConversationMessagesForAdmin(
+    conversationId: string,
+    limit: number = 100,
+    offset: number = 0,
+  ): Promise<Message[]> {
+    const conversation = await this.conversationRepository.findOne({
+      where: { id: conversationId },
+    });
+
+    if (!conversation) {
+      throw new NotFoundException('KhÃ´ng tÃ¬m tháº¥y cuá»™c trÃ² chuyá»‡n');
+    }
+
+    return this.messageRepository.find({
+      where: { conversationId },
+      order: { createdAt: 'DESC' },
+      take: limit,
+      skip: offset,
+      relations: ['sender'],
+    });
   }
 
   async markMessagesAsRead(
@@ -141,10 +221,15 @@ export class ChatService {
     }
 
     if (conversation.user1Id !== userId && conversation.user2Id !== userId) {
-      throw new ForbiddenException('Bạn không có quyền trong cuộc trò chuyện này');
+      throw new ForbiddenException(
+        'Bạn không có quyền trong cuộc trò chuyện này',
+      );
     }
 
-    const otherUserId = conversation.user1Id === userId ? conversation.user2Id : conversation.user1Id;
+    const otherUserId =
+      conversation.user1Id === userId
+        ? conversation.user2Id
+        : conversation.user1Id;
 
     await this.messageRepository.update(
       {
@@ -155,7 +240,45 @@ export class ChatService {
       { status: MessageStatus.Read },
     );
 
-    this.logger.log(`Messages marked as read: conversation ${conversationId} for user ${userId}`);
+    this.logger.log(
+      `Messages marked as read: conversation ${conversationId} for user ${userId}`,
+    );
+  }
+
+  async notifyTyping(
+    conversationId: string,
+    userId: string,
+    isTyping: boolean,
+  ): Promise<void> {
+    const conversation = await this.conversationRepository.findOne({
+      where: { id: conversationId },
+    });
+
+    if (!conversation) {
+      throw new NotFoundException('Không tìm thấy cuộc trò chuyện');
+    }
+
+    if (conversation.user1Id !== userId && conversation.user2Id !== userId) {
+      throw new ForbiddenException(
+        'Bạn không có quyền trong cuộc trò chuyện này',
+      );
+    }
+
+    if (conversation.status !== ConversationStatus.Active) {
+      return;
+    }
+
+    const receiverId =
+      conversation.user1Id === userId
+        ? conversation.user2Id
+        : conversation.user1Id;
+
+    this.chatRealtimeService.emitTyping(
+      [receiverId],
+      conversation.id,
+      userId,
+      isTyping,
+    );
   }
 
   async blockConversation(
@@ -171,7 +294,9 @@ export class ChatService {
     }
 
     if (conversation.user1Id !== userId && conversation.user2Id !== userId) {
-      throw new ForbiddenException('Bạn không có quyền chỉnh sửa cuộc trò chuyện này');
+      throw new ForbiddenException(
+        'Bạn không có quyền chỉnh sửa cuộc trò chuyện này',
+      );
     }
 
     if (conversation.user1Id === userId) {
@@ -182,7 +307,8 @@ export class ChatService {
 
     conversation.status = ConversationStatus.Blocked;
     conversation.updatedAt = new Date();
-    const savedConversation = await this.conversationRepository.save(conversation);
+    const savedConversation =
+      await this.conversationRepository.save(conversation);
     return savedConversation;
   }
 
@@ -199,13 +325,21 @@ export class ChatService {
     }
 
     if (conversation.user1Id !== userId && conversation.user2Id !== userId) {
-      throw new ForbiddenException('Bạn không có quyền chỉnh sửa cuộc trò chuyện này');
+      throw new ForbiddenException(
+        'Bạn không có quyền chỉnh sửa cuộc trò chuyện này',
+      );
     }
 
     conversation.status = ConversationStatus.Ended;
     conversation.updatedAt = new Date();
 
-    const savedConversation = await this.conversationRepository.save(conversation);
+    const savedConversation =
+      await this.conversationRepository.save(conversation);
+    this.chatRealtimeService.emitConversationEnded(
+      [conversation.user1Id, conversation.user2Id],
+      conversation.id,
+      userId,
+    );
 
     return savedConversation;
   }

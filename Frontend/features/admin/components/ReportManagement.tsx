@@ -1,6 +1,6 @@
 "use client";
 
-import { Flex, Text, Card, Button, Badge, Dialog, Dialog.Content, Dialog.Header, Dialog.Title, DialogTrigger } from "@radix-ui/themes";
+import { Flex, Text, Card, Button, Badge, Dialog } from "@radix-ui/themes";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -146,7 +146,7 @@ export function ReportManagement() {
                 }}
               >
                 <Flex justify="between" align="start" gap="4">
-                  <Flex direction="column" gap="2" flex="1">
+                  <Flex direction="column" gap="2" style={{ flex: 1 }}>
                     <Flex align="center" gap="2">
                       <Text size="3" weight="bold">{catLabel[report.reason] || report.reason}</Text>
                       <Badge color={statusColor[report.status] as any}>
@@ -175,16 +175,14 @@ export function ReportManagement() {
                     </Text>
                   </Flex>
                   
-                  <Dialog>
-                    <DialogTrigger asChild>
+                  <Dialog.Root>
+                    <Dialog.Trigger>
                       <Button size="2" variant="outline" onClick={() => setSelectedReport(report)}>
                         Xử lý
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Xử lý báo cáo</DialogTitle>
-                      </DialogHeader>
+                    </Dialog.Trigger>
+                    <Dialog.Content>
+                      <Dialog.Title>Xử lý báo cáo</Dialog.Title>
                       <Flex direction="column" gap="4">
                         <Flex direction="column" gap="2">
                           <Text size="2" weight="bold">{catLabel[report.reason] || report.reason}</Text>
@@ -264,8 +262,8 @@ export function ReportManagement() {
                           </Button>
                         </Flex>
                       </Flex>
-                    </DialogContent>
-                  </Dialog>
+                    </Dialog.Content>
+                  </Dialog.Root>
                 </Flex>
               </Card>
             ))}

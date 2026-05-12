@@ -23,6 +23,6 @@ import { UserRepository } from './repositories/user.repository';
     DemoAuthGuard,
     AbacGuard,
   ],
-  exports: [UsersService, AuthCookieService  ],
+  exports: [UsersService, AuthCookieService],
 })
 export class UsersModule {}

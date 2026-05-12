@@ -1,10 +1,11 @@
 "use client";
 
-import { Flex, Text, TextField, Box, Avatar, Spinner } from "@radix-ui/themes";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { Flex, Text, Box, Avatar } from "@radix-ui/themes";
+import { memo, useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { getConversations } from "@/features/athu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 interface BackendConversation {
   id: string;
@@ -28,11 +29,22 @@ interface ChatPartner {
   lastMessage?: string;
 }
 
-export function SearchPeople() {
+interface SearchPeopleProps {
+  onSelectConversation?: (conversationId: string, partner: {
+    id: string;
+    email: string;
+    fullName: string | null;
+    avatarUrl: string | null;
+    gender: string | null;
+    city: string | null;
+  }) => void;
+}
+
+export const SearchPeople = memo(function SearchPeople({ onSelectConversation }: SearchPeopleProps) {
   const [query, setQuery] = useState("");
   const [conversations, setConversations] = useState<ChatPartner[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedConv, setSelectedConv] = useState<string | null>(null);
+  const debouncedQuery = useDebouncedValue(query);
   const { user } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -82,10 +94,15 @@ export function SearchPeople() {
     }
   }, [user, fetchConversations]);
 
-  const filtered = conversations.filter((c) =>
-    c.partnerName.toLowerCase().includes(query.toLowerCase()) ||
-    c.partnerEmail.toLowerCase().includes(query.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    const normalizedQuery = debouncedQuery.trim().toLowerCase();
+    if (!normalizedQuery) return conversations;
+
+    return conversations.filter((c) =>
+      c.partnerName.toLowerCase().includes(normalizedQuery) ||
+      c.partnerEmail.toLowerCase().includes(normalizedQuery)
+    );
+  }, [conversations, debouncedQuery]);
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -112,7 +129,14 @@ export function SearchPeople() {
   };
 
   const handleSelectConversation = (chat: ChatPartner) => {
-    window.location.href = `/chat?conv=${chat.conversationId}&user=${chat.partnerId}`;
+    onSelectConversation?.(chat.conversationId, {
+      id: chat.partnerId,
+      email: chat.partnerEmail,
+      fullName: chat.partnerName,
+      avatarUrl: chat.partnerAvatar,
+      gender: null,
+      city: null,
+    });
   };
 
   return (
@@ -191,8 +215,7 @@ export function SearchPeople() {
             }}
           />
           {query && (
-            <Box
-              as="button"
+            <button
               onClick={() => setQuery("")}
               style={{
                 width: 28,
@@ -210,7 +233,7 @@ export function SearchPeople() {
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
-            </Box>
+            </button>
           )}
         </Box>
       </Box>
@@ -305,9 +328,9 @@ export function SearchPeople() {
                   />
                   <Box
                     position="absolute"
-                    bottom={0}
-                    right={0}
                     style={{
+                      bottom: 0,
+                      right: 0,
                       width: 12,
                       height: 12,
                       borderRadius: "50%",
@@ -369,4 +392,4 @@ export function SearchPeople() {
       `}</style>
     </Flex>
   );
-}
+});

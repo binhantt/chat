@@ -17,6 +17,13 @@ export enum UserGender {
   Other = 'other',
 }
 
+export enum UserLockType {
+  None = 'none',
+  FifteenDays = '15_days',
+  ThirtyDays = '30_days',
+  Permanent = 'permanent',
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -67,6 +74,22 @@ export class User {
   // --- QUẢN LÝ TRẠNG THÁI ---
   @Column({ default: true })
   isActive!: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: UserLockType,
+    default: UserLockType.None,
+  })
+  lockType!: UserLockType;
+
+  @Column({ type: 'timestamp with time zone', nullable: true })
+  lockedUntil!: Date | null;
+
+  @Column({ type: 'text', nullable: true })
+  lockReason!: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  lockedByReportId!: string | null;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt!: Date;

@@ -1,8 +1,8 @@
 "use client";
 
-import { Flex, Text, Card, Box, Badge } from "@radix-ui/themes";
+import { Badge, Box, Flex, Text } from "@radix-ui/themes";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface Report {
   id: string;
@@ -23,15 +23,15 @@ interface Report {
 }
 
 const catLabel: Record<string, string> = {
-  spam: "🚫 Spam",
-  harassment: "🚨 Harassment",
-  inappropriate_content: "⚠️ Inappropriate",
-  fake_profile: "🎭 Fake Profile",
-  underage: "👶 Underage",
-  other: "📋 Other",
+  spam: "Spam",
+  harassment: "Quấy rối",
+  inappropriate_content: "Nội dung không phù hợp",
+  fake_profile: "Tài khoản giả",
+  underage: "Chưa đủ tuổi",
+  other: "Khác",
 };
 
-const statusColor: Record<string, string> = {
+const statusColor: Record<string, "yellow" | "violet" | "green" | "red"> = {
   pending: "yellow",
   reviewed: "violet",
   resolved: "green",
@@ -50,13 +50,13 @@ export function ReportHistory() {
 
   const fetchUserReports = async () => {
     try {
-      const response = await fetch('/api/reports/my-reports');
+      const response = await fetch("/api/reports/my-reports");
       if (response.ok) {
         const data = await response.json();
         setReports(data);
       }
     } catch (error) {
-      console.error('Failed to fetch user reports:', error);
+      console.error("Failed to fetch user reports:", error);
     } finally {
       setLoading(false);
     }
@@ -67,7 +67,7 @@ export function ReportHistory() {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 1) return "Hôm qua";
     if (diffDays < 7) return `${diffDays} ngày trước`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
@@ -76,32 +76,20 @@ export function ReportHistory() {
 
   if (loading) {
     return (
-      <Card
-        size="2"
-        style={{
-          background: isDark ? "var(--gray-11)" : "var(--white)",
-          padding: "24px",
-        }}
-      >
+      <Box p="4">
         <Flex direction="column" gap="4">
           <Text size="4" weight="bold">Lịch sử báo cáo</Text>
           <Text size="2" color="gray">Đang tải...</Text>
         </Flex>
-      </Card>
+      </Box>
     );
   }
 
   return (
-    <Card
-      size="2"
-      style={{
-        background: isDark ? "var(--gray-11)" : "var(--white)",
-        padding: "24px",
-      }}
-    >
+    <Box p="4">
       <Flex direction="column" gap="4">
         <Text size="4" weight="bold">Lịch sử báo cáo</Text>
-        
+
         {reports.length === 0 ? (
           <Text size="2" color="gray">Chưa có báo cáo nào</Text>
         ) : (
@@ -112,10 +100,10 @@ export function ReportHistory() {
               gap="2"
               style={{
                 paddingBottom: "12px",
-                borderBottom: "1px solid " + (isDark ? "var(--gray-6)" : "var(--gray-3)"),
+                borderBottom: `1px solid ${isDark ? "var(--gray-6)" : "var(--gray-3)"}`,
               }}
             >
-              <Flex justify="between" align="start">
+              <Flex justify="between" align="start" gap="3">
                 <Flex direction="column" gap="1">
                   <Text size="2" weight="medium">{catLabel[report.reason] || report.reason}</Text>
                   <Text size="1" color="gray">
@@ -123,19 +111,19 @@ export function ReportHistory() {
                   </Text>
                 </Flex>
                 <Flex align="center" gap="2">
-                  <Badge color={statusColor[report.status] as any}>
-                    {report.status === 'pending' ? 'Chờ xử lý' :
-                     report.status === 'reviewed' ? 'Đã xem xét' :
-                     report.status === 'resolved' ? 'Đã giải quyết' : 'Từ chối'}
+                  <Badge color={statusColor[report.status] || "yellow"}>
+                    {report.status === "pending" ? "Chờ xử lý" :
+                     report.status === "reviewed" ? "Đã xem xét" :
+                     report.status === "resolved" ? "Đã giải quyết" : "Từ chối"}
                   </Badge>
                   <Text size="1" color="gray">{formatDate(report.createdAt)}</Text>
                 </Flex>
               </Flex>
-              
+
               {report.description && (
                 <Text size="1" color="gray" style={{ maxWidth: "100%" }}>
-                  {report.description.length > 100 
-                    ? report.description.substring(0, 100) + "..." 
+                  {report.description.length > 100
+                    ? `${report.description.substring(0, 100)}...`
                     : report.description}
                 </Text>
               )}
@@ -143,6 +131,6 @@ export function ReportHistory() {
           ))
         )}
       </Flex>
-    </Card>
+    </Box>
   );
 }

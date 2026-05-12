@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { CreateUserDto } from '../dto/create-user.dto';
-import { User, UserRole } from '../entities/user.entity';
+import { User, UserLockType, UserRole } from '../entities/user.entity';
 import { GoogleUserProfile } from '../interfaces/google-user-profile.interface';
 import { UserBuildInput } from '../interfaces/user-build-input.interface';
 import { PasswordService } from './password.service';
@@ -69,6 +69,10 @@ export class UserFactoryService {
     return {
       role: input.role ?? UserRole.User,
       isActive: true,
+      lockType: UserLockType.None,
+      lockedUntil: null,
+      lockReason: null,
+      lockedByReportId: null,
       createdAt: now,
       updatedAt: now,
     };

@@ -1,5 +1,5 @@
 async function fetchWithCookie(url: string, options: RequestInit = {}) {
-  return fetch(url, {
+  const request = () => fetch(url, {
     ...options,
     credentials: 'include',
     headers: {
@@ -7,6 +7,24 @@ async function fetchWithCookie(url: string, options: RequestInit = {}) {
       ...options.headers,
     },
   });
+
+  let response = await request();
+
+  if (response.status === 401 || response.status === 403) {
+    const refresh = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (refresh.ok) {
+      response = await request();
+    }
+  }
+
+  return response;
 }
 
 export type ReportReason = 'spam' | 'harassment' | 'inappropriate_content' | 'fake_profile' | 'underage' | 'other';

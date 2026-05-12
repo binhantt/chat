@@ -19,6 +19,10 @@ export class AuthService {
       this.toGoogleUserProfile(payload),
     );
 
+    if (this.usersService.isLoginLocked(user)) {
+      throw new UnauthorizedException(this.usersService.getLockMessage(user));
+    }
+
     return {
       message: 'Đăng nhập Google thành công',
       accessToken: this.authTokenService.createAccessToken(user.id),
@@ -48,8 +52,8 @@ export class AuthService {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
 
-    if (!user.isActive) {
-      throw new UnauthorizedException('Tài khoản đã bị khóa');
+    if (this.usersService.isLoginLocked(user)) {
+      throw new UnauthorizedException(this.usersService.getLockMessage(user));
     }
 
     return {
@@ -77,8 +81,12 @@ export class AuthService {
     const userId = this.authTokenService.verifyRefreshToken(refreshToken);
     const user = await this.usersService.findById(userId);
 
-    if (!user || !user.isActive) {
-      throw new UnauthorizedException('User không tồn tại hoặc đã bị khóa');
+    if (!user || this.usersService.isLoginLocked(user)) {
+      throw new UnauthorizedException(
+        user
+          ? this.usersService.getLockMessage(user)
+          : 'User không tồn tại hoặc đã bị khóa',
+      );
     }
 
     return {

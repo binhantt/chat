@@ -8,6 +8,8 @@ import {
   FileTextIcon,
   GearIcon,
   CaretRightIcon,
+  LockClosedIcon,
+  StarIcon,
 } from "@radix-ui/react-icons";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
@@ -22,7 +24,9 @@ const navItems: NavItem[] = [
   { label: "Tổng quan", icon: <DashboardIcon width={20} height={20} />, href: "/admin" },
   { label: "Người dùng", icon: <PersonIcon width={20} height={20} />, href: "/admin/users" },
   { label: "Tin nhắn", icon: <ChatBubbleIcon width={20} height={20} />, href: "/admin/chats" },
+  { label: "Ứng xử", icon: <LockClosedIcon width={20} height={20} />, href: "/admin/conduct" },
   { label: "Báo cáo", icon: <FileTextIcon width={20} height={20} />, href: "/admin/reports" },
+  { label: "Gói VIP", icon: <StarIcon width={20} height={20} />, href: "/admin/vip" },
   { label: "Cài đặt", icon: <GearIcon width={20} height={20} />, href: "/admin/settings" },
 ];
 
@@ -30,7 +34,9 @@ function getActiveHref(pathname: string): string {
   if (pathname === "/admin" || pathname === "/admin/") return "/admin";
   if (pathname.startsWith("/admin/users")) return "/admin/users";
   if (pathname.startsWith("/admin/chats")) return "/admin/chats";
+  if (pathname.startsWith("/admin/conduct")) return "/admin/conduct";
   if (pathname.startsWith("/admin/reports")) return "/admin/reports";
+  if (pathname.startsWith("/admin/vip")) return "/admin/vip";
   if (pathname.startsWith("/admin/settings")) return "/admin/settings";
   if (pathname.startsWith("/admin/profile")) return "/admin/profile";
   return "/admin";

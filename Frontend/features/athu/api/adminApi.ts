@@ -1,7 +1,7 @@
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 async function fetchWithCookie(url: string, options: RequestInit = {}) {
-  return fetch(url, {
+  const request = () => fetch(url, {
     ...options,
     credentials: "include",
     headers: {
@@ -9,6 +9,30 @@ async function fetchWithCookie(url: string, options: RequestInit = {}) {
       ...options.headers,
     },
   });
+
+  let response = await request();
+
+  if (response.status === 401 || response.status === 403) {
+    const refresh = await fetch("/api/auth/refresh", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (refresh.ok) {
+      response = await request();
+    }
+  }
+
+  if (response.status === 401 || response.status === 403) {
+    if (typeof window !== "undefined" && window.location.pathname.startsWith("/admin")) {
+      window.location.href = "/admin/login";
+    }
+  }
+
+  return response;
 }
 
 // ============ CHAT API ============
@@ -150,6 +174,58 @@ export async function updateAdminUserAccess(
   return res.json();
 }
 
+// ============ CONDUCT RULES API ============
+
+export interface ConductRule {
+  id: string;
+  phrase: string;
+  note: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function getConductRules(): Promise<ConductRule[]> {
+  const res = await fetchWithCookie("/api/admin/conduct-rules", { method: "GET" });
+  if (!res.ok) throw new Error("Không thể lấy danh sách luật ứng xử");
+  return res.json();
+}
+
+export async function createConductRule(data: { phrase: string; note?: string }) {
+  const res = await fetchWithCookie("/api/admin/conduct-rules", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: "Không thể tạo luật ứng xử" }));
+    throw new Error(err.message || "Không thể tạo luật ứng xử");
+  }
+  return res.json();
+}
+
+export async function updateConductRule(
+  id: string,
+  data: { phrase?: string; note?: string | null; isActive?: boolean },
+) {
+  const res = await fetchWithCookie(`/api/admin/conduct-rules/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ message: "Không thể cập nhật luật ứng xử" }));
+    throw new Error(err.message || "Không thể cập nhật luật ứng xử");
+  }
+  return res.json();
+}
+
+export async function deleteConductRule(id: string) {
+  const res = await fetchWithCookie(`/api/admin/conduct-rules/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Không thể xóa luật ứng xử");
+  return res.json();
+}
+
 // ============ TYPES ============
 
 export interface Conversation {
@@ -181,10 +257,20 @@ export interface MatchStatus {
 export interface AdminUser {
   id: string;
   email: string;
+  googleId?: string | null;
   fullName: string | null;
   avatarUrl: string | null;
+  dateOfBirth?: string | null;
+  phoneNumber?: string | null;
+  bio?: string | null;
+  gender?: "male" | "female" | "other" | null;
+  city?: string | null;
   role: string;
   isActive: boolean;
+  lockType?: "none" | "15_days" | "30_days" | "permanent";
+  lockedUntil?: string | null;
+  lockReason?: string | null;
+  lockedByReportId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

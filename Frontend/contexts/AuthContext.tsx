@@ -92,7 +92,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    window.location.href = "/login";
+    void fetch("/api/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    }).finally(() => {
+      window.location.href = "/login";
+    });
   };
 
   useEffect(() => {

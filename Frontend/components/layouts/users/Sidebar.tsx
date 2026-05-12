@@ -2,7 +2,7 @@
 
 import { Flex, Text } from "@radix-ui/themes";
 
-export type TabId = "chat" | "about" | "settings" | "report";
+export type TabId = "chat" | "website" | "about" | "vip" | "settings" | "report";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -27,12 +27,33 @@ const navItems: { id: TabId; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    id: "website",
+    label: "Giới thiệu website",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 0 20" />
+        <path d="M12 2a15.3 15.3 0 0 0 0 20" />
+      </svg>
+    ),
+  },
+  {
     id: "about",
     label: "Giới thiệu bản thân",
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
         <circle cx="12" cy="7" r="4" />
+      </svg>
+    ),
+  },
+  {
+    id: "vip",
+    label: "Gói VIP",
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
       </svg>
     ),
   },
