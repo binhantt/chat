@@ -1,6 +1,6 @@
 # ChatApp
 
-ChatApp là ứng dụng chat/matching giúp người dùng kết nối với người phù hợp trong cùng khu vực, bắt đầu trò chuyện nhanh và có cơ chế report/moderation rõ ràng.
+ChatApp là ứng dụng chat/matching giúp người dùng kết nối với người phù hợp trong cùng khu vực, bắt đầu cuộc trò chuyện nhanh và có cơ chế report/moderation rõ ràng để bảo vệ trải nghiệm cộng đồng.
 
 ## Cấu trúc dự án
 
@@ -15,8 +15,11 @@ ChatApp là ứng dụng chat/matching giúp người dùng kết nối với ng
 - Tìm người để chat.
 - Ghép đôi theo thành phố và giới tính.
 - Tạo cuộc trò chuyện, gửi và xem tin nhắn.
+- Nhận tin nhắn thời gian thực bằng SSE chat stream.
+- Hiển thị trạng thái đang nhập.
+- Kết thúc cuộc trò chuyện.
 - Report người dùng vi phạm.
-- Admin quản lý users, chats và reports.
+- Admin quản lý users, chats, reports, conduct rules và gói VIP.
 
 ## Tài liệu
 
@@ -33,6 +36,7 @@ ChatApp là ứng dụng chat/matching giúp người dùng kết nối với ng
 
 1. Sửa toàn bộ text tiếng Việt bị lỗi mã hóa.
 2. Chuẩn hóa API contract giữa frontend và backend.
-3. Hoàn thiện realtime chat bằng Socket.IO.
+3. Ổn định và hoàn thiện realtime chat bằng SSE chat stream.
 4. Nâng cấp report/admin moderation.
 5. Cải thiện matching bằng sở thích và mục đích tham gia.
+6. Bổ sung thêm trạng thái hội thoại như đã đọc, online/offline nếu cần.
