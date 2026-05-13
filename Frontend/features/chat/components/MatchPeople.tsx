@@ -17,6 +17,9 @@ export enum MatchStatus {
 interface MatchResult {
   conversationId: string;
   matchedUserId: string;
+  currentUserAccepted?: boolean;
+  partnerAccepted?: boolean;
+  chatReady?: boolean;
   matchedUser: {
     id: string;
     email: string;
@@ -39,13 +42,13 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
 
   const textPrimary = isDark ? "#e2e8f0" : "#0f172a";
   const textSecondary = isDark ? "#94a3b8" : "#64748b";
-  const accentColor = "#6366f1";
   const greenColor = "#16a34a";
   const borderColor = isDark ? "rgba(255,255,255,0.12)" : "rgba(99,102,241,0.14)";
 
   const [status, setStatus] = useState<MatchStatus>(MatchStatus.Idle);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const completedMatchRef = useRef(false);
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -54,6 +57,43 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
     }
   }, []);
 
+  const completeMatch = useCallback(
+    (data: {
+      conversationId: string;
+      matchedWithUserId: string;
+      matchedUser?: MatchResult["matchedUser"];
+      currentUserAccepted?: boolean;
+      partnerAccepted?: boolean;
+      chatReady?: boolean;
+    }) => {
+      const matchedUser = data.matchedUser || {
+        id: data.matchedWithUserId,
+        email: "",
+        fullName: null,
+        avatarUrl: null,
+        gender: null,
+        city: null,
+      };
+
+      setStatus(MatchStatus.Matched);
+      setMatchResult({
+        conversationId: data.conversationId,
+        matchedUserId: data.matchedWithUserId,
+        currentUserAccepted: data.currentUserAccepted === true,
+        partnerAccepted: data.partnerAccepted === true,
+        chatReady: data.chatReady === true,
+        matchedUser,
+      });
+
+      if (data.chatReady === true && !completedMatchRef.current) {
+        completedMatchRef.current = true;
+        stopPolling();
+        onMatched(data.conversationId, matchedUser);
+      }
+    },
+    [onMatched, stopPolling],
+  );
+
   const checkMatchStatus = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/status`, { credentials: "include" });
@@ -61,34 +101,54 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
 
       const data = await res.json();
 
-      if (data.conversationId && data.matchedWithUserId) {
-        setStatus(MatchStatus.Matched);
-        stopPolling();
-        setMatchResult({
-          conversationId: data.conversationId,
-          matchedUserId: data.matchedWithUserId,
-          matchedUser: data.matchedUser || {
-            id: data.matchedWithUserId,
-            email: "",
-            fullName: null,
-            avatarUrl: null,
-            gender: null,
-            city: null,
-          },
-        });
+      if (data.status === "matched" && data.conversationId && data.matchedWithUserId) {
+        completeMatch(data);
       } else if (data.status === "cancelled" || data.status === "expired") {
         setStatus(MatchStatus.NotFound);
         stopPolling();
+      } else if (data.inQueue || data.status === "waiting") {
+        setStatus(MatchStatus.Searching);
       }
     } catch (error) {
       console.error("Error checking match status:", error);
     }
-  }, [stopPolling]);
+  }, [completeMatch, stopPolling]);
 
   const startPolling = useCallback(() => {
     if (pollingIntervalRef.current) return;
     pollingIntervalRef.current = setInterval(checkMatchStatus, 5000);
   }, [checkMatchStatus]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const restoreActiveQueue = async () => {
+      try {
+        const res = await fetch(`${API_URL}/status`, { credentials: "include" });
+        if (!res.ok || cancelled) return;
+
+        const data = await res.json();
+        if (data.status === "matched" && data.conversationId && data.matchedWithUserId) {
+          completeMatch(data);
+          if (data.chatReady !== true) startPolling();
+          return;
+        }
+
+        if (data.inQueue || data.status === "waiting") {
+          setStatus(MatchStatus.Searching);
+          startPolling();
+        }
+      } catch (error) {
+        console.error("Error restoring match status:", error);
+      }
+    };
+
+    void restoreActiveQueue();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [completeMatch, startPolling]);
 
   const handleStartSearch = async () => {
     setStatus(MatchStatus.Searching);
@@ -101,6 +161,13 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
 
       if (!res.ok) {
         setStatus(MatchStatus.Idle);
+        return;
+      }
+
+      const data = await res.json();
+      if (data.status === "matched" && data.conversationId && data.matchedWithUserId) {
+        completeMatch(data);
+        if (data.chatReady !== true) startPolling();
         return;
       }
 
@@ -125,17 +192,55 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
     setStatus(MatchStatus.Idle);
   };
 
+  const handleAcceptMatch = async () => {
+    if (!matchResult) return;
+
+    try {
+      const res = await fetch(`/api/chat/conversations/${matchResult.conversationId}/accept`, {
+        method: "PATCH",
+        credentials: "include",
+      });
+
+      if (!res.ok) return;
+
+      setMatchResult((current) =>
+        current
+          ? {
+              ...current,
+              currentUserAccepted: true,
+            }
+          : current,
+      );
+      await checkMatchStatus();
+      startPolling();
+    } catch (error) {
+      console.error("Error accepting match:", error);
+    }
+  };
+
+  const handleDeclineMatch = async () => {
+    if (!matchResult) return;
+
+    stopPolling();
+    try {
+      await fetch(`/api/chat/conversations/${matchResult.conversationId}/end`, {
+        method: "PATCH",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Error declining match:", error);
+    }
+
+    completedMatchRef.current = false;
+    setMatchResult(null);
+    setStatus(MatchStatus.Idle);
+  };
+
   useEffect(() => {
     return () => {
       stopPolling();
-      if (status === MatchStatus.Searching) {
-        fetch(`${API_URL}/leave`, {
-          method: "DELETE",
-          credentials: "include",
-        }).catch(console.error);
-      }
     };
-  }, [status, stopPolling]);
+  }, [stopPolling]);
 
   const getUserInitials = (name: string | null | undefined, email: string) => {
     if (!name) return email.slice(0, 2).toUpperCase();
@@ -159,8 +264,10 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
       style={{
         position: "relative",
         width: "100%",
-        minHeight: "100%",
-        overflow: "hidden",
+        height: "100%",
+        minHeight: 0,
+        overflowY: "auto",
+        overflowX: "hidden",
         borderRadius: 8,
       }}
     >
@@ -175,7 +282,7 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
           zIndex: 1,
           width: "100%",
           minHeight: "100%",
-          padding: "18px 16px",
+          padding: "18px 16px 24px",
         }}
       >
         <Box
@@ -273,11 +380,14 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
                 size="3"
                 onClick={handleStopSearch}
                 style={{
+                  width: "100%",
+                  maxWidth: 280,
                   minWidth: 180,
                   height: 44,
                   fontWeight: 700,
                   borderRadius: 8,
                   color: textSecondary,
+                  flexShrink: 0,
                 }}
               >
                 Hủy tìm kiếm
@@ -326,7 +436,7 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
                   boxShadow: "0 18px 36px rgba(16,185,129,0.25)",
                 }}
               >
-                {getUserInitials(matchResult.matchedUser.fullName, matchResult.matchedUser.email)}
+                ??
               </Box>
 
               <Flex direction="column" align="center" gap="1" style={{ textAlign: "center" }}>
@@ -334,11 +444,20 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
                   Đã tìm thấy!
                 </Text>
                 <Text size="4" weight="medium" style={{ color: textPrimary }}>
-                  {matchResult.matchedUser.fullName || matchResult.matchedUser.email}
+                  {matchResult.chatReady
+                    ? matchResult.matchedUser.fullName || matchResult.matchedUser.email
+                    : "Nguoi an danh"}
                 </Text>
                 {matchResult.matchedUser.city && (
                   <Text size="2" style={{ color: textSecondary }}>
-                    {matchResult.matchedUser.city}
+                    Dia diem: {matchResult.matchedUser.city}
+                  </Text>
+                )}
+                {!matchResult.chatReady && (
+                  <Text size="2" style={{ color: textSecondary }}>
+                    {matchResult.currentUserAccepted
+                      ? "Ban da thich. Dang cho nguoi kia xac nhan."
+                      : "Chi hien ten khi ca hai cung thich."}
                   </Text>
                 )}
               </Flex>
@@ -347,18 +466,15 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
                 <Button
                   variant="soft"
                   size="3"
-                  onClick={() => {
-                    setMatchResult(null);
-                    setStatus(MatchStatus.Idle);
-                    onCancel();
-                  }}
+                  onClick={handleDeclineMatch}
                   style={{ minWidth: 120, height: 44, fontWeight: 700, borderRadius: 8 }}
                 >
-                  Hủy
+                  Bỏ qua
                 </Button>
                 <Button
                   size="3"
-                  onClick={() => onMatched(matchResult.conversationId, matchResult.matchedUser)}
+                  onClick={handleAcceptMatch}
+                  disabled={matchResult.currentUserAccepted === true}
                   style={{
                     minWidth: 180,
                     height: 44,
@@ -369,7 +485,7 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
                     border: "none",
                   }}
                 >
-                  Bắt đầu trò chuyện
+                  {matchResult.currentUserAccepted ? "Dang cho xac nhan" : "Thich"}
                 </Button>
               </Flex>
             </Flex>

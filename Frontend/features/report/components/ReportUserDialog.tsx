@@ -43,6 +43,11 @@ function getInitials(name: string | null, email: string) {
 export function ReportUserDialog({ reportedUser, recentPartners, onSuccess }: ReportUserDialogProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const fieldStyle = {
+    background: isDark ? "#111827" : "var(--gray-1)",
+    color: isDark ? "#e5e7eb" : "var(--gray-12)",
+    border: `1px solid ${isDark ? "#334155" : "var(--gray-5)"}`,
+  };
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState<ReportReason | "">("");
   const [description, setDescription] = useState("");
@@ -95,8 +100,8 @@ export function ReportUserDialog({ reportedUser, recentPartners, onSuccess }: Re
           p="3"
           style={{
             borderRadius: "var(--radius-3)",
-            background: isDark ? "var(--gray-9)" : "var(--gray-2)",
-            border: "1px solid var(--gray-5)",
+            background: isDark ? "#111827" : "var(--gray-2)",
+            border: `1px solid ${isDark ? "#334155" : "var(--gray-5)"}`,
           }}
         >
           <Flex align="center" gap="3">
@@ -130,8 +135,8 @@ export function ReportUserDialog({ reportedUser, recentPartners, onSuccess }: Re
                   py="1"
                   style={{
                     borderRadius: "var(--radius-full)",
-                    background: isDark ? "var(--gray-8)" : "var(--gray-3)",
-                    border: "1px solid var(--gray-5)",
+                    background: isDark ? "#1f2937" : "var(--gray-3)",
+                    border: `1px solid ${isDark ? "#334155" : "var(--gray-5)"}`,
                   }}
                 >
                   <Avatar
@@ -153,7 +158,7 @@ export function ReportUserDialog({ reportedUser, recentPartners, onSuccess }: Re
           <Select.Root value={reason} onValueChange={(v) => setReason(v as ReportReason)} size="3">
             <Select.Trigger
               placeholder="Chọn loại vi phạm"
-              style={{ width: "100%", background: isDark ? "var(--gray-10)" : "var(--gray-1)" }}
+              style={{ width: "100%", ...fieldStyle }}
             />
             <Select.Content>
               {REPORT_REASONS.map((r) => (
@@ -172,7 +177,7 @@ export function ReportUserDialog({ reportedUser, recentPartners, onSuccess }: Re
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
             style={{
-              background: isDark ? "var(--gray-10)" : "var(--gray-1)",
+              ...fieldStyle,
               resize: "none",
             }}
           />

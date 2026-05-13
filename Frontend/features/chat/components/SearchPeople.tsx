@@ -7,13 +7,23 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
+interface BackendUser {
+  id: string;
+  email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  city?: string | null;
+}
+
 interface BackendConversation {
   id: string;
   user1Id: string;
   user2Id: string;
-  user1?: { id: string; email: string; fullName: string | null; avatarUrl: string | null };
-  user2?: { id: string; email: string; fullName: string | null; avatarUrl: string | null };
+  user1?: BackendUser;
+  user2?: BackendUser;
   status: "active" | "ended" | "blocked";
+  user1Accepted?: boolean;
+  user2Accepted?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +34,8 @@ interface ChatPartner {
   partnerName: string;
   partnerEmail: string;
   partnerAvatar: string | null;
+  partnerCity: string | null;
+  chatReady: boolean;
   lastTime: string;
   status: "active" | "ended" | "blocked";
   lastMessage?: string;
@@ -68,13 +80,16 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
           const isUser1 = conv.user1Id === user?.id;
           const partner = isUser1 ? conv.user2 : conv.user1;
           const partnerId = isUser1 ? conv.user2Id : conv.user1Id;
+          const chatReady = conv.user1Accepted === true && conv.user2Accepted === true;
 
           return {
             conversationId: conv.id,
             partnerId,
-            partnerName: partner?.fullName || partner?.email?.split("@")[0] || `User ${partnerId.slice(0, 8)}`,
-            partnerEmail: partner?.email || "",
-            partnerAvatar: partner?.avatarUrl || null,
+            partnerName: "Nguoi an danh",
+            partnerEmail: "",
+            partnerAvatar: null,
+            partnerCity: partner?.city || null,
+            chatReady,
             lastTime: formatTimeAgo(conv.updatedAt),
             status: conv.status as "active" | "ended" | "blocked",
           };
@@ -93,6 +108,38 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
       fetchConversations();
     }
   }, [user, fetchConversations]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const source = new EventSource("/api/chat/stream", {
+      withCredentials: true,
+    });
+
+    source.addEventListener("chat", (event) => {
+      try {
+        const payload = JSON.parse((event as MessageEvent).data);
+        if (
+          payload?.type === "conversation.created" ||
+          payload?.type === "conversation.ended" ||
+          payload?.type === "conversation.accepted" ||
+          payload?.type === "message.created"
+        ) {
+          void fetchConversations();
+        }
+      } catch (error) {
+        console.error("Invalid chat stream event:", error);
+      }
+    });
+
+    source.onerror = () => {
+      source.close();
+    };
+
+    return () => {
+      source.close();
+    };
+  }, [fetchConversations, user]);
 
   const filtered = useMemo(() => {
     const normalizedQuery = debouncedQuery.trim().toLowerCase();
@@ -135,7 +182,7 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
       fullName: chat.partnerName,
       avatarUrl: chat.partnerAvatar,
       gender: null,
-      city: null,
+      city: chat.partnerCity,
     });
   };
 
@@ -357,7 +404,11 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
                       }}
                     >
                       <Text size="1" style={{ color: chat.status === "active" ? "#22c55e" : "#94a3b8" }}>
-                        {chat.status === "active" ? "Hoạt động" : "Đã kết thúc"}
+                        {!chat.chatReady
+                          ? "Cho xac nhan"
+                          : chat.status === "active"
+                            ? "Hoạt động"
+                            : "Đã kết thúc"}
                       </Text>
                     </Box>
                   </Flex>
@@ -370,7 +421,7 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {chat.partnerEmail}
+                    {chat.partnerCity || "Chua co dia diem"}
                   </Text>
                 </Flex>
 

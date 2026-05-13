@@ -31,6 +31,11 @@ const reportReasons = [
 export function ReportForm() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const fieldStyle = {
+    background: isDark ? "#111827" : "var(--gray-1)",
+    color: isDark ? "#e5e7eb" : "var(--gray-12)",
+    border: `1px solid ${isDark ? "#334155" : "var(--gray-5)"}`,
+  };
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -134,7 +139,7 @@ export function ReportForm() {
           <Select.Root value={reportedUserId} onValueChange={setReportedUserId} size="3">
             <Select.Trigger
               placeholder={loadingUsers ? "Dang tai danh sach..." : "Chon nguoi da noi chuyen"}
-              style={{ width: "100%", background: isDark ? "var(--gray-10)" : "var(--gray-1)" }}
+              style={{ width: "100%", ...fieldStyle }}
             />
             <Select.Content>
               {reportableUsers.map((user) => (
@@ -156,7 +161,7 @@ export function ReportForm() {
           <Select.Root value={reason} onValueChange={setReason} size="3">
             <Select.Trigger
               placeholder="Chon ly do"
-              style={{ width: "100%", background: isDark ? "var(--gray-10)" : "var(--gray-1)" }}
+              style={{ width: "100%", ...fieldStyle }}
             />
             <Select.Content>
               {reportReasons.map((item) => (
@@ -175,7 +180,7 @@ export function ReportForm() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             size="3"
-            style={{ background: isDark ? "var(--gray-10)" : "var(--gray-1)" }}
+            style={fieldStyle}
           />
         </Flex>
 
@@ -187,7 +192,7 @@ export function ReportForm() {
             onChange={(e) => setContent(e.target.value)}
             rows={5}
             style={{
-              background: isDark ? "var(--gray-10)" : "var(--gray-1)",
+              ...fieldStyle,
               resize: "none",
             }}
           />

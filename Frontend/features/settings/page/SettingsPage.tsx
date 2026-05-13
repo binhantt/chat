@@ -2,6 +2,7 @@
 
 import { Flex, Text, Box } from "@radix-ui/themes";
 import { SettingsForm, Avatar3D } from "../components";
+import { useTheme } from "@/contexts/ThemeContext";
 
 function DecorTopLeft() {
   return (
@@ -40,10 +41,13 @@ function DecorBottomRight() {
 }
 
 export function SettingsPage() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+
   return (
     <Box
       position="relative"
-      style={{ flex: 1, background: "var(--gray-1)" }}
+      style={{ flex: 1, background: isDark ? "#0f172a" : "var(--gray-1)" }}
     >
       <DecorTopLeft />
       <DecorBottomRight />

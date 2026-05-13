@@ -1,9 +1,17 @@
+import { UserGender } from '../entities/user.entity';
+
 export class UpdateUserDto {
-  fullName?: string;
+  fullName?: string | null;
 
-  avatarUrl?: string;
+  avatarUrl?: string | null;
 
-  phoneNumber?: string;
+  dateOfBirth?: string | null;
 
-  bio?: string;
+  phoneNumber?: string | null;
+
+  bio?: string | null;
+
+  gender?: UserGender | null;
+
+  city?: string | null;
 }

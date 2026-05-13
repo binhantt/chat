@@ -1,8 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Response } from 'express';
+import { Conversation } from './entities/conversation.entity';
 import { Message } from './entities/message.entity';
 
 type ChatEvent =
+  | {
+      type: 'conversation.created';
+      conversation: Conversation;
+    }
   | {
       type: 'message.created';
       message: Message;
@@ -17,6 +22,12 @@ type ChatEvent =
       type: 'conversation.ended';
       conversationId: string;
       endedByUserId: string;
+    }
+  | {
+      type: 'conversation.accepted';
+      conversationId: string;
+      acceptedByUserId: string;
+      chatReady: boolean;
     };
 
 @Injectable()
@@ -53,6 +64,13 @@ export class ChatRealtimeService {
     this.emitToUsers(userIds, event);
   }
 
+  emitConversationCreated(userIds: string[], conversation: Conversation): void {
+    this.emitToUsers(userIds, {
+      type: 'conversation.created',
+      conversation,
+    });
+  }
+
   emitTyping(
     userIds: string[],
     conversationId: string,
@@ -76,6 +94,20 @@ export class ChatRealtimeService {
       type: 'conversation.ended',
       conversationId,
       endedByUserId,
+    });
+  }
+
+  emitConversationAccepted(
+    userIds: string[],
+    conversationId: string,
+    acceptedByUserId: string,
+    chatReady: boolean,
+  ): void {
+    this.emitToUsers(userIds, {
+      type: 'conversation.accepted',
+      conversationId,
+      acceptedByUserId,
+      chatReady,
     });
   }
 

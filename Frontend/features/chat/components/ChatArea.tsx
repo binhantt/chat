@@ -24,6 +24,25 @@ interface MatchedUser {
   city: string | null;
 }
 
+interface ConversationUser {
+  id: string;
+  email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  gender?: string | null;
+  city?: string | null;
+}
+
+interface ConversationDetail {
+  id: string;
+  user1Id: string;
+  user2Id: string;
+  user1Accepted?: boolean;
+  user2Accepted?: boolean;
+  user1?: ConversationUser;
+  user2?: ConversationUser;
+}
+
 interface ChatAreaProps {
   selectedUser: string;
   matchedUser?: MatchedUser | null;
@@ -42,13 +61,14 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
   const [otherTyping, setOtherTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [resolvedUser, setResolvedUser] = useState<MatchedUser | null>(matchedUser ?? null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastTypingSentRef = useRef(0);
   const emojiOptions = ["😀", "😂", "😍", "🥰", "😎", "😭", "😡", "👍", "👏", "🙏", "❤️", "🔥", "✨", "🎉", "💬", "✅"];
 
-  const otherUser = matchedUser;
+  const otherUser = resolvedUser ?? matchedUser;
 
   // Theme colors
   const bgPrimary = isDark ? "#1a1a2e" : "#f8fafc";
@@ -62,7 +82,7 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
   const borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
 
   const getUserInitials = (name: string | null | undefined, email: string) => {
-    if (!name) return email.slice(0, 2).toUpperCase();
+    if (!name) return email ? email.slice(0, 2).toUpperCase() : "??";
     const parts = name.trim().split(" ");
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -102,8 +122,44 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
     return groups;
   };
 
+  const fetchConversationUser = useCallback(async () => {
+    if (!conversationId || !user?.id) {
+      setResolvedUser(matchedUser ?? null);
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/chat/conversations/${conversationId}`, {
+        credentials: "include",
+      });
+
+      if (!res.ok) return;
+
+      const conversation = (await res.json()) as ConversationDetail;
+      const isUser1 = conversation.user1Id === user.id;
+      const partner = isUser1 ? conversation.user2 : conversation.user1;
+      const partnerId = isUser1 ? conversation.user2Id : conversation.user1Id;
+      const chatReady =
+        conversation.user1Accepted === true && conversation.user2Accepted === true;
+
+      setResolvedUser({
+        id: partner?.id || partnerId,
+        email: chatReady ? partner?.email || "" : "",
+        fullName: chatReady ? partner?.fullName || null : null,
+        avatarUrl: chatReady ? partner?.avatarUrl || null : null,
+        gender: chatReady ? partner?.gender || null : null,
+        city: partner?.city || matchedUser?.city || null,
+      });
+    } catch (error) {
+      console.error("Error fetching conversation user:", error);
+    }
+  }, [conversationId, matchedUser, user?.id]);
+
   const fetchMessages = useCallback(async (retryCount = 0) => {
-    if (!conversationId) return;
+    if (!conversationId) {
+      onBack?.();
+      return;
+    }
 
     try {
       const res = await fetch(`/api/chat/conversations/${conversationId}/messages`, {
@@ -215,10 +271,13 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
   };
 
   const handleEndConversation = async () => {
-    if (!conversationId) return;
+    if (!conversationId) {
+      onBack?.();
+      return;
+    }
 
     const confirmed = window.confirm("Bạn có muốn thoát cuộc trò chuyện?");
-      if (!confirmed) return;
+    if (!confirmed) return;
 
     try {
       await sendTypingState(false);
@@ -233,6 +292,10 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
       }
 
       const error = await res.json().catch(() => null);
+      if (res.status === 404 || res.status === 403) {
+        onBack?.();
+        return;
+      }
       window.alert(error?.message || "Không thể thoát cuộc trò chuyện");
     } catch {
       window.alert("Không thể thoát cuộc trò chuyện");
@@ -317,6 +380,10 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
       void sendTypingState(false);
     };
   }, [sendTypingState]);
+
+  useEffect(() => {
+    void fetchConversationUser();
+  }, [fetchConversationUser]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

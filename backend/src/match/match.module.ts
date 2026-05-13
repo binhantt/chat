@@ -4,6 +4,7 @@ import { MatchService } from './match.service';
 import { MatchController } from './match.controller';
 import { MatchQueue } from './entities/match-queue.entity';
 import { Conversation } from '../chat/entities/conversation.entity';
+import { ChatModule } from '../chat/chat.module';
 import { User } from '../users/entities/user.entity';
 import { UserRepository } from '../users/repositories/user.repository';
 import { UsersModule } from '../users/users.module';
@@ -11,6 +12,7 @@ import { UsersModule } from '../users/users.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([MatchQueue, Conversation, User]),
+    ChatModule,
     UsersModule,
   ],
   providers: [MatchService],

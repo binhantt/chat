@@ -25,6 +25,8 @@ interface ReportStatsProps {
 export function ReportStats({ detailed = false }: ReportStatsProps) {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const cardBackground = isDark ? "#111827" : "var(--white)";
+  const panelBackground = isDark ? "#0f172a" : "var(--gray-1)";
   const [stats, setStats] = useState<ReportStatsData>({
     totalReports: 0,
     pendingReports: 0,
@@ -87,7 +89,7 @@ export function ReportStats({ detailed = false }: ReportStatsProps) {
             size="2"
             style={{
               flex: "1 1 180px",
-              background: isDark ? "var(--gray-11)" : "var(--white)",
+              background: cardBackground,
               padding: "20px",
             }}
           >
@@ -111,7 +113,7 @@ export function ReportStats({ detailed = false }: ReportStatsProps) {
             size="2"
             style={{
               flex: "1 1 180px",
-              background: isDark ? "var(--gray-11)" : "var(--white)",
+              background: cardBackground,
               padding: "20px",
             }}
           >
@@ -128,7 +130,7 @@ export function ReportStats({ detailed = false }: ReportStatsProps) {
         <Card
           size="2"
           style={{
-            background: isDark ? "var(--gray-10)" : "var(--gray-1)",
+            background: panelBackground,
             padding: "20px",
             marginTop: "16px",
           }}

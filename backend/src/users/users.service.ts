@@ -355,8 +355,8 @@ export class UsersService implements OnModuleInit {
 
   private updateGoogleUser(user: User, profile: GoogleUserProfile): User {
     user.googleId = profile.googleId;
-    user.fullName = profile.fullName ?? user.fullName;
-    user.avatarUrl = profile.avatarUrl ?? user.avatarUrl;
+    user.fullName = user.fullName ?? profile.fullName ?? null;
+    user.avatarUrl = user.avatarUrl ?? profile.avatarUrl ?? null;
     user.updatedAt = new Date();
     return user;
   }

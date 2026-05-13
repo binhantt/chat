@@ -2,10 +2,10 @@
 
 import { Flex, Text, TextField, Select, Button, Callout } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
-import { useAuth, User } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function AboutForm() {
-  const { user, updateUser, fetchUser, loading: authLoading } = useAuth();
+  const { user, fetchUser, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: "",
@@ -45,16 +45,30 @@ export function AboutForm() {
     setSuccess(false);
 
     try {
-      const updateData: Partial<User> = {
+      const updateData = {
         fullName: formData.fullName || null,
-        dateOfBirth: formData.dateOfBirth ? new Date(formData.dateOfBirth).toISOString() : null,
+        dateOfBirth: formData.dateOfBirth || null,
         phoneNumber: formData.phoneNumber || null,
         bio: formData.bio || null,
-        gender: (formData.gender as "male" | "female" | "other") || null,
+        gender: formData.gender || null,
         city: formData.city || null,
       };
 
-      await updateUser(updateData);
+      const res = await fetch("/api/users/setup-profile", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updateData),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.message || "Không thể cập nhật thông tin");
+      }
+
+      await fetchUser();
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {

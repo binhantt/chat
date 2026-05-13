@@ -15,12 +15,17 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === "undefined") return "light";
+    return window.localStorage.getItem("chatapp.theme") === "dark" ? "dark" : "light";
+  });
 
   useEffect(() => {
     const html = document.documentElement;
+    window.localStorage.setItem("chatapp.theme", theme);
     // Set data-theme attribute for CSS selectors
     html.setAttribute("data-theme", theme);
+    html.style.colorScheme = theme;
     // Also set class for broader compatibility
     if (theme === "dark") {
       html.classList.add("dark");

@@ -16,6 +16,7 @@ import { Message, MessageStatus } from './entities/message.entity';
 import { AuthTokenService } from '../auth/services/auth-token.service';
 import { ChatRealtimeService } from './chat-realtime.service';
 import { ConductService } from '../conduct/conduct.service';
+import { MatchQueue, MatchQueueStatus } from '../match/entities/match-queue.entity';
 
 @Injectable()
 export class ChatService implements OnModuleInit {
@@ -27,13 +28,25 @@ export class ChatService implements OnModuleInit {
     private readonly conversationRepository: Repository<Conversation>,
     @InjectRepository(Message)
     private readonly messageRepository: Repository<Message>,
+    @InjectRepository(MatchQueue)
+    private readonly matchQueueRepository: Repository<MatchQueue>,
     private readonly authTokenService: AuthTokenService,
     private readonly chatRealtimeService: ChatRealtimeService,
     private readonly conductService: ConductService,
   ) {}
 
-  onModuleInit(): void {
+  async onModuleInit(): Promise<void> {
+    await this.ensureConversationConsentColumns();
     void this.deleteExpiredMessages();
+  }
+
+  private async ensureConversationConsentColumns(): Promise<void> {
+    await this.conversationRepository.query(
+      'ALTER TABLE conversations ADD COLUMN IF NOT EXISTS "user1Accepted" boolean NOT NULL DEFAULT false',
+    );
+    await this.conversationRepository.query(
+      'ALTER TABLE conversations ADD COLUMN IF NOT EXISTS "user2Accepted" boolean NOT NULL DEFAULT false',
+    );
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
@@ -55,14 +68,23 @@ export class ChatService implements OnModuleInit {
     return deletedCount;
   }
 
-  async findConversationById(conversationId: string): Promise<Conversation> {
+  async findConversationById(
+    conversationId: string,
+    userId: string,
+  ): Promise<Conversation> {
     const conversation = await this.conversationRepository.findOne({
       where: { id: conversationId },
-      relations: ['user1', 'user2', 'messages', 'messages.sender'],
+      relations: ['user1', 'user2'],
     });
 
     if (!conversation) {
       throw new NotFoundException('Không tìm thấy cuộc trò chuyện');
+    }
+
+    if (conversation.user1Id !== userId && conversation.user2Id !== userId) {
+      throw new ForbiddenException(
+        'Ban khong co quyen xem cuoc tro chuyen nay',
+      );
     }
 
     return conversation;
@@ -113,6 +135,12 @@ export class ChatService implements OnModuleInit {
 
     if (conversation.status !== ConversationStatus.Active) {
       throw new ForbiddenException('Cuộc trò chuyện đã bị đóng');
+    }
+
+    if (!this.isConversationAccepted(conversation)) {
+      throw new ForbiddenException(
+        'Hai ben can cung xac nhan truoc khi bat dau tro chuyen',
+      );
     }
 
     // Check if sender is banned
@@ -335,6 +363,12 @@ export class ChatService implements OnModuleInit {
 
     const savedConversation =
       await this.conversationRepository.save(conversation);
+
+    await this.matchQueueRepository.update(
+      { conversationId: conversation.id },
+      { status: MatchQueueStatus.Cancelled },
+    );
+
     this.chatRealtimeService.emitConversationEnded(
       [conversation.user1Id, conversation.user2Id],
       conversation.id,
@@ -342,5 +376,52 @@ export class ChatService implements OnModuleInit {
     );
 
     return savedConversation;
+  }
+
+  async acceptConversation(
+    conversationId: string,
+    userId: string,
+  ): Promise<Conversation> {
+    const conversation = await this.conversationRepository.findOne({
+      where: { id: conversationId },
+      relations: ['user1', 'user2'],
+    });
+
+    if (!conversation) {
+      throw new NotFoundException('Khong tim thay cuoc tro chuyen');
+    }
+
+    if (conversation.user1Id !== userId && conversation.user2Id !== userId) {
+      throw new ForbiddenException(
+        'Ban khong co quyen xac nhan cuoc tro chuyen nay',
+      );
+    }
+
+    if (conversation.status !== ConversationStatus.Active) {
+      throw new ForbiddenException('Cuoc tro chuyen da bi dong');
+    }
+
+    if (conversation.user1Id === userId) {
+      conversation.user1Accepted = true;
+    } else {
+      conversation.user2Accepted = true;
+    }
+
+    conversation.updatedAt = new Date();
+    const savedConversation =
+      await this.conversationRepository.save(conversation);
+
+    this.chatRealtimeService.emitConversationAccepted(
+      [conversation.user1Id, conversation.user2Id],
+      conversation.id,
+      userId,
+      this.isConversationAccepted(savedConversation),
+    );
+
+    return savedConversation;
+  }
+
+  private isConversationAccepted(conversation: Conversation): boolean {
+    return conversation.user1Accepted === true && conversation.user2Accepted === true;
   }
 }

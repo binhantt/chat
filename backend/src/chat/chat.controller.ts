@@ -39,7 +39,7 @@ export class ChatController {
     @Param('id') id: string,
     @Req() request: AuthenticatedRequest,
   ) {
-    return this.chatService.findConversationById(id);
+    return this.chatService.findConversationById(id, request.user!.id);
   }
 
   @Post('conversations/:id/messages')
@@ -126,5 +126,13 @@ export class ChatController {
     @Req() request: AuthenticatedRequest,
   ) {
     return this.chatService.endConversation(id, request.user!.id);
+  }
+
+  @Patch('conversations/:id/accept')
+  async acceptConversation(
+    @Param('id') id: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.chatService.acceptConversation(id, request.user!.id);
   }
 }

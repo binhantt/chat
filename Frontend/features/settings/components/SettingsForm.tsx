@@ -10,6 +10,12 @@ export function SettingsForm() {
   const { user, logout } = useAuth();
   const [deleting, setDeleting] = useState(false);
   const isDark = theme === "dark";
+  const readonlyFieldStyle = {
+    background: isDark ? "#111827" : "var(--gray-2)",
+    color: isDark ? "#e5e7eb" : "var(--gray-12)",
+    border: `1px solid ${isDark ? "#334155" : "var(--gray-5)"}`,
+    cursor: "not-allowed",
+  };
 
   const handleLogout = () => {
     logout();
@@ -55,7 +61,7 @@ export function SettingsForm() {
           placeholder="Nhập tên hiển thị"
           defaultValue={user?.fullName || ""}
           readOnly
-          style={{ background: isDark ? "var(--gray-11)" : "var(--gray-2)", color: isDark ? "var(--gray-1)" : "var(--gray-12)", cursor: "not-allowed" }}
+          style={readonlyFieldStyle}
         />
       </Flex>
 
@@ -67,7 +73,7 @@ export function SettingsForm() {
           placeholder="Nhập email"
           defaultValue={user?.email || ""}
           readOnly
-          style={{ background: isDark ? "var(--gray-11)" : "var(--gray-2)", color: isDark ? "var(--gray-1)" : "var(--gray-12)", cursor: "not-allowed" }}
+          style={readonlyFieldStyle}
         />
       </Flex>
 
@@ -79,7 +85,7 @@ export function SettingsForm() {
           placeholder="Chưa cập nhật"
           defaultValue={user?.phoneNumber || ""}
           readOnly
-          style={{ background: isDark ? "var(--gray-11)" : "var(--gray-2)", color: isDark ? "var(--gray-1)" : "var(--gray-12)", cursor: "not-allowed" }}
+          style={readonlyFieldStyle}
         />
       </Flex>
 
@@ -91,7 +97,7 @@ export function SettingsForm() {
           placeholder="Chưa cập nhật"
           defaultValue={user?.city || ""}
           readOnly
-          style={{ background: isDark ? "var(--gray-11)" : "var(--gray-2)", color: isDark ? "var(--gray-1)" : "var(--gray-12)", cursor: "not-allowed" }}
+          style={readonlyFieldStyle}
         />
       </Flex>
 
@@ -103,7 +109,7 @@ export function SettingsForm() {
           placeholder="Chưa cập nhật"
           defaultValue={user?.gender === "male" ? "Nam" : user?.gender === "female" ? "Nữ" : user?.gender === "other" ? "Khác" : ""}
           readOnly
-          style={{ background: isDark ? "var(--gray-11)" : "var(--gray-2)", color: isDark ? "var(--gray-1)" : "var(--gray-12)", cursor: "not-allowed" }}
+          style={readonlyFieldStyle}
         />
       </Flex>
 
@@ -115,7 +121,7 @@ export function SettingsForm() {
           placeholder="Chưa cập nhật"
           defaultValue={user?.bio || ""}
           readOnly
-          style={{ background: isDark ? "var(--gray-11)" : "var(--gray-2)", color: isDark ? "var(--gray-1)" : "var(--gray-12)", cursor: "not-allowed" }}
+          style={readonlyFieldStyle}
         />
       </Flex>
 

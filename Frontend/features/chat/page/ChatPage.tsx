@@ -133,6 +133,14 @@ export function ChatPage() {
     setConversationId(null);
   };
 
+  const handleChatBack = () => {
+    setSelectedUser(null);
+    setMatchedUser(null);
+    setConversationId(null);
+    setShowMatch(false);
+    setShowSearch(true);
+  };
+
   const handleMatched = (convId: string, matched: MatchedUser) => {
     setConversationId(convId);
     setMatchedUser(matched);
@@ -335,7 +343,17 @@ export function ChatPage() {
   // Match Screen
   if (!selectedUser && showMatch) {
     return (
-      <Box style={{ width: "100%", height: "100%", background: bgPrimary, padding: 24 }}>
+      <Box
+        style={{
+          width: "100%",
+          height: "100%",
+          background: bgPrimary,
+          padding: 24,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
         <Flex align="center" gap="3" mb="5">
           <Button variant="ghost" size="2" onClick={handleBack} style={{ color: textSecondary }}>
             ← Quay lại
@@ -344,7 +362,7 @@ export function ChatPage() {
             Ghép đôi ngẫu nhiên
           </Text>
         </Flex>
-        <Box style={{ flex: 1, minHeight: 0 }}>
+        <Box style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
           <MatchPeople onMatched={handleMatched} onCancel={handleCancelMatch} />
         </Box>
       </Box>
@@ -374,7 +392,7 @@ export function ChatPage() {
         selectedUser={selectedUser!}
         matchedUser={matchedUser}
         conversationId={conversationId}
-        onBack={handleBack}
+        onBack={handleChatBack}
       />
     </Box>
   );

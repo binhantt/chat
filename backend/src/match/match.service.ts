@@ -13,11 +13,12 @@ import {
   Conversation,
   ConversationStatus,
 } from '../chat/entities/conversation.entity';
+import { ChatRealtimeService } from '../chat/chat-realtime.service';
 
 @Injectable()
 export class MatchService {
   private readonly logger = new Logger(MatchService.name);
-  private readonly QUEUE_EXPIRY_MINUTES = 5;
+  private readonly QUEUE_EXPIRY_MINUTES = 15;
 
   constructor(
     @InjectRepository(MatchQueue)
@@ -26,6 +27,7 @@ export class MatchService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Conversation)
     private readonly conversationRepository: Repository<Conversation>,
+    private readonly chatRealtimeService: ChatRealtimeService,
   ) {}
 
   async joinQueue(userId: string): Promise<MatchQueue> {
@@ -100,24 +102,42 @@ export class MatchService {
     const result: any = {
       inQueue: status.status === MatchQueueStatus.Waiting,
       status: status.status,
-      conversationId: status.conversationId,
-      matchedWithUserId: status.matchedWithUserId,
       joinedAt: status.createdAt,
     };
 
     if (
       status.status === MatchQueueStatus.Matched &&
-      status.matchedWithUserId
+      status.matchedWithUserId &&
+      status.conversationId
     ) {
+      const conversation = await this.conversationRepository.findOne({
+        where: { id: status.conversationId },
+      });
+      const currentUserAccepted =
+        conversation?.user1Id === userId
+          ? conversation.user1Accepted === true
+          : conversation?.user2Accepted === true;
+      const partnerAccepted =
+        conversation?.user1Id === userId
+          ? conversation.user2Accepted === true
+          : conversation?.user1Accepted === true;
+      const chatReady = currentUserAccepted && partnerAccepted;
+
+      result.conversationId = status.conversationId;
+      result.matchedWithUserId = status.matchedWithUserId;
+      result.currentUserAccepted = currentUserAccepted;
+      result.partnerAccepted = partnerAccepted;
+      result.chatReady = chatReady;
+
       const matchedUser = await this.userRepository.findOne({
         where: { id: status.matchedWithUserId },
       });
       if (matchedUser) {
         result.matchedUser = {
           id: matchedUser.id,
-          email: matchedUser.email,
-          fullName: matchedUser.fullName,
-          avatarUrl: matchedUser.avatarUrl,
+          email: chatReady ? matchedUser.email : '',
+          fullName: chatReady ? matchedUser.fullName : null,
+          avatarUrl: chatReady ? matchedUser.avatarUrl : null,
           gender: matchedUser.gender,
           city: matchedUser.city,
         };
@@ -155,26 +175,33 @@ export class MatchService {
   }
 
   private async findMatch(userQueue: MatchQueue): Promise<MatchQueue | null> {
-    if (!userQueue.gender) {
+    if (!userQueue.gender || !userQueue.city) {
       return null;
     }
 
-    const oppositeGender = this.getOppositeGender(userQueue.gender);
-    if (!oppositeGender) {
-      return null;
+    for (const gender of this.getPreferredGenders(userQueue.gender)) {
+      const match = await this.findWaitingMatchByGender(userQueue, gender);
+      if (match) {
+        return match;
+      }
     }
 
-    const match = await this.matchQueueRepository
+    return null;
+  }
+
+  private async findWaitingMatchByGender(
+    userQueue: MatchQueue,
+    gender: UserGender,
+  ): Promise<MatchQueue | null> {
+    return this.matchQueueRepository
       .createQueryBuilder('mq')
       .where('mq.status = :status', { status: MatchQueueStatus.Waiting })
       .andWhere('mq.userId != :userId', { userId: userQueue.userId })
-      .andWhere('mq.gender = :gender', { gender: oppositeGender })
+      .andWhere('mq.gender = :gender', { gender })
       .andWhere('mq.city = :city', { city: userQueue.city })
       .andWhere('mq.expiresAt > :now', { now: new Date() })
       .orderBy('mq.createdAt', 'ASC')
       .getOne();
-
-    return match;
   }
 
   private async createMatch(
@@ -185,6 +212,8 @@ export class MatchService {
       user1Id: queue.userId,
       user2Id: matchedQueue.userId,
       status: ConversationStatus.Active,
+      user1Accepted: false,
+      user2Accepted: false,
     });
 
     const savedConversation =
@@ -200,6 +229,11 @@ export class MatchService {
     matchedQueue.conversationId = savedConversation.id;
     await this.matchQueueRepository.save(matchedQueue);
 
+    this.chatRealtimeService.emitConversationCreated(
+      [queue.userId, matchedQueue.userId],
+      savedConversation,
+    );
+
     this.logger.log(
       `Match created: ${queue.userId} <-> ${matchedQueue.userId}`,
     );
@@ -207,14 +241,14 @@ export class MatchService {
     return queue;
   }
 
-  private getOppositeGender(gender: UserGender): UserGender | null {
+  private getPreferredGenders(gender: UserGender): UserGender[] {
     switch (gender) {
       case UserGender.Male:
-        return UserGender.Female;
+        return [UserGender.Female, UserGender.Male];
       case UserGender.Female:
-        return UserGender.Male;
+        return [UserGender.Female, UserGender.Male];
       default:
-        return null;
+        return [UserGender.Female, UserGender.Male];
     }
   }
 }

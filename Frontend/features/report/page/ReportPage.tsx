@@ -3,6 +3,7 @@
 import { Flex, Text, Box, Tabs } from "@radix-ui/themes";
 import { useState, useEffect } from "react";
 import { ReportForm, ReportHistory, AdminReportManagement } from "../components";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface User {
   id: string;
@@ -12,6 +13,8 @@ interface User {
 }
 
 export function ReportPage() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -35,14 +38,22 @@ export function ReportPage() {
 
   if (loading) {
     return (
-      <Box style={{ flex: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
+      <Box
+        style={{
+          flex: 1,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          background: isDark ? "#0f172a" : "var(--gray-1)",
+        }}
+      >
         <Text size="3">Đang tải...</Text>
       </Box>
     );
   }
 
   return (
-    <Box style={{ flex: 1, padding: "24px" }}>
+    <Box style={{ flex: 1, padding: "24px", background: isDark ? "#0f172a" : "var(--gray-1)" }}>
       <Flex direction="column" gap="6" style={{ maxWidth: 1200, margin: "0 auto" }}>
 
         <Flex direction="column" gap="1">

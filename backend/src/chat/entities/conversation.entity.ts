@@ -48,6 +48,12 @@ export class Conversation {
   @Column({ nullable: true })
   user2Blocked!: boolean;
 
+  @Column({ default: false })
+  user1Accepted!: boolean;
+
+  @Column({ default: false })
+  user2Accepted!: boolean;
+
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt!: Date;
 
