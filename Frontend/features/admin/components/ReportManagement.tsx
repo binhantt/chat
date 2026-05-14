@@ -52,7 +52,7 @@ export function ReportManagement() {
 
   const fetchReports = async () => {
     try {
-      const response = await fetch('/api/reports');
+      const response = await fetch('/api/v1/admin/reports');
       if (response.ok) {
         const data = await response.json();
         setReports(data);
@@ -66,7 +66,7 @@ export function ReportManagement() {
 
   const updateReportStatus = async (reportId: string, status: string) => {
     try {
-      const response = await fetch(`/api/reports/${reportId}/status`, {
+      const response = await fetch(`/api/v1/admin/reports/${reportId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

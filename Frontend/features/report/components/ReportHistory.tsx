@@ -50,7 +50,7 @@ export function ReportHistory() {
 
   const fetchUserReports = async () => {
     try {
-      const response = await fetch("/api/reports/my-reports");
+      const response = await fetch("/api/v1/reports/my-reports");
       if (response.ok) {
         const data = await response.json();
         setReports(data);

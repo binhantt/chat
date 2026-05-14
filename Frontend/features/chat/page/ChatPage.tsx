@@ -1,8 +1,8 @@
 "use client";
 
 import { Flex, Text, Box, Button } from "@radix-ui/themes";
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ChatIcon3D, ChatArea } from "../components";
 import { MatchPeople } from "../components/MatchPeople";
@@ -21,20 +21,20 @@ const CHAT_SESSION_KEY = "chat.activeConversation";
 
 interface ChatSessionState {
   selectedUser: string | null;
-  showSearch: boolean;
-  showMatch: boolean;
   conversationId: string | null;
   matchedUser: MatchedUser | null;
 }
 
 export function ChatPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [showMatch, setShowMatch] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [matchedUser, setMatchedUser] = useState<MatchedUser | null>(null);
-  const [sessionReady, setSessionReady] = useState(false);
+  const clearedConversationRef = useRef<string | null>(null);
   const { theme } = useTheme();
   const isDark = theme === "dark";
 
@@ -44,35 +44,34 @@ export function ChatPage() {
   const textSecondary = isDark ? "#94a3b8" : "#64748b";
   const accentColor = "#6366f1";
 
+  const clearChatRoute = useCallback(() => {
+    if (searchParams.has("conv") || searchParams.has("user")) {
+      router.replace(pathname, { scroll: false });
+    }
+  }, [pathname, router, searchParams]);
+
+  const resetChatState = useCallback(() => {
+    clearedConversationRef.current = conversationId;
+    setSelectedUser(null);
+    setMatchedUser(null);
+    setConversationId(null);
+    clearChatRoute();
+  }, [clearChatRoute, conversationId]);
+
+  const leaveCurrentMatch = useCallback(async () => {
+    await fetch("/api/v1/match/leave", {
+      method: "DELETE",
+      credentials: "include",
+    }).catch(() => undefined);
+  }, []);
+
   useEffect(() => {
     const convParam = searchParams.get("conv");
     const userParam = searchParams.get("user");
-
-    if (convParam && userParam) {
-      setSessionReady(true);
+    if (convParam && convParam === clearedConversationRef.current) {
+      clearChatRoute();
       return;
     }
-
-    try {
-      const raw = window.sessionStorage.getItem(CHAT_SESSION_KEY);
-      if (raw) {
-        const saved = JSON.parse(raw) as Partial<ChatSessionState>;
-        setSelectedUser(saved.selectedUser ?? null);
-        setShowSearch(saved.showSearch === true);
-        setShowMatch(saved.showMatch === true);
-        setConversationId(saved.conversationId ?? null);
-        setMatchedUser(saved.matchedUser ?? null);
-      }
-    } catch {
-      window.sessionStorage.removeItem(CHAT_SESSION_KEY);
-    } finally {
-      setSessionReady(true);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    const convParam = searchParams.get("conv");
-    const userParam = searchParams.get("user");
     if (convParam && userParam) {
       setConversationId(convParam);
       setSelectedUser(userParam);
@@ -84,30 +83,44 @@ export function ChatPage() {
         gender: null,
         city: null,
       });
-      setSessionReady(true);
-    }
-  }, [searchParams]);
-
-  useEffect(() => {
-    if (!sessionReady) return;
-
-    const state: ChatSessionState = {
-      selectedUser,
-      showSearch,
-      showMatch,
-      conversationId,
-      matchedUser,
-    };
-
-    if (!selectedUser && !showSearch && !showMatch && !conversationId && !matchedUser) {
-      window.sessionStorage.removeItem(CHAT_SESSION_KEY);
       return;
     }
 
-    window.sessionStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(state));
-  }, [conversationId, matchedUser, selectedUser, sessionReady, showMatch, showSearch]);
+    try {
+      const raw = window.sessionStorage.getItem(CHAT_SESSION_KEY);
+      if (!raw) return;
+
+      const saved = JSON.parse(raw) as Partial<ChatSessionState>;
+      if (saved.conversationId && saved.selectedUser) {
+        setConversationId(saved.conversationId);
+        setSelectedUser(saved.selectedUser);
+        setMatchedUser(saved.matchedUser ?? null);
+        setShowMatch(false);
+        setShowSearch(false);
+      }
+    } catch {
+      window.sessionStorage.removeItem(CHAT_SESSION_KEY);
+    }
+  }, [clearChatRoute, searchParams]);
+
+  useEffect(() => {
+    if (conversationId && selectedUser) {
+      const state: ChatSessionState = {
+        selectedUser,
+        conversationId,
+        matchedUser,
+      };
+      window.sessionStorage.setItem(CHAT_SESSION_KEY, JSON.stringify(state));
+      return;
+    }
+
+    if (!showMatch && !showSearch) {
+      window.sessionStorage.removeItem(CHAT_SESSION_KEY);
+    }
+  }, [conversationId, matchedUser, selectedUser, showMatch, showSearch]);
 
   const handleSelectUser = (userId: string) => {
+    clearChatRoute();
     setSelectedUser(userId);
     setShowSearch(false);
     setShowMatch(false);
@@ -116,32 +129,32 @@ export function ChatPage() {
   };
 
   const handleSearchClick = () => {
+    clearChatRoute();
     setShowSearch(true);
     setShowMatch(false);
   };
 
-  const handleMatchClick = () => {
+  const handleMatchClick = async () => {
+    await leaveCurrentMatch();
+    resetChatState();
     setShowMatch(true);
     setShowSearch(false);
   };
 
   const handleBack = () => {
+    resetChatState();
     setShowSearch(false);
     setShowMatch(false);
-    setSelectedUser(null);
-    setMatchedUser(null);
-    setConversationId(null);
   };
 
   const handleChatBack = () => {
-    setSelectedUser(null);
-    setMatchedUser(null);
-    setConversationId(null);
+    resetChatState();
     setShowMatch(false);
-    setShowSearch(true);
+    setShowSearch(false);
   };
 
   const handleMatched = (convId: string, matched: MatchedUser) => {
+    clearChatRoute();
     setConversationId(convId);
     setMatchedUser(matched);
     setSelectedUser(matched.id);
@@ -150,6 +163,7 @@ export function ChatPage() {
   };
 
   const handleSelectConversation = (convId: string, partner: MatchedUser) => {
+    clearChatRoute();
     setConversationId(convId);
     setMatchedUser(partner);
     setSelectedUser(partner.id);
@@ -158,8 +172,8 @@ export function ChatPage() {
   };
 
   const handleCancelMatch = () => {
-    setMatchedUser(null);
-    setConversationId(null);
+    void leaveCurrentMatch();
+    resetChatState();
     setShowSearch(false);
     setShowMatch(false);
   };
@@ -178,7 +192,12 @@ export function ChatPage() {
           padding: 24,
         }}
       >
-        <Flex direction="column" align="center" gap="6" style={{ maxWidth: 680 }}>
+        <Flex
+          direction="column"
+          align="center"
+          gap="6"
+          style={{ maxWidth: 680 }}
+        >
           {/* Icon */}
           <Box
             style={{
@@ -200,8 +219,16 @@ export function ChatPage() {
             <Text size="6" weight="bold" style={{ color: textPrimary }}>
               Chào mừng đến ChatApp
             </Text>
-            <Text size="3" style={{ color: textSecondary, textAlign: "center", maxWidth: 400 }}>
-              Kết nối với những người cùng thành phố và bắt đầu cuộc trò chuyện thú vị
+            <Text
+              size="3"
+              style={{
+                color: textSecondary,
+                textAlign: "center",
+                maxWidth: 400,
+              }}
+            >
+              Kết nối với những người cùng thành phố và bắt đầu cuộc trò chuyện
+              thú vị
             </Text>
           </Flex>
 
@@ -220,7 +247,9 @@ export function ChatPage() {
                 border: `2px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`,
                 borderRadius: 20,
                 cursor: "pointer",
-                boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.3)" : "0 4px 16px rgba(0,0,0,0.06)",
+                boxShadow: isDark
+                  ? "0 4px 16px rgba(0,0,0,0.3)"
+                  : "0 4px 16px rgba(0,0,0,0.06)",
                 transition: "all 0.2s",
                 minWidth: 200,
               }}
@@ -229,7 +258,9 @@ export function ChatPage() {
                 e.currentTarget.style.transform = "translateY(-4px)";
               }}
               onMouseOut={(e) => {
-                e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+                e.currentTarget.style.borderColor = isDark
+                  ? "rgba(255,255,255,0.1)"
+                  : "rgba(0,0,0,0.08)";
                 e.currentTarget.style.transform = "translateY(0)";
               }}
             >
@@ -244,14 +275,25 @@ export function ChatPage() {
                   justifyContent: "center",
                 }}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                >
                   <circle cx="11" cy="11" r="8" />
                   <line x1="21" y1="21" x2="16.65" y2="16.65" />
                 </svg>
               </Box>
               <Flex direction="column" align="center" gap="0">
-                <Text size="3" weight="bold" style={{ color: textPrimary }}>Tìm kiếm</Text>
-                <Text size="2" style={{ color: textSecondary }}>Tìm theo tên</Text>
+                <Text size="3" weight="bold" style={{ color: textPrimary }}>
+                  Tìm kiếm
+                </Text>
+                <Text size="2" style={{ color: textSecondary }}>
+                  Tìm theo tên
+                </Text>
               </Flex>
             </button>
 
@@ -268,7 +310,9 @@ export function ChatPage() {
                 border: `2px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`,
                 borderRadius: 20,
                 cursor: "pointer",
-                boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.3)" : "0 4px 16px rgba(0,0,0,0.06)",
+                boxShadow: isDark
+                  ? "0 4px 16px rgba(0,0,0,0.3)"
+                  : "0 4px 16px rgba(0,0,0,0.06)",
                 transition: "all 0.2s",
                 minWidth: 200,
               }}
@@ -277,7 +321,9 @@ export function ChatPage() {
                 e.currentTarget.style.transform = "translateY(-4px)";
               }}
               onMouseOut={(e) => {
-                e.currentTarget.style.borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+                e.currentTarget.style.borderColor = isDark
+                  ? "rgba(255,255,255,0.1)"
+                  : "rgba(0,0,0,0.08)";
                 e.currentTarget.style.transform = "translateY(0)";
               }}
             >
@@ -292,7 +338,14 @@ export function ChatPage() {
                   justifyContent: "center",
                 }}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+                <svg
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="white"
+                  strokeWidth="2"
+                >
                   <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                   <circle cx="9" cy="7" r="4" />
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -300,8 +353,12 @@ export function ChatPage() {
                 </svg>
               </Box>
               <Flex direction="column" align="center" gap="0">
-                <Text size="3" weight="bold" style={{ color: textPrimary }}>Ghép đôi</Text>
-                <Text size="2" style={{ color: textSecondary }}>Cùng thành phố</Text>
+                <Text size="3" weight="bold" style={{ color: textPrimary }}>
+                  Ghép đôi
+                </Text>
+                <Text size="2" style={{ color: textSecondary }}>
+                  Cùng thành phố
+                </Text>
               </Flex>
             </button>
           </Flex>
@@ -326,7 +383,12 @@ export function ChatPage() {
         }}
       >
         <Flex align="center" gap="3" style={{ flexShrink: 0 }}>
-          <Button variant="ghost" size="2" onClick={handleBack} style={{ color: textSecondary }}>
+          <Button
+            variant="ghost"
+            size="2"
+            onClick={handleBack}
+            style={{ color: textSecondary }}
+          >
             ← Quay lại
           </Button>
           <Text size="5" weight="bold" style={{ color: textPrimary }}>
@@ -355,7 +417,12 @@ export function ChatPage() {
         }}
       >
         <Flex align="center" gap="3" mb="5">
-          <Button variant="ghost" size="2" onClick={handleBack} style={{ color: textSecondary }}>
+          <Button
+            variant="ghost"
+            size="2"
+            onClick={handleCancelMatch}
+            style={{ color: textSecondary }}
+          >
             ← Quay lại
           </Button>
           <Text size="5" weight="bold" style={{ color: textPrimary }}>
@@ -372,9 +439,21 @@ export function ChatPage() {
   // Matched Result Screen
   if (matchedUser && conversationId && !selectedUser) {
     return (
-      <Box style={{ width: "100%", height: "100%", background: bgPrimary, padding: 24 }}>
+      <Box
+        style={{
+          width: "100%",
+          height: "100%",
+          background: bgPrimary,
+          padding: 24,
+        }}
+      >
         <Flex align="center" gap="3" mb="5">
-          <Button variant="ghost" size="2" onClick={handleCancelMatch} style={{ color: textSecondary }}>
+          <Button
+            variant="ghost"
+            size="2"
+            onClick={handleCancelMatch}
+            style={{ color: textSecondary }}
+          >
             ← Quay lại
           </Button>
           <Text size="4" weight="bold" style={{ color: "#22c55e" }}>

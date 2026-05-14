@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       setLoading(true);
       // Use frontend API route instead of direct backend call
-      const res = await fetch("/api/auth/me", {
+      const res = await fetch("/api/v1/users/me", {
         method: "GET",
         credentials: "include",
       });
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateUser = async (userData: Partial<User>) => {
     try {
       // Use frontend API route instead of direct backend call
-      const res = await fetch("/api/auth/update-profile", {
+      const res = await fetch("/api/v1/users/me", {
         method: "PATCH",
         credentials: "include",
         headers: {
@@ -92,7 +92,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
-    void fetch("/api/auth/logout", {
+    void fetch("/api/v1/auth/logout", {
       method: "POST",
       credentials: "include",
     }).finally(() => {

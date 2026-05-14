@@ -4,7 +4,7 @@ import { Conversation } from './entities/conversation.entity';
 import { Message } from './entities/message.entity';
 import { User } from '../users/entities/user.entity';
 import { ChatService } from './chat.service';
-import { ChatController } from './chat.controller';
+import { AdminChatController, ChatController } from './chat.controller';
 import { ChatRealtimeService } from './chat-realtime.service';
 import { MatchQueue } from '../match/entities/match-queue.entity';
 
@@ -19,7 +19,7 @@ import { ConductModule } from '../conduct/conduct.module';
     UsersModule,
     ConductModule,
   ],
-  controllers: [ChatController],
+  controllers: [ChatController, AdminChatController],
   providers: [ChatService, ChatRealtimeService],
   exports: [ChatService, ChatRealtimeService],
 })

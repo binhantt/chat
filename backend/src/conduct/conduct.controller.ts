@@ -15,7 +15,7 @@ import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-requ
 import { UserRole } from '../users/entities/user.entity';
 import { ConductService } from './conduct.service';
 
-@Controller('admin/conduct-rules')
+@Controller('v1/admin/conduct-rules')
 @UseGuards(DemoAuthGuard)
 export class ConductController {
   constructor(private readonly conductService: ConductService) {}

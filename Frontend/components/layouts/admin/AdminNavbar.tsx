@@ -11,7 +11,7 @@ export function AdminNavbar() {
   const handleLogout = () => {
     setLoggingOut(true);
 
-    void fetch("/api/auth/logout", {
+    void fetch("/api/v1/auth/logout", {
       method: "POST",
       credentials: "include",
     }).finally(() => {

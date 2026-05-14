@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomBytes } from 'node:crypto';
 import type { Response } from 'express';
 import type { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 import { AuthTokenService } from './auth-token.service';
@@ -6,6 +7,7 @@ import { AuthTokenService } from './auth-token.service';
 const ACCESS_TOKEN_COOKIE = 'access_token';
 const REFRESH_TOKEN_COOKIE = 'refresh_token';
 const USER_ID_COOKIE = 'user_id';
+const CSRF_TOKEN_COOKIE = 'csrf_token';
 
 @Injectable()
 export class AuthCookieService {
@@ -20,6 +22,7 @@ export class AuthCookieService {
     this.setAccessToken(response, accessToken);
     this.setRefreshToken(response, refreshToken);
     this.setUserId(response, userId);
+    this.setCsrfToken(response);
   }
 
   setAccessToken(response: Response, accessToken: string): void {
@@ -98,6 +101,13 @@ export class AuthCookieService {
     });
   }
 
+  setCsrfToken(response: Response): void {
+    response.cookie(CSRF_TOKEN_COOKIE, randomBytes(32).toString('base64url'), {
+      ...this.baseCookieOptions(false),
+      maxAge: this.authTokenService.getRefreshTokenMaxAge(),
+    });
+  }
+
   private tryVerifyRefreshToken(refreshToken: string): string | null {
     try {
       return this.authTokenService.verifyRefreshToken(refreshToken);
@@ -109,7 +119,8 @@ export class AuthCookieService {
   private baseCookieOptions(httpOnly: boolean) {
     return {
       httpOnly,
-      sameSite: 'lax' as const,
+      path: '/',
+      sameSite: 'strict' as const,
       secure: process.env.NODE_ENV === 'production',
     };
   }

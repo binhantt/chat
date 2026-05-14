@@ -24,7 +24,7 @@ export function ReportPage() {
 
   const fetchUserData = async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await fetch('/api/v1/users/me');
       if (response.ok) {
         const userData = await response.json();
         setUser(userData);

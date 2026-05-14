@@ -16,7 +16,10 @@ import { Message, MessageStatus } from './entities/message.entity';
 import { AuthTokenService } from '../auth/services/auth-token.service';
 import { ChatRealtimeService } from './chat-realtime.service';
 import { ConductService } from '../conduct/conduct.service';
-import { MatchQueue, MatchQueueStatus } from '../match/entities/match-queue.entity';
+import {
+  MatchQueue,
+  MatchQueueStatus,
+} from '../match/entities/match-queue.entity';
 
 @Injectable()
 export class ChatService implements OnModuleInit {
@@ -71,6 +74,7 @@ export class ChatService implements OnModuleInit {
   async findConversationById(
     conversationId: string,
     userId: string,
+    isAdmin = false,
   ): Promise<Conversation> {
     const conversation = await this.conversationRepository.findOne({
       where: { id: conversationId },
@@ -81,10 +85,18 @@ export class ChatService implements OnModuleInit {
       throw new NotFoundException('Không tìm thấy cuộc trò chuyện');
     }
 
-    if (conversation.user1Id !== userId && conversation.user2Id !== userId) {
+    if (
+      !isAdmin &&
+      conversation.user1Id !== userId &&
+      conversation.user2Id !== userId
+    ) {
       throw new ForbiddenException(
         'Ban khong co quyen xem cuoc tro chuyen nay',
       );
+    }
+
+    if (!isAdmin && conversation.status !== ConversationStatus.Active) {
+      throw new ForbiddenException('Cuoc tro chuyen da ket thuc');
     }
 
     return conversation;
@@ -97,7 +109,17 @@ export class ChatService implements OnModuleInit {
     }
 
     return this.conversationRepository.find({
-      where: [{ user1Id: userId }, { user2Id: userId }],
+      where: [
+        { user1Id: userId, status: ConversationStatus.Active },
+        { user2Id: userId, status: ConversationStatus.Active },
+      ],
+      relations: ['user1', 'user2'],
+      order: { updatedAt: 'DESC' },
+    });
+  }
+
+  async getAdminConversations(): Promise<Conversation[]> {
+    return this.conversationRepository.find({
       relations: ['user1', 'user2'],
       order: { updatedAt: 'DESC' },
     });
@@ -135,12 +157,6 @@ export class ChatService implements OnModuleInit {
 
     if (conversation.status !== ConversationStatus.Active) {
       throw new ForbiddenException('Cuộc trò chuyện đã bị đóng');
-    }
-
-    if (!this.isConversationAccepted(conversation)) {
-      throw new ForbiddenException(
-        'Hai ben can cung xac nhan truoc khi bat dau tro chuyen',
-      );
     }
 
     // Check if sender is banned
@@ -182,6 +198,7 @@ export class ChatService implements OnModuleInit {
     userId: string,
     limit: number = 50,
     offset: number = 0,
+    isAdmin = false,
   ): Promise<Message[]> {
     try {
       const conversation = await this.conversationRepository.findOne({
@@ -192,10 +209,18 @@ export class ChatService implements OnModuleInit {
         throw new NotFoundException('Không tìm thấy cuộc trò chuyện');
       }
 
-      if (conversation.user1Id !== userId && conversation.user2Id !== userId) {
+      if (
+        !isAdmin &&
+        conversation.user1Id !== userId &&
+        conversation.user2Id !== userId
+      ) {
         throw new ForbiddenException(
           'Bạn không có quyền xem cuộc trò chuyện này',
         );
+      }
+
+      if (!isAdmin && conversation.status !== ConversationStatus.Active) {
+        throw new ForbiddenException('Cuoc tro chuyen da ket thuc');
       }
 
       return this.messageRepository.find({
@@ -422,6 +447,8 @@ export class ChatService implements OnModuleInit {
   }
 
   private isConversationAccepted(conversation: Conversation): boolean {
-    return conversation.user1Accepted === true && conversation.user2Accepted === true;
+    return (
+      conversation.user1Accepted === true && conversation.user2Accepted === true
+    );
   }
 }

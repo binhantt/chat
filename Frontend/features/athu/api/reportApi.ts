@@ -11,7 +11,7 @@ async function fetchWithCookie(url: string, options: RequestInit = {}) {
   let response = await request();
 
   if (response.status === 401 || response.status === 403) {
-    const refresh = await fetch('/api/auth/refresh', {
+    const refresh = await fetch('/api/v1/auth/refresh', {
       method: 'POST',
       credentials: 'include',
       headers: {
@@ -53,7 +53,7 @@ export interface ReportWithContext {
 }
 
 export async function createReport(payload: CreateReportPayload) {
-  const res = await fetchWithCookie('/api/reports', {
+  const res = await fetchWithCookie('/api/v1/reports', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
@@ -65,7 +65,7 @@ export async function createReport(payload: CreateReportPayload) {
 }
 
 export async function getReports(): Promise<ReportWithContext[]> {
-  const res = await fetchWithCookie('/api/reports', { method: 'GET' });
+  const res = await fetchWithCookie('/api/v1/admin/reports', { method: 'GET' });
   if (!res.ok) throw new Error('Không thể lấy danh sách báo cáo');
   return res.json();
 }

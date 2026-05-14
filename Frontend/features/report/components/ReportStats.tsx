@@ -41,7 +41,7 @@ export function ReportStats({ detailed = false }: ReportStatsProps) {
 
   const fetchReportStats = async () => {
     try {
-      const response = await fetch('/api/reports/stats');
+      const response = await fetch('/api/v1/admin/reports/stats');
       if (response.ok) {
         const data = await response.json();
         setStats(data);

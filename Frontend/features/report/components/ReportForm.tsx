@@ -55,7 +55,7 @@ export function ReportForm() {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch("/api/auth/me");
+      const response = await fetch("/api/v1/users/me");
       if (response.ok) {
         const userData = await response.json();
         setCurrentUser(userData);
@@ -67,7 +67,7 @@ export function ReportForm() {
 
   const fetchReportableUsers = async () => {
     try {
-      const response = await fetch("/api/reports/reportable-users");
+      const response = await fetch("/api/v1/reports/reportable-users");
       if (response.ok) {
         const users = await response.json();
         const uniqueUsers = Array.isArray(users)
@@ -92,7 +92,7 @@ export function ReportForm() {
     setError("");
 
     try {
-      const response = await fetch("/api/reports", {
+      const response = await fetch("/api/v1/reports", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

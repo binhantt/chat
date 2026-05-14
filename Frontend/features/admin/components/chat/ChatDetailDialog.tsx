@@ -52,7 +52,7 @@ export function ChatDetailDialog({ chat, onClose }: ChatDetailDialogProps) {
       setMessageError(null);
 
       try {
-        const response = await fetch(`/api/admin/chats/${chat.id}/messages?limit=100`, {
+        const response = await fetch(`/api/v1/admin/chats/${chat.id}/messages?limit=100`, {
           credentials: "include",
           signal: controller.signal,
         });

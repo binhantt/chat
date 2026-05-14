@@ -31,7 +31,7 @@ export class UserFactoryService {
   createAdminUser(email: string): User {
     return this.createUser({
       email,
-      password: process.env.ADMIN_PASSWORD ?? 'Admin@123456',
+      password: getRequiredSecret('ADMIN_PASSWORD', 'Admin@123456'),
       fullName: 'System Admin',
       role: UserRole.Admin,
     });
@@ -81,4 +81,18 @@ export class UserFactoryService {
   private createPasswordHash(password: string | undefined): string | null {
     return password ? this.passwordService.hash(password) : null;
   }
+}
+
+function getRequiredSecret(name: string, developmentFallback: string): string {
+  const value = process.env[name];
+
+  if (value) {
+    return value;
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(`${name} must be configured in production`);
+  }
+
+  return developmentFallback;
 }

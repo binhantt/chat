@@ -166,7 +166,7 @@ export function AdminReportManagement() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/reports");
+      const response = await fetch("/api/v1/admin/reports");
       if (!response.ok) {
         throw new Error("Không thể tải danh sách báo cáo");
       }
@@ -226,7 +226,7 @@ export function AdminReportManagement() {
 
     setUpdating(true);
     try {
-      const response = await fetch(`/api/reports/${expandedReport.id}/status`, {
+      const response = await fetch(`/api/v1/admin/reports/${expandedReport.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

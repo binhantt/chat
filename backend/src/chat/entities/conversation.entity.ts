@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
 
@@ -17,6 +18,18 @@ export enum ConversationStatus {
 }
 
 @Entity('conversations')
+@Index('idx_conversations_user1_status_updated', [
+  'user1Id',
+  'status',
+  'updatedAt',
+])
+@Index('idx_conversations_user2_status_updated', [
+  'user2Id',
+  'status',
+  'updatedAt',
+])
+@Index('idx_conversations_user1_updated', ['user1Id', 'updatedAt'])
+@Index('idx_conversations_user2_updated', ['user2Id', 'updatedAt'])
 export class Conversation {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

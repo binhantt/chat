@@ -15,6 +15,25 @@ import {
 } from '../chat/entities/conversation.entity';
 import { ChatRealtimeService } from '../chat/chat-realtime.service';
 
+export interface MatchStatusResponse {
+  inQueue: boolean;
+  status?: MatchQueueStatus;
+  joinedAt?: Date;
+  conversationId?: string | null;
+  matchedWithUserId?: string | null;
+  currentUserAccepted?: boolean;
+  partnerAccepted?: boolean;
+  chatReady?: boolean;
+  matchedUser?: {
+    id: string;
+    email: string;
+    fullName: string | null;
+    avatarUrl: string | null;
+    gender: UserGender | null;
+    city: string | null;
+  };
+}
+
 @Injectable()
 export class MatchService {
   private readonly logger = new Logger(MatchService.name);
@@ -43,13 +62,7 @@ export class MatchService {
       );
     }
 
-    const existingQueue = await this.matchQueueRepository.findOne({
-      where: { userId, status: MatchQueueStatus.Waiting },
-    });
-
-    if (existingQueue) {
-      return existingQueue;
-    }
+    await this.cancelActiveMatchForNewSearch(userId);
 
     const queue = this.matchQueueRepository.create({
       userId,
@@ -71,25 +84,11 @@ export class MatchService {
   }
 
   async leaveQueue(userId: string): Promise<void> {
-    const queue = await this.matchQueueRepository.findOne({
-      where: { userId, status: MatchQueueStatus.Waiting },
-    });
-
-    if (queue) {
-      queue.status = MatchQueueStatus.Cancelled;
-      await this.matchQueueRepository.save(queue);
-      this.logger.log(`User ${userId} left match queue`);
-    }
+    await this.cancelQueueStateForUser(userId);
+    this.logger.log(`User ${userId} left match queue`);
   }
 
-  async getQueueStatus(userId: string): Promise<MatchQueue | null> {
-    return this.matchQueueRepository.findOne({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
-  }
-
-  async getQueueStatusResponse(userId: string) {
+  async getQueueStatusResponse(userId: string): Promise<MatchStatusResponse> {
     const status = await this.matchQueueRepository.findOne({
       where: { userId },
       order: { createdAt: 'DESC' },
@@ -99,7 +98,7 @@ export class MatchService {
       return { inQueue: false };
     }
 
-    const result: any = {
+    const result: MatchStatusResponse = {
       inQueue: status.status === MatchQueueStatus.Waiting,
       status: status.status,
       joinedAt: status.createdAt,
@@ -113,6 +112,17 @@ export class MatchService {
       const conversation = await this.conversationRepository.findOne({
         where: { id: status.conversationId },
       });
+
+      if (!conversation || conversation.status !== ConversationStatus.Active) {
+        status.status = MatchQueueStatus.Cancelled;
+        await this.matchQueueRepository.save(status);
+        return {
+          inQueue: false,
+          status: MatchQueueStatus.Cancelled,
+          joinedAt: status.createdAt,
+        };
+      }
+
       const currentUserAccepted =
         conversation?.user1Id === userId
           ? conversation.user1Accepted === true
@@ -145,6 +155,55 @@ export class MatchService {
     }
 
     return result;
+  }
+
+  private async cancelActiveMatchForNewSearch(userId: string): Promise<void> {
+    const activeConversations = await this.conversationRepository.find({
+      where: [
+        { user1Id: userId, status: ConversationStatus.Active },
+        { user2Id: userId, status: ConversationStatus.Active },
+      ],
+      order: { updatedAt: 'DESC' },
+    });
+
+    for (const conversation of activeConversations) {
+      conversation.status = ConversationStatus.Ended;
+      conversation.updatedAt = new Date();
+      await this.conversationRepository.save(conversation);
+
+      await this.matchQueueRepository.update(
+        { conversationId: conversation.id },
+        { status: MatchQueueStatus.Cancelled },
+      );
+
+      this.chatRealtimeService.emitConversationEnded(
+        [conversation.user1Id, conversation.user2Id],
+        conversation.id,
+        userId,
+      );
+    }
+
+    await this.matchQueueRepository
+      .createQueryBuilder()
+      .update(MatchQueue)
+      .set({ status: MatchQueueStatus.Cancelled })
+      .where('userId = :userId', { userId })
+      .andWhere('status IN (:...statuses)', {
+        statuses: [MatchQueueStatus.Waiting, MatchQueueStatus.Matched],
+      })
+      .execute();
+  }
+
+  private async cancelQueueStateForUser(userId: string): Promise<void> {
+    await this.matchQueueRepository
+      .createQueryBuilder()
+      .update(MatchQueue)
+      .set({ status: MatchQueueStatus.Cancelled })
+      .where('userId = :userId', { userId })
+      .andWhere('status IN (:...statuses)', {
+        statuses: [MatchQueueStatus.Waiting, MatchQueueStatus.Matched],
+      })
+      .execute();
   }
 
   // Retry matching for all waiting users every 3 seconds
@@ -208,6 +267,9 @@ export class MatchService {
     queue: MatchQueue,
     matchedQueue: MatchQueue,
   ): Promise<MatchQueue> {
+    await this.cancelActiveMatchForNewSearch(queue.userId);
+    await this.cancelActiveMatchForNewSearch(matchedQueue.userId);
+
     const conversation = this.conversationRepository.create({
       user1Id: queue.userId,
       user2Id: matchedQueue.userId,

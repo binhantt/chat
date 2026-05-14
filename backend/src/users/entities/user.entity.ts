@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Index,
   UpdateDateColumn,
 } from 'typeorm';
 
@@ -25,6 +26,9 @@ export enum UserLockType {
 }
 
 @Entity('users')
+@Index('idx_users_city_gender_active', ['city', 'gender', 'isActive'])
+@Index('idx_users_role_created', ['role', 'createdAt'])
+@Index('idx_users_lock_state', ['lockType', 'lockedUntil'])
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

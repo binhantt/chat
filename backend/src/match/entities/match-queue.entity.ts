@@ -3,6 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 import { UserGender } from '../../users/entities/user.entity';
 
@@ -14,6 +15,16 @@ export enum MatchQueueStatus {
 }
 
 @Entity('match_queue')
+@Index('idx_match_queue_user_created', ['userId', 'createdAt'])
+@Index('idx_match_queue_waiting_retry', ['status', 'createdAt'])
+@Index('idx_match_queue_find_waiting', [
+  'status',
+  'gender',
+  'city',
+  'expiresAt',
+  'createdAt',
+])
+@Index('idx_match_queue_conversation', ['conversationId'])
 export class MatchQueue {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

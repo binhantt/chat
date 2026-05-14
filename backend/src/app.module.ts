@@ -10,6 +10,7 @@ import { MatchModule } from './match/match.module';
 import { ReportModule } from './report/report.module';
 import { ConductModule } from './conduct/conduct.module';
 import { createPostgresConfig } from './database/postgres.config';
+import { PerformanceIndexService } from './database/performance-index.service';
 
 @Module({
   imports: [
@@ -23,6 +24,6 @@ import { createPostgresConfig } from './database/postgres.config';
     ConductModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, PerformanceIndexService],
 })
 export class AppModule {}

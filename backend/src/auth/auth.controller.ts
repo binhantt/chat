@@ -5,7 +5,7 @@ import { EmailLoginDto } from './dto/email-login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
 import { AuthCookieService } from './services/auth-cookie.service';
 
-@Controller('auth')
+@Controller('v1/auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
@@ -54,11 +54,12 @@ export class AuthController {
       this.authCookieService.getRefreshToken(request.headers.cookie),
     );
     this.authCookieService.setAccessToken(response, result.accessToken);
+    this.authCookieService.setCsrfToken(response);
     return result;
   }
 }
 
-@Controller('admin/v1')
+@Controller('v1/admin')
 export class AdminAuthController {
   constructor(
     private readonly authService: AuthService,

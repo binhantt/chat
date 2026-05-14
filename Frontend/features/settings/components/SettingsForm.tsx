@@ -32,7 +32,7 @@ export function SettingsForm() {
 
     setDeleting(true);
     try {
-      const response = await fetch("/api/auth/me", {
+      const response = await fetch("/api/v1/users/me", {
         method: "DELETE",
         credentials: "include",
       });

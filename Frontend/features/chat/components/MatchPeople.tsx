@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 
-const API_URL = "/api/match";
+const API_URL = "/api/v1/match";
 
 export enum MatchStatus {
   Idle = "idle",
@@ -31,7 +31,10 @@ interface MatchResult {
 }
 
 interface MatchPeopleProps {
-  onMatched: (conversationId: string, matchedUser: MatchResult["matchedUser"]) => void;
+  onMatched: (
+    conversationId: string,
+    matchedUser: MatchResult["matchedUser"],
+  ) => void;
   onCancel: () => void;
 }
 
@@ -43,11 +46,14 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
   const textPrimary = isDark ? "#e2e8f0" : "#0f172a";
   const textSecondary = isDark ? "#94a3b8" : "#64748b";
   const greenColor = "#16a34a";
-  const borderColor = isDark ? "rgba(255,255,255,0.12)" : "rgba(99,102,241,0.14)";
+  const borderColor = isDark
+    ? "rgba(255,255,255,0.12)"
+    : "rgba(99,102,241,0.14)";
 
   const [status, setStatus] = useState<MatchStatus>(MatchStatus.Idle);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const matchEventSourceRef = useRef<EventSource | null>(null);
   const completedMatchRef = useRef(false);
 
   const stopPolling = useCallback(() => {
@@ -66,6 +72,8 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
       partnerAccepted?: boolean;
       chatReady?: boolean;
     }) => {
+      stopPolling();
+
       const matchedUser = data.matchedUser || {
         id: data.matchedWithUserId,
         email: "",
@@ -85,9 +93,8 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
         matchedUser,
       });
 
-      if (data.chatReady === true && !completedMatchRef.current) {
+      if (!completedMatchRef.current) {
         completedMatchRef.current = true;
-        stopPolling();
         onMatched(data.conversationId, matchedUser);
       }
     },
@@ -97,11 +104,20 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
   const checkMatchStatus = useCallback(async () => {
     try {
       const res = await fetch(`${API_URL}/status`, { credentials: "include" });
+      if (res.status === 401) {
+        stopPolling();
+        setStatus(MatchStatus.Idle);
+        return;
+      }
       if (!res.ok) return;
 
       const data = await res.json();
 
-      if (data.status === "matched" && data.conversationId && data.matchedWithUserId) {
+      if (
+        data.status === "matched" &&
+        data.conversationId &&
+        data.matchedWithUserId
+      ) {
         completeMatch(data);
       } else if (data.status === "cancelled" || data.status === "expired") {
         setStatus(MatchStatus.NotFound);
@@ -124,13 +140,23 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
 
     const restoreActiveQueue = async () => {
       try {
-        const res = await fetch(`${API_URL}/status`, { credentials: "include" });
+        const res = await fetch(`${API_URL}/status`, {
+          credentials: "include",
+        });
+        if (res.status === 401) {
+          stopPolling();
+          setStatus(MatchStatus.Idle);
+          return;
+        }
         if (!res.ok || cancelled) return;
 
         const data = await res.json();
-        if (data.status === "matched" && data.conversationId && data.matchedWithUserId) {
+        if (
+          data.status === "matched" &&
+          data.conversationId &&
+          data.matchedWithUserId
+        ) {
           completeMatch(data);
-          if (data.chatReady !== true) startPolling();
           return;
         }
 
@@ -151,12 +177,15 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
   }, [completeMatch, startPolling]);
 
   const handleStartSearch = async () => {
+    completedMatchRef.current = false;
+    setMatchResult(null);
     setStatus(MatchStatus.Searching);
 
     try {
       const res = await fetch(`${API_URL}/join`, {
         method: "POST",
         credentials: "include",
+        headers: getCsrfHeaders(),
       });
 
       if (!res.ok) {
@@ -165,9 +194,12 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
       }
 
       const data = await res.json();
-      if (data.status === "matched" && data.conversationId && data.matchedWithUserId) {
+      if (
+        data.status === "matched" &&
+        data.conversationId &&
+        data.matchedWithUserId
+      ) {
         completeMatch(data);
-        if (data.chatReady !== true) startPolling();
         return;
       }
 
@@ -184,6 +216,7 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
       await fetch(`${API_URL}/leave`, {
         method: "DELETE",
         credentials: "include",
+        headers: getCsrfHeaders(),
       });
     } catch (error) {
       console.error("Error leaving queue:", error);
@@ -192,14 +225,77 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
     setStatus(MatchStatus.Idle);
   };
 
+  const clearCurrentMatch = useCallback(
+    async (conversationId?: string) => {
+      stopPolling();
+      matchEventSourceRef.current?.close();
+      matchEventSourceRef.current = null;
+
+      if (conversationId) {
+        try {
+          await fetch(`/api/v1/chat/conversations/${conversationId}/end`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: getCsrfHeaders(),
+          });
+        } catch (error) {
+          console.error("Error ending stale match:", error);
+        }
+      }
+
+      try {
+        await fetch(`${API_URL}/leave`, {
+          method: "DELETE",
+          credentials: "include",
+          headers: getCsrfHeaders(),
+        });
+      } catch (error) {
+        console.error("Error leaving stale match queue:", error);
+      }
+
+      completedMatchRef.current = false;
+      setMatchResult(null);
+      setStatus(MatchStatus.Idle);
+    },
+    [stopPolling],
+  );
+
+  const resetMatchView = useCallback(() => {
+    stopPolling();
+    matchEventSourceRef.current?.close();
+    matchEventSourceRef.current = null;
+    completedMatchRef.current = false;
+    setMatchResult(null);
+    setStatus(MatchStatus.Idle);
+  }, [stopPolling]);
+
   const handleAcceptMatch = async () => {
     if (!matchResult) return;
 
     try {
-      const res = await fetch(`/api/chat/conversations/${matchResult.conversationId}/accept`, {
-        method: "PATCH",
-        credentials: "include",
-      });
+      const res = await fetch(
+        `/api/v1/chat/conversations/${matchResult.conversationId}/accept`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: getCsrfHeaders(),
+        },
+      );
+
+      if (res.status === 401) {
+        resetMatchView();
+        return;
+      }
+
+      if (res.status === 403 || res.status === 404) {
+        const data = await res.json().catch(() => ({}));
+        console.warn("Accept match rejected:", data);
+        if (isCsrfError(data)) {
+          return;
+        }
+        resetMatchView();
+        return;
+      }
 
       if (!res.ok) return;
 
@@ -212,7 +308,6 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
           : current,
       );
       await checkMatchStatus();
-      startPolling();
     } catch (error) {
       console.error("Error accepting match:", error);
     }
@@ -221,24 +316,91 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
   const handleDeclineMatch = async () => {
     if (!matchResult) return;
 
-    stopPolling();
-    try {
-      await fetch(`/api/chat/conversations/${matchResult.conversationId}/end`, {
-        method: "PATCH",
-        credentials: "include",
-      });
-    } catch (error) {
-      console.error("Error declining match:", error);
+    await clearCurrentMatch(matchResult.conversationId);
+  };
+
+  useEffect(() => {
+    if (status !== MatchStatus.Matched || !matchResult || matchResult.chatReady) {
+      matchEventSourceRef.current?.close();
+      matchEventSourceRef.current = null;
+      return;
     }
 
-    completedMatchRef.current = false;
-    setMatchResult(null);
-    setStatus(MatchStatus.Idle);
-  };
+    matchEventSourceRef.current?.close();
+    const source = new EventSource("/api/v1/chat/stream", {
+      withCredentials: true,
+    });
+    matchEventSourceRef.current = source;
+
+    source.addEventListener("chat", (event) => {
+      try {
+        const payload = JSON.parse((event as MessageEvent).data);
+
+        if (
+          payload?.type === "conversation.accepted" &&
+          payload.conversationId === matchResult.conversationId
+        ) {
+          setMatchResult((current) =>
+            current
+              ? {
+                  ...current,
+                  partnerAccepted:
+                    payload.acceptedByUserId !== user?.id
+                      ? true
+                      : current.partnerAccepted,
+                  currentUserAccepted:
+                    payload.acceptedByUserId === user?.id
+                      ? true
+                      : current.currentUserAccepted,
+                  chatReady: payload.chatReady === true,
+                }
+              : current,
+          );
+
+          if (payload.chatReady === true && !completedMatchRef.current) {
+            completedMatchRef.current = true;
+            source.close();
+            matchEventSourceRef.current = null;
+            onMatched(matchResult.conversationId, matchResult.matchedUser);
+          }
+          return;
+        }
+
+        if (
+          payload?.type === "conversation.ended" &&
+          payload.conversationId === matchResult.conversationId
+        ) {
+          source.close();
+          matchEventSourceRef.current = null;
+          completedMatchRef.current = false;
+          setMatchResult(null);
+          setStatus(MatchStatus.Idle);
+        }
+      } catch (error) {
+        console.error("Error handling match event:", error);
+      }
+    });
+
+    source.onerror = () => {
+      source.close();
+      if (matchEventSourceRef.current === source) {
+        matchEventSourceRef.current = null;
+      }
+    };
+
+    return () => {
+      source.close();
+      if (matchEventSourceRef.current === source) {
+        matchEventSourceRef.current = null;
+      }
+    };
+  }, [matchResult, onMatched, status, user?.id]);
 
   useEffect(() => {
     return () => {
       stopPolling();
+      matchEventSourceRef.current?.close();
+      matchEventSourceRef.current = null;
     };
   }, [stopPolling]);
 
@@ -290,7 +452,9 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
             width: "min(100%, 460px)",
             border: `1px solid ${borderColor}`,
             borderRadius: 8,
-            background: isDark ? "rgba(15,23,42,0.86)" : "rgba(255,255,255,0.92)",
+            background: isDark
+              ? "rgba(15,23,42,0.86)"
+              : "rgba(255,255,255,0.92)",
             boxShadow: isDark
               ? "0 24px 60px rgba(0,0,0,0.28)"
               : "0 24px 60px rgba(79,70,229,0.13)",
@@ -302,7 +466,12 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
             <Flex direction="column" align="center" gap="4">
               <StatusBadge label="Sẵn sàng ghép đôi" color="green" />
               <SignalOrb mode="idle" />
-              <Flex direction="column" align="center" gap="2" style={{ textAlign: "center" }}>
+              <Flex
+                direction="column"
+                align="center"
+                gap="2"
+                style={{ textAlign: "center" }}
+              >
                 <Text size="6" weight="bold" style={{ color: textPrimary }}>
                   Tìm người trò chuyện
                 </Text>
@@ -322,7 +491,8 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
                   }}
                 >
                   <Text size="2" style={{ color: "#b45309", lineHeight: 1.5 }}>
-                    Vui lòng cập nhật giới tính và thành phố trong phần giới thiệu trước.
+                    Vui lòng cập nhật giới tính và thành phố trong phần giới
+                    thiệu trước.
                   </Text>
                 </Box>
               )}
@@ -355,22 +525,38 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
             <Flex direction="column" align="center" gap="4">
               <StatusBadge label="Ghép đôi ngẫu nhiên" color="indigo" />
               <SignalOrb mode="searching" />
-              <Flex direction="column" align="center" gap="2" style={{ textAlign: "center" }}>
+              <Flex
+                direction="column"
+                align="center"
+                gap="2"
+                style={{ textAlign: "center" }}
+              >
                 <Text size="6" weight="bold" style={{ color: textPrimary }}>
                   Đang tìm người phù hợp
                 </Text>
                 <Text
                   size="3"
-                  style={{ color: textSecondary, lineHeight: 1.55, maxWidth: 340 }}
+                  style={{
+                    color: textSecondary,
+                    lineHeight: 1.55,
+                    maxWidth: 340,
+                  }}
                 >
-                  Hệ thống đang ưu tiên người cùng thành phố và phù hợp với hồ sơ của bạn.
+                  Hệ thống đang ưu tiên người cùng thành phố và phù hợp với hồ
+                  sơ của bạn.
                 </Text>
               </Flex>
 
               <Flex gap="2" wrap="wrap" justify="center">
-                <Badge color="green" variant="soft">Online</Badge>
-                <Badge color="violet" variant="soft">Cùng thành phố</Badge>
-                <Badge color="gray" variant="soft">Tự làm mới</Badge>
+                <Badge color="green" variant="soft">
+                  Online
+                </Badge>
+                <Badge color="violet" variant="soft">
+                  Cùng thành phố
+                </Badge>
+                <Badge color="gray" variant="soft">
+                  Tự làm mới
+                </Badge>
               </Flex>
 
               <ProgressLine isDark={isDark} />
@@ -399,19 +585,33 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
             <Flex direction="column" align="center" gap="4">
               <StatusBadge label="Chưa có kết quả" color="amber" />
               <SignalOrb mode="empty" />
-              <Flex direction="column" align="center" gap="2" style={{ textAlign: "center" }}>
+              <Flex
+                direction="column"
+                align="center"
+                gap="2"
+                style={{ textAlign: "center" }}
+              >
                 <Text size="6" weight="bold" style={{ color: textPrimary }}>
                   Chưa tìm thấy ai
                 </Text>
-                <Text size="3" style={{ color: textSecondary, lineHeight: 1.55 }}>
-                  Hiện chưa có người phù hợp đang online. Bạn có thể thử lại sau ít phút.
+                <Text
+                  size="3"
+                  style={{ color: textSecondary, lineHeight: 1.55 }}
+                >
+                  Hiện chưa có người phù hợp đang online. Bạn có thể thử lại sau
+                  ít phút.
                 </Text>
               </Flex>
               <Button
                 variant="soft"
                 size="3"
                 onClick={() => setStatus(MatchStatus.Idle)}
-                style={{ minWidth: 160, height: 44, fontWeight: 700, borderRadius: 8 }}
+                style={{
+                  minWidth: 160,
+                  height: 44,
+                  fontWeight: 700,
+                  borderRadius: 8,
+                }}
               >
                 Thử lại
               </Button>
@@ -439,13 +639,19 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
                 ??
               </Box>
 
-              <Flex direction="column" align="center" gap="1" style={{ textAlign: "center" }}>
+              <Flex
+                direction="column"
+                align="center"
+                gap="1"
+                style={{ textAlign: "center" }}
+              >
                 <Text size="6" weight="bold" style={{ color: greenColor }}>
                   Đã tìm thấy!
                 </Text>
                 <Text size="4" weight="medium" style={{ color: textPrimary }}>
                   {matchResult.chatReady
-                    ? matchResult.matchedUser.fullName || matchResult.matchedUser.email
+                    ? matchResult.matchedUser.fullName ||
+                      matchResult.matchedUser.email
                     : "Nguoi an danh"}
                 </Text>
                 {matchResult.matchedUser.city && (
@@ -467,7 +673,12 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
                   variant="soft"
                   size="3"
                   onClick={handleDeclineMatch}
-                  style={{ minWidth: 120, height: 44, fontWeight: 700, borderRadius: 8 }}
+                  style={{
+                    minWidth: 120,
+                    height: 44,
+                    fontWeight: 700,
+                    borderRadius: 8,
+                  }}
                 >
                   Bỏ qua
                 </Button>
@@ -485,7 +696,9 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
                     border: "none",
                   }}
                 >
-                  {matchResult.currentUserAccepted ? "Dang cho xac nhan" : "Thich"}
+                  {matchResult.currentUserAccepted
+                    ? "Dang cho xac nhan"
+                    : "Thich"}
                 </Button>
               </Flex>
             </Flex>
@@ -512,7 +725,13 @@ export function MatchPeople({ onMatched, onCancel }: MatchPeopleProps) {
   );
 }
 
-function StatusBadge({ label, color }: { label: string; color: "green" | "indigo" | "amber" }) {
+function StatusBadge({
+  label,
+  color,
+}: {
+  label: string;
+  color: "green" | "indigo" | "amber";
+}) {
   return (
     <Badge color={color} variant="soft" style={{ fontWeight: 700 }}>
       {label}
@@ -579,7 +798,16 @@ function SignalOrb({ mode }: { mode: "idle" | "searching" | "empty" }) {
             : "0 18px 34px rgba(99,102,241,0.32)",
         }}
       >
-        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <svg
+          width="34"
+          height="34"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
           {muted ? (
             <>
               <circle cx="12" cy="12" r="8" />
@@ -623,6 +851,31 @@ function ProgressLine({ isDark }: { isDark: boolean }) {
       />
     </Box>
   );
+}
+
+function isCsrfError(data: unknown): boolean {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "message" in data &&
+    String(data.message).toLowerCase().includes("csrf")
+  );
+}
+
+function getCsrfHeaders(): HeadersInit {
+  const csrfToken = document.cookie
+    .split(";")
+    .map((item) => item.trim())
+    .find((item) => item.startsWith("csrf_token="))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+
+  return csrfToken
+    ? {
+        "X-CSRF-Token": decodeURIComponent(csrfToken),
+      }
+    : {};
 }
 
 function Decorations({ isDark }: { isDark: boolean }) {

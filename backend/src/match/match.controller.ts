@@ -3,7 +3,7 @@ import { MatchService } from './match.service';
 import { DemoAuthGuard } from '../auth/guards/demo-auth.guard';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
 
-@Controller('match')
+@Controller('v1/match')
 @UseGuards(DemoAuthGuard)
 export class MatchController {
   constructor(private readonly matchService: MatchService) {}

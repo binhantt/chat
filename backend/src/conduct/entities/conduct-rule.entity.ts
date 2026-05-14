@@ -2,11 +2,14 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  Index,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
 @Entity('conduct_rules')
+@Index('idx_conduct_rules_active', ['isActive'])
+@Index('idx_conduct_rules_created', ['createdAt'])
 export class ConductRule {
   @PrimaryGeneratedColumn('uuid')
   id: string;

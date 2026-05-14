@@ -1,20 +1,20 @@
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Param,
   Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  Param,
+  Patch,
+  Post,
   Req,
   UseGuards,
-  ForbiddenException,
 } from '@nestjs/common';
-import { ReportService } from './report.service';
-import { CreateReportDto } from './dto/create-report.dto';
 import { DemoAuthGuard } from '../auth/guards/demo-auth.guard';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
+import { CreateReportDto } from './dto/create-report.dto';
+import { ReportService } from './report.service';
 
-@Controller('reports')
+@Controller('v1/reports')
 @UseGuards(DemoAuthGuard)
 export class ReportController {
   constructor(private readonly reportService: ReportService) {}
@@ -33,20 +33,48 @@ export class ReportController {
   findMyReports(@Req() request: AuthenticatedRequest) {
     return this.reportService.findMyReports(request.user!.id);
   }
+}
+
+@Controller('v1/admin/reports')
+@UseGuards(DemoAuthGuard)
+export class AdminReportController {
+  constructor(private readonly reportService: ReportService) {}
+
+  @Get('stats')
+  async getStats(@Req() request: AuthenticatedRequest) {
+    this.assertAdmin(request);
+    const reports = await this.reportService.findAllForAdmin();
+    const reportsByCategory = reports.reduce<Record<string, number>>(
+      (stats, report) => {
+        stats[report.reason] = (stats[report.reason] ?? 0) + 1;
+        return stats;
+      },
+      {},
+    );
+
+    return {
+      totalReports: reports.length,
+      pendingReports: reports.filter((report) => report.status === 'pending')
+        .length,
+      reviewedReports: reports.filter((report) => report.status === 'reviewed')
+        .length,
+      resolvedReports: reports.filter((report) => report.status === 'resolved')
+        .length,
+      rejectedReports: reports.filter((report) => report.status === 'rejected')
+        .length,
+      reportsByCategory,
+    };
+  }
 
   @Get()
   findAll(@Req() request: AuthenticatedRequest) {
-    if (request.user!.role !== 'admin') {
-      throw new ForbiddenException('Chỉ admin mới có quyền xem báo cáo');
-    }
+    this.assertAdmin(request);
     return this.reportService.findAllForAdmin();
   }
 
   @Get(':id')
   findOne(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
-    if (request.user!.role !== 'admin') {
-      throw new ForbiddenException('Chỉ admin mới có quyền xem báo cáo');
-    }
+    this.assertAdmin(request);
     return this.reportService.findOneForAdmin(id);
   }
 
@@ -56,9 +84,13 @@ export class ReportController {
     @Body() body: Parameters<ReportService['updateStatus']>[1],
     @Req() request: AuthenticatedRequest,
   ) {
-    if (request.user!.role !== 'admin') {
-      throw new ForbiddenException('Chỉ admin mới có quyền cập nhật báo cáo');
-    }
+    this.assertAdmin(request);
     return this.reportService.updateStatus(id, body, request.user!.id);
+  }
+
+  private assertAdmin(request: AuthenticatedRequest) {
+    if (request.user!.role !== 'admin') {
+      throw new ForbiddenException('Chi admin moi co quyen quan ly bao cao');
+    }
   }
 }

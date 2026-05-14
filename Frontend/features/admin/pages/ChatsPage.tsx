@@ -3,7 +3,7 @@
 import { Flex, Text, Box, Card, Heading, Button, Callout, Badge, TextField, Avatar } from "@radix-ui/themes";
 import { ReloadIcon, EyeOpenIcon, LockClosedIcon, MagnifyingGlassIcon, ChatBubbleIcon } from "@radix-ui/react-icons";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { getConversations, type Conversation } from "@/features/athu";
+import { getAdminConversations, type AdminConversation as Conversation } from "@/features/athu";
 import { ChatDetailDialog } from "../components/chat";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { usePagination } from "@/hooks/usePagination";
@@ -48,7 +48,7 @@ export function ChatsPage() {
     setLoading(true);
     setError(null);
     try {
-      const data = await getConversations();
+      const data = await getAdminConversations();
       setConversations(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Error fetching conversations:", err);

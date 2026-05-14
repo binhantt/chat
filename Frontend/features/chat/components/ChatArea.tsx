@@ -1,7 +1,23 @@
 "use client";
 
-import { Flex, Text, TextField, Box, Avatar, ScrollArea } from "@radix-ui/themes";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import {
+  Flex,
+  Text,
+  TextField,
+  Box,
+  Avatar,
+  ScrollArea,
+  Dialog,
+  Badge,
+} from "@radix-ui/themes";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+  type ReactNode,
+} from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ReportUserDialog } from "@/features/report/components/ReportUserDialog";
@@ -22,6 +38,9 @@ interface MatchedUser {
   avatarUrl: string | null;
   gender: string | null;
   city: string | null;
+  dateOfBirth?: string | null;
+  phoneNumber?: string | null;
+  bio?: string | null;
 }
 
 interface ConversationUser {
@@ -31,6 +50,9 @@ interface ConversationUser {
   avatarUrl: string | null;
   gender?: string | null;
   city?: string | null;
+  dateOfBirth?: string | null;
+  phoneNumber?: string | null;
+  bio?: string | null;
 }
 
 interface ConversationDetail {
@@ -50,7 +72,12 @@ interface ChatAreaProps {
   onBack?: () => void;
 }
 
-export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: ChatAreaProps) {
+export function ChatArea({
+  selectedUser,
+  matchedUser,
+  conversationId,
+  onBack,
+}: ChatAreaProps) {
   const { user } = useAuth();
   const { theme } = useTheme();
   const isDark = theme === "dark";
@@ -61,19 +88,54 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
   const [otherTyping, setOtherTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  const [resolvedUser, setResolvedUser] = useState<MatchedUser | null>(matchedUser ?? null);
+  const [resolvedUser, setResolvedUser] = useState<MatchedUser | null>(
+    matchedUser ?? null,
+  );
+  const [chatReady, setChatReady] = useState(false);
+  const [currentUserAccepted, setCurrentUserAccepted] = useState(false);
+  const [accepting, setAccepting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastTypingSentRef = useRef(0);
-  const emojiOptions = ["😀", "😂", "😍", "🥰", "😎", "😭", "😡", "👍", "👏", "🙏", "❤️", "🔥", "✨", "🎉", "💬", "✅"];
+  const emojiOptions = [
+    "😀",
+    "😂",
+    "😍",
+    "🥰",
+    "😎",
+    "😭",
+    "😡",
+    "👍",
+    "👏",
+    "🙏",
+    "❤️",
+    "🔥",
+    "✨",
+    "🎉",
+    "💬",
+    "✅",
+  ];
 
   const otherUser = resolvedUser ?? matchedUser;
+  const visibleUser = chatReady
+    ? otherUser
+    : otherUser
+      ? {
+          ...otherUser,
+          email: "",
+          fullName: null,
+          avatarUrl: null,
+          city: null,
+        }
+      : null;
 
   // Theme colors
   const bgPrimary = isDark ? "#1a1a2e" : "#f8fafc";
   const bgSecondary = isDark ? "#16213e" : "#ffffff";
-  const bgMessageMe = isDark ? "linear-gradient(135deg, #4f46e5, #7c3aed)" : "linear-gradient(135deg, #6366f1, #8b5cf6)";
+  const bgMessageMe = isDark
+    ? "linear-gradient(135deg, #4f46e5, #7c3aed)"
+    : "linear-gradient(135deg, #6366f1, #8b5cf6)";
   const bgMessageOther = isDark ? "#0f172a" : "#f1f5f9";
   const textPrimary = isDark ? "#e2e8f0" : "#1e293b";
   const textSecondary = isDark ? "#94a3b8" : "#64748b";
@@ -92,7 +154,10 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const formatDate = (dateString: string) => {
@@ -106,7 +171,10 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
     } else if (date.toDateString() === yesterday.toDateString()) {
       return "Hôm qua";
     } else {
-      return date.toLocaleDateString("vi-VN", { day: "numeric", month: "long" });
+      return date.toLocaleDateString("vi-VN", {
+        day: "numeric",
+        month: "long",
+      });
     }
   };
 
@@ -129,66 +197,92 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
     }
 
     try {
-      const res = await fetch(`/api/chat/conversations/${conversationId}`, {
+      const res = await fetch(`/api/v1/chat/conversations/${conversationId}`, {
         credentials: "include",
       });
 
-      if (!res.ok) return;
+      if (!res.ok) {
+        if (res.status === 403 || res.status === 404) {
+          onBack?.();
+        }
+        return;
+      }
 
       const conversation = (await res.json()) as ConversationDetail;
       const isUser1 = conversation.user1Id === user.id;
       const partner = isUser1 ? conversation.user2 : conversation.user1;
       const partnerId = isUser1 ? conversation.user2Id : conversation.user1Id;
       const chatReady =
-        conversation.user1Accepted === true && conversation.user2Accepted === true;
+        conversation.user1Accepted === true &&
+        conversation.user2Accepted === true;
+      const currentUserAccepted = isUser1
+        ? conversation.user1Accepted === true
+        : conversation.user2Accepted === true;
 
+      setChatReady(chatReady);
+      setCurrentUserAccepted(currentUserAccepted);
       setResolvedUser({
         id: partner?.id || partnerId,
         email: chatReady ? partner?.email || "" : "",
         fullName: chatReady ? partner?.fullName || null : null,
         avatarUrl: chatReady ? partner?.avatarUrl || null : null,
         gender: chatReady ? partner?.gender || null : null,
-        city: partner?.city || matchedUser?.city || null,
+        city: chatReady ? partner?.city || matchedUser?.city || null : null,
+        dateOfBirth: chatReady ? partner?.dateOfBirth || null : null,
+        phoneNumber: chatReady ? partner?.phoneNumber || null : null,
+        bio: chatReady ? partner?.bio || null : null,
       });
     } catch (error) {
       console.error("Error fetching conversation user:", error);
     }
-  }, [conversationId, matchedUser, user?.id]);
+  }, [conversationId, matchedUser, onBack, user?.id]);
 
-  const fetchMessages = useCallback(async (retryCount = 0) => {
-    if (!conversationId) {
-      onBack?.();
-      return;
-    }
-
-    try {
-      const res = await fetch(`/api/chat/conversations/${conversationId}/messages`, {
-        credentials: "include",
-        signal: AbortSignal.timeout(8000),
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(Array.isArray(data) ? data.reverse() : []);
-        setLoading(false);
+  const fetchMessages = useCallback(
+    async (retryCount = 0) => {
+      if (!conversationId) {
+        onBack?.();
         return;
       }
 
-      if (retryCount < 3) {
-        await new Promise(r => setTimeout(r, 1000));
-        fetchMessages(retryCount + 1);
-      } else {
-        setLoading(false);
+      try {
+        const res = await fetch(
+          `/api/v1/chat/conversations/${conversationId}/messages`,
+          {
+            credentials: "include",
+            signal: AbortSignal.timeout(8000),
+          },
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          setMessages(Array.isArray(data) ? data.reverse() : []);
+          setLoading(false);
+          return;
+        }
+
+        if (res.status === 403 || res.status === 404) {
+          setLoading(false);
+          onBack?.();
+          return;
+        }
+
+        if (retryCount < 3) {
+          await new Promise((r) => setTimeout(r, 1000));
+          fetchMessages(retryCount + 1);
+        } else {
+          setLoading(false);
+        }
+      } catch {
+        if (retryCount < 3) {
+          await new Promise((r) => setTimeout(r, 1500));
+          fetchMessages(retryCount + 1);
+        } else {
+          setLoading(false);
+        }
       }
-    } catch {
-      if (retryCount < 3) {
-        await new Promise(r => setTimeout(r, 1500));
-        fetchMessages(retryCount + 1);
-      } else {
-        setLoading(false);
-      }
-    }
-  }, [conversationId]);
+    },
+    [conversationId, onBack],
+  );
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !conversationId || sending) return;
@@ -202,12 +296,15 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
     setSendError(null);
     try {
       await sendTypingState(false);
-      const res = await fetch(`/api/chat/conversations/${conversationId}/messages`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newMessage.trim() }),
-      });
+      const res = await fetch(
+        `/api/v1/chat/conversations/${conversationId}/messages`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...getCsrfHeaders() },
+          body: JSON.stringify({ content: newMessage.trim() }),
+        },
+      );
 
       if (res.ok) {
         setNewMessage("");
@@ -223,20 +320,69 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
     }
   };
 
-  const sendTypingState = useCallback(async (isTyping: boolean) => {
-    if (!conversationId) return;
+  const sendTypingState = useCallback(
+    async (isTyping: boolean) => {
+      if (!conversationId) return;
 
+      try {
+        await fetch(`/api/v1/chat/conversations/${conversationId}/typing`, {
+          method: "PATCH",
+          credentials: "include",
+          headers: { "Content-Type": "application/json", ...getCsrfHeaders() },
+          body: JSON.stringify({ isTyping }),
+        });
+      } catch {
+        // Typing is a soft realtime signal, so failed requests should not block chat.
+      }
+    },
+    [conversationId],
+  );
+
+  const leaveCurrentMatch = useCallback(async () => {
+    await fetch("/api/v1/match/leave", {
+      method: "DELETE",
+      credentials: "include",
+      headers: getCsrfHeaders(),
+    }).catch(() => undefined);
+  }, []);
+
+  const handleAcceptConversation = async () => {
+    if (!conversationId || accepting || currentUserAccepted) return;
+
+    setAccepting(true);
+    setSendError(null);
     try {
-      await fetch(`/api/chat/conversations/${conversationId}/typing`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isTyping }),
-      });
-    } catch {
-      // Typing is a soft realtime signal, so failed requests should not block chat.
+      const res = await fetch(
+        `/api/v1/chat/conversations/${conversationId}/accept`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: getCsrfHeaders(),
+        },
+      );
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        setSendError(error?.message || "Khong the thich cuoc tro chuyen");
+        return;
+      }
+
+      const conversation = (await res.json()) as ConversationDetail;
+      const ready =
+        conversation.user1Accepted === true &&
+        conversation.user2Accepted === true;
+      setCurrentUserAccepted(true);
+      setChatReady(ready);
+      if (ready) {
+        await fetchConversationUser();
+      }
+    } catch (error) {
+      console.error("Error accepting conversation:", error);
+      setSendError("Khong the thich cuoc tro chuyen");
+    } finally {
+      setAccepting(false);
     }
-  }, [conversationId]);
+  };
 
   const handleMessageChange = (value: string) => {
     setNewMessage(value);
@@ -280,19 +426,24 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
     if (!confirmed) return;
 
     try {
-      await sendTypingState(false);
-      const res = await fetch(`/api/chat/conversations/${conversationId}/end`, {
-        method: "PATCH",
-        credentials: "include",
-      });
+      const res = await fetch(
+        `/api/v1/chat/conversations/${conversationId}/end`,
+        {
+          method: "PATCH",
+          credentials: "include",
+          headers: getCsrfHeaders(),
+        },
+      );
 
       if (res.ok) {
+        await leaveCurrentMatch();
         onBack?.();
         return;
       }
 
       const error = await res.json().catch(() => null);
       if (res.status === 404 || res.status === 403) {
+        await leaveCurrentMatch();
         onBack?.();
         return;
       }
@@ -311,7 +462,7 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
     if (!conversationId) return;
 
     eventSourceRef.current?.close();
-    const source = new EventSource("/api/chat/stream", {
+    const source = new EventSource("/api/v1/chat/stream", {
       withCredentials: true,
     });
 
@@ -322,7 +473,10 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
         const payload = JSON.parse((event as MessageEvent).data);
 
         if (payload?.type === "typing") {
-          if (payload.conversationId === conversationId && payload.userId !== user?.id) {
+          if (
+            payload.conversationId === conversationId &&
+            payload.userId !== user?.id
+          ) {
             setOtherTyping(payload.isTyping === true);
           }
           return;
@@ -335,6 +489,19 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
               window.alert("Người kia đã thoát cuộc trò chuyện");
             }
             onBack?.();
+          }
+          return;
+        }
+
+        if (payload?.type === "conversation.accepted") {
+          if (payload.conversationId === conversationId) {
+            if (payload.acceptedByUserId === user?.id) {
+              setCurrentUserAccepted(true);
+            }
+            if (payload.chatReady === true) {
+              setChatReady(true);
+              void fetchConversationUser();
+            }
           }
           return;
         }
@@ -368,7 +535,7 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
         eventSourceRef.current = null;
       }
     };
-  }, [conversationId, onBack, user?.id]);
+  }, [conversationId, fetchConversationUser, onBack, user?.id]);
 
   useEffect(() => {
     return () => {
@@ -376,10 +543,8 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
         clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = null;
       }
-
-      void sendTypingState(false);
     };
-  }, [sendTypingState]);
+  }, []);
 
   useEffect(() => {
     void fetchConversationUser();
@@ -396,7 +561,10 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
     }
   };
 
-  const groupedMessages = useMemo(() => groupMessagesByDate(messages), [messages]);
+  const groupedMessages = useMemo(
+    () => groupMessagesByDate(messages),
+    [messages],
+  );
 
   return (
     <Flex direction="column" style={{ height: "100%", background: bgPrimary }}>
@@ -427,25 +595,54 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
               transition: "all 0.2s",
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={textSecondary} strokeWidth="2">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke={textSecondary}
+              strokeWidth="2"
+            >
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
         )}
-        <Avatar
-          size="2"
-          radius="full"
-          src={otherUser?.avatarUrl || undefined}
-          fallback={getUserInitials(otherUser?.fullName, otherUser?.email || "??")}
-          style={{ background: accentColor, color: "white" }}
-        />
+        {chatReady && visibleUser ? (
+          <ProfileDialog
+            user={visibleUser}
+            accentColor={accentColor}
+            textSecondary={textSecondary}
+          >
+            <AvatarButton
+              user={visibleUser}
+              accentColor={accentColor}
+              getUserInitials={getUserInitials}
+              title="Xem trang ca nhan"
+            />
+          </ProfileDialog>
+        ) : (
+          <Avatar
+            size="2"
+            radius="full"
+            src={undefined}
+            fallback="??"
+            style={{ background: accentColor, color: "white" }}
+          />
+        )}
         <Flex direction="column" gap="0" style={{ flex: 1 }}>
           <Text size="3" weight="medium" style={{ color: textPrimary }}>
-            {otherUser?.fullName || otherUser?.email || "Người trò chuyện"}
+            {visibleUser?.fullName ||
+              visibleUser?.email ||
+              "Nguoi tro chuyen an danh"}
           </Text>
-          {otherUser?.city && (
+          {!chatReady && (
             <Text size="2" style={{ color: textSecondary }}>
-              📍 {otherUser.city}
+              An danh den khi ca hai cung thich
+            </Text>
+          )}
+          {visibleUser?.city && (
+            <Text size="2" style={{ color: textSecondary }}>
+              Vi tri: {visibleUser.city}
             </Text>
           )}
           {otherTyping && (
@@ -458,12 +655,63 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
           <ReportUserDialog
             reportedUser={{
               id: otherUser.id,
-              fullName: otherUser.fullName,
-              email: otherUser.email,
-              avatarUrl: otherUser.avatarUrl,
+              fullName: visibleUser?.fullName ?? null,
+              email: visibleUser?.email ?? "",
+              avatarUrl: visibleUser?.avatarUrl ?? null,
             }}
             recentPartners={[]}
           />
+        )}
+        {chatReady && visibleUser && (
+          <ProfileDialog
+            user={visibleUser}
+            accentColor={accentColor}
+            textSecondary={textSecondary}
+          >
+            <button
+              type="button"
+              style={{
+                minWidth: 92,
+                height: 36,
+                borderRadius: 8,
+                background: isDark ? "#1f2937" : "#eef2ff",
+                border: `1px solid ${borderColor}`,
+                color: accentColor,
+                cursor: "pointer",
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
+              Xem ho so
+            </button>
+          </ProfileDialog>
+        )}
+        {!chatReady && (
+          <button
+            onClick={handleAcceptConversation}
+            disabled={currentUserAccepted || accepting}
+            title="Thich de hien ten va vi tri khi ca hai cung thich"
+            aria-label="Thich"
+            style={{
+              minWidth: 86,
+              height: 36,
+              borderRadius: 8,
+              background:
+                currentUserAccepted || accepting
+                  ? isDark
+                    ? "#334155"
+                    : "#e2e8f0"
+                  : "linear-gradient(135deg, #22c55e, #10b981)",
+              border: "none",
+              color: currentUserAccepted || accepting ? textSecondary : "white",
+              cursor:
+                currentUserAccepted || accepting ? "default" : "pointer",
+              fontWeight: 700,
+              flexShrink: 0,
+            }}
+          >
+            {currentUserAccepted ? "Da thich" : accepting ? "..." : "Thich"}
+          </button>
         )}
         <button
           onClick={handleEndConversation}
@@ -483,7 +731,16 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
             flexShrink: 0,
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="#ef4444"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
             <polyline points="16 17 21 12 16 7" />
             <line x1="21" y1="12" x2="9" y2="12" />
@@ -500,7 +757,11 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
           style={{ background: bgPrimary, minHeight: "100%" }}
         >
           {loading ? (
-            <Flex align="center" justify="center" style={{ flex: 1, padding: 60 }}>
+            <Flex
+              align="center"
+              justify="center"
+              style={{ flex: 1, padding: 60 }}
+            >
               <Box
                 style={{
                   width: 48,
@@ -513,7 +774,13 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
               />
             </Flex>
           ) : messages.length === 0 ? (
-            <Flex align="center" justify="center" direction="column" gap="4" style={{ flex: 1, padding: 60 }}>
+            <Flex
+              align="center"
+              justify="center"
+              direction="column"
+              gap="4"
+              style={{ flex: 1, padding: 60 }}
+            >
               <Box
                 style={{
                   width: 100,
@@ -528,87 +795,104 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
               >
                 👋
               </Box>
-              <Text size="3" weight="medium" style={{ color: textSecondary, textAlign: "center" }}>
+              <Text
+                size="3"
+                weight="medium"
+                style={{ color: textSecondary, textAlign: "center" }}
+              >
                 Bắt đầu cuộc trò chuyện với
               </Text>
               <Text size="4" weight="bold" style={{ color: textPrimary }}>
-                {otherUser?.fullName || otherUser?.email || "người trò chuyện"}
+                {visibleUser?.fullName ||
+                  visibleUser?.email ||
+                  "nguoi tro chuyen an danh"}
               </Text>
             </Flex>
           ) : (
             <>
-              {Object.entries(groupedMessages).map(([dateKey, dateMessages]) => (
-                <Flex key={dateKey} direction="column" gap="3">
-                  {/* Date separator */}
-                  <Flex align="center" justify="center" my="2">
-                    <Box
-                      style={{
-                        padding: "6px 16px",
-                        borderRadius: "20px",
-                        background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)",
-                      }}
-                    >
-                      <Text size="1" style={{ color: textSecondary }}>
-                        {formatDate(dateMessages[0].createdAt)}
-                      </Text>
-                    </Box>
-                  </Flex>
-
-                  {dateMessages.map((msg) => {
-                    const isMe = msg.senderId === user?.id;
-                    return (
-                      <Flex
-                        key={msg.id}
-                        justify={isMe ? "end" : "start"}
-                        gap="2"
+              {Object.entries(groupedMessages).map(
+                ([dateKey, dateMessages]) => (
+                  <Flex key={dateKey} direction="column" gap="3">
+                    {/* Date separator */}
+                    <Flex align="center" justify="center" my="2">
+                      <Box
                         style={{
-                          maxWidth: "75%",
-                          marginLeft: isMe ? "auto" : "0",
+                          padding: "6px 16px",
+                          borderRadius: "20px",
+                          background: isDark
+                            ? "rgba(255,255,255,0.1)"
+                            : "rgba(0,0,0,0.05)",
                         }}
                       >
-                        {!isMe && (
-                          <Avatar
-                            size="1"
-                            radius="full"
-                            src={otherUser?.avatarUrl || undefined}
-                            fallback={getUserInitials(otherUser?.fullName, otherUser?.email || "??")}
-                            style={{ background: accentColor, color: "white", alignSelf: "flex-end" }}
-                          />
-                        )}
-                        <Box
-                          p="3"
+                        <Text size="1" style={{ color: textSecondary }}>
+                          {formatDate(dateMessages[0].createdAt)}
+                        </Text>
+                      </Box>
+                    </Flex>
+
+                    {dateMessages.map((msg) => {
+                      const isMe = msg.senderId === user?.id;
+                      return (
+                        <Flex
+                          key={msg.id}
+                          justify={isMe ? "end" : "start"}
+                          gap="2"
                           style={{
-                            borderRadius: "18px",
-                            background: isMe ? bgMessageMe : bgMessageOther,
-                            color: isMe ? textOnPrimary : textPrimary,
-                            boxShadow: isMe
-                              ? "0 4px 20px rgba(99, 102, 241, 0.3)"
-                              : "0 2px 10px rgba(0,0,0,0.05)",
-                            borderBottomRightRadius: isMe ? "6px" : "18px",
-                            borderBottomLeftRadius: isMe ? "18px" : "6px",
+                            maxWidth: "75%",
+                            marginLeft: isMe ? "auto" : "0",
                           }}
                         >
-                          <Text size="3" style={{ lineHeight: 1.5 }}>
-                            {msg.content}
-                          </Text>
-                          <Text
-                            size="1"
+                          {!isMe && (
+                            <Avatar
+                              size="1"
+                              radius="full"
+                              src={visibleUser?.avatarUrl || undefined}
+                              fallback={getUserInitials(
+                                visibleUser?.fullName,
+                                visibleUser?.email || "??",
+                              )}
+                              style={{
+                                background: accentColor,
+                                color: "white",
+                                alignSelf: "flex-end",
+                              }}
+                            />
+                          )}
+                          <Box
+                            p="3"
                             style={{
-                              opacity: 0.7,
-                              marginTop: 4,
-                              display: "block",
-                              textAlign: isMe ? "right" : "left",
-                              fontSize: "11px",
+                              borderRadius: "18px",
+                              background: isMe ? bgMessageMe : bgMessageOther,
+                              color: isMe ? textOnPrimary : textPrimary,
+                              boxShadow: isMe
+                                ? "0 4px 20px rgba(99, 102, 241, 0.3)"
+                                : "0 2px 10px rgba(0,0,0,0.05)",
+                              borderBottomRightRadius: isMe ? "6px" : "18px",
+                              borderBottomLeftRadius: isMe ? "18px" : "6px",
                             }}
                           >
-                            {formatTime(msg.createdAt)}
-                          </Text>
-                        </Box>
-                      </Flex>
-                    );
-                  })}
-                </Flex>
-              ))}
+                            <Text size="3" style={{ lineHeight: 1.5 }}>
+                              {msg.content}
+                            </Text>
+                            <Text
+                              size="1"
+                              style={{
+                                opacity: 0.7,
+                                marginTop: 4,
+                                display: "block",
+                                textAlign: isMe ? "right" : "left",
+                                fontSize: "11px",
+                              }}
+                            >
+                              {formatTime(msg.createdAt)}
+                            </Text>
+                          </Box>
+                        </Flex>
+                      );
+                    })}
+                  </Flex>
+                ),
+              )}
             </>
           )}
           <div ref={messagesEndRef} />
@@ -678,7 +962,16 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
               transition: "all 0.2s ease",
             }}
           >
-            <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="21"
+              height="21"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <circle cx="12" cy="12" r="10" />
               <path d="M8 14s1.5 2 4 2 4-2 4-2" />
               <line x1="9" y1="9" x2="9.01" y2="9" />
@@ -696,7 +989,9 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
                 borderRadius: 14,
                 background: bgSecondary,
                 border: `1px solid ${borderColor}`,
-                boxShadow: isDark ? "0 18px 48px rgba(0,0,0,0.45)" : "0 18px 48px rgba(15,23,42,0.14)",
+                boxShadow: isDark
+                  ? "0 18px 48px rgba(0,0,0,0.45)"
+                  : "0 18px 48px rgba(15,23,42,0.14)",
                 display: "grid",
                 gridTemplateColumns: "repeat(4, 1fr)",
                 gap: 6,
@@ -732,17 +1027,21 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
             width: 48,
             height: 48,
             borderRadius: "50%",
-            background: newMessage.trim() && !sending
-              ? "linear-gradient(135deg, #6366f1, #8b5cf6)"
-              : isDark ? "#374151" : "#e2e8f0",
+            background:
+              newMessage.trim() && !sending
+                ? "linear-gradient(135deg, #6366f1, #8b5cf6)"
+                : isDark
+                  ? "#374151"
+                  : "#e2e8f0",
             border: "none",
             cursor: newMessage.trim() && !sending ? "pointer" : "not-allowed",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            boxShadow: newMessage.trim() && !sending
-              ? "0 4px 16px rgba(99, 102, 241, 0.4)"
-              : "none",
+            boxShadow:
+              newMessage.trim() && !sending
+                ? "0 4px 16px rgba(99, 102, 241, 0.4)"
+                : "none",
             transition: "all 0.3s ease",
             flexShrink: 0,
           }}
@@ -759,7 +1058,16 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
               }}
             />
           ) : (
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <line x1="22" y1="2" x2="11" y2="13" />
               <polygon points="22 2 15 22 11 13 2 9 22 2" />
             </svg>
@@ -774,4 +1082,167 @@ export function ChatArea({ selectedUser, matchedUser, conversationId, onBack }: 
       </Flex>
     </Flex>
   );
+}
+
+function getCsrfHeaders(): HeadersInit {
+  const csrfToken = document.cookie
+    .split(";")
+    .map((item) => item.trim())
+    .find((item) => item.startsWith("csrf_token="))
+    ?.split("=")
+    .slice(1)
+    .join("=");
+
+  return csrfToken
+    ? {
+        "X-CSRF-Token": decodeURIComponent(csrfToken),
+      }
+    : {};
+}
+
+function AvatarButton({
+  user,
+  accentColor,
+  getUserInitials,
+  title,
+}: {
+  user: MatchedUser;
+  accentColor: string;
+  getUserInitials: (name: string | null | undefined, email: string) => string;
+  title: string;
+}) {
+  return (
+    <span
+      role="button"
+      tabIndex={0}
+      title={title}
+      aria-label={title}
+      style={{
+        display: "inline-flex",
+        cursor: "pointer",
+        borderRadius: "50%",
+        lineHeight: 0,
+      }}
+    >
+      <Avatar
+        size="2"
+        radius="full"
+        src={user.avatarUrl || undefined}
+        fallback={getUserInitials(user.fullName, user.email || "??")}
+        style={{ background: accentColor, color: "white" }}
+      />
+    </span>
+  );
+}
+
+function ProfileDialog({
+  user,
+  accentColor,
+  textSecondary,
+  children,
+}: {
+  user: MatchedUser;
+  accentColor: string;
+  textSecondary: string;
+  children: ReactNode;
+}) {
+  return (
+    <Dialog.Root>
+      <Dialog.Trigger>{children}</Dialog.Trigger>
+      <Dialog.Content style={{ maxWidth: 460 }}>
+        <Dialog.Title>Trang ca nhan</Dialog.Title>
+        <Flex direction="column" gap="4">
+          <Flex align="center" gap="3">
+            <Avatar
+              size="5"
+              radius="full"
+              src={user.avatarUrl || undefined}
+              fallback={(user.fullName || user.email || "??").slice(0, 2)}
+              style={{ background: accentColor, color: "white" }}
+            />
+            <Flex direction="column" gap="1">
+              <Text size="5" weight="bold">
+                {user.fullName || user.email || "Nguoi dung"}
+              </Text>
+              {user.city && (
+                <Badge color="indigo" variant="soft">
+                  {user.city}
+                </Badge>
+              )}
+            </Flex>
+          </Flex>
+
+          <Flex direction="column" gap="2">
+            <ProfileField label="Email" value={user.email || "Chua co"} />
+            <ProfileField
+              label="Gioi tinh"
+              value={formatGender(user.gender) || "Chua cap nhat"}
+            />
+            <ProfileField label="Vi tri" value={user.city || "Chua cap nhat"} />
+            {user.dateOfBirth && (
+              <ProfileField
+                label="Ngay sinh"
+                value={new Date(user.dateOfBirth).toLocaleDateString("vi-VN")}
+              />
+            )}
+            {user.phoneNumber && (
+              <ProfileField label="So dien thoai" value={user.phoneNumber} />
+            )}
+          </Flex>
+
+          <Box
+            style={{
+              border: "1px solid rgba(99,102,241,0.18)",
+              borderRadius: 8,
+              padding: 12,
+              background: "rgba(99,102,241,0.06)",
+            }}
+          >
+            <Text size="1" style={{ color: textSecondary }}>
+              Gioi thieu
+            </Text>
+            <Text size="2" style={{ display: "block", marginTop: 4 }}>
+              {user.bio || "Nguoi nay chua them gioi thieu."}
+            </Text>
+          </Box>
+
+          <Flex justify="end">
+            <Dialog.Close>
+              <button
+                type="button"
+                style={{
+                  height: 36,
+                  padding: "0 14px",
+                  borderRadius: 8,
+                  border: "1px solid rgba(0,0,0,0.12)",
+                  background: "transparent",
+                  cursor: "pointer",
+                }}
+              >
+                Dong
+              </button>
+            </Dialog.Close>
+          </Flex>
+        </Flex>
+      </Dialog.Content>
+    </Dialog.Root>
+  );
+}
+
+function ProfileField({ label, value }: { label: string; value: string }) {
+  return (
+    <Flex direction="column" gap="0">
+      <Text size="1" color="gray">
+        {label}
+      </Text>
+      <Text size="2">{value}</Text>
+    </Flex>
+  );
+}
+
+function formatGender(gender: string | null | undefined): string | null {
+  if (gender === "male") return "Nam";
+  if (gender === "female") return "Nu";
+  if (gender === "other") return "Khac";
+  return null;
 }

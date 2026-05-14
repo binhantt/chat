@@ -54,7 +54,7 @@ export function AboutForm() {
         city: formData.city || null,
       };
 
-      const res = await fetch("/api/users/setup-profile", {
+      const res = await fetch("/api/v1/users/setup-profile", {
         method: "POST",
         credentials: "include",
         headers: {

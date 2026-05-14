@@ -25,7 +25,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { ProfileSetupDto } from './dto/profile-setup.dto';
 import { UsersService } from './users.service';
 
-@Controller('users')
+@Controller('v1/users')
 @UseGuards(DemoAuthGuard, AbacGuard)
 export class UserController {
   constructor(private readonly usersService: UsersService) {}
@@ -70,7 +70,7 @@ export class UserController {
   }
 }
 
-@Controller('admin/users')
+@Controller('v1/admin/users')
 @UseGuards(DemoAuthGuard, AbacGuard)
 export class AdminUserController {
   constructor(private readonly usersService: UsersService) {}

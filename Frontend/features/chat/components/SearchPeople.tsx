@@ -42,17 +42,22 @@ interface ChatPartner {
 }
 
 interface SearchPeopleProps {
-  onSelectConversation?: (conversationId: string, partner: {
-    id: string;
-    email: string;
-    fullName: string | null;
-    avatarUrl: string | null;
-    gender: string | null;
-    city: string | null;
-  }) => void;
+  onSelectConversation?: (
+    conversationId: string,
+    partner: {
+      id: string;
+      email: string;
+      fullName: string | null;
+      avatarUrl: string | null;
+      gender: string | null;
+      city: string | null;
+    },
+  ) => void;
 }
 
-export const SearchPeople = memo(function SearchPeople({ onSelectConversation }: SearchPeopleProps) {
+export const SearchPeople = memo(function SearchPeople({
+  onSelectConversation,
+}: SearchPeopleProps) {
   const [query, setQuery] = useState("");
   const [conversations, setConversations] = useState<ChatPartner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +70,9 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
   // Theme colors
   const bgPrimary = isDark ? "#1a1a2e" : "#f8fafc";
   const bgSecondary = isDark ? "#16213e" : "#ffffff";
-  const bgHover = isDark ? "rgba(255,255,255,0.08)" : "rgba(99, 102, 241, 0.06)";
+  const bgHover = isDark
+    ? "rgba(255,255,255,0.08)"
+    : "rgba(99, 102, 241, 0.06)";
   const textPrimary = isDark ? "#e2e8f0" : "#1e293b";
   const textSecondary = isDark ? "#94a3b8" : "#64748b";
   const accentColor = "#6366f1";
@@ -76,24 +83,27 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
     try {
       const data = await getConversations();
       if (Array.isArray(data)) {
-        const formatted: ChatPartner[] = data.map((conv: BackendConversation) => {
-          const isUser1 = conv.user1Id === user?.id;
-          const partner = isUser1 ? conv.user2 : conv.user1;
-          const partnerId = isUser1 ? conv.user2Id : conv.user1Id;
-          const chatReady = conv.user1Accepted === true && conv.user2Accepted === true;
+        const formatted: ChatPartner[] = data
+          .filter((conv: BackendConversation) => conv.status === "active")
+          .map((conv: BackendConversation) => {
+            const isUser1 = conv.user1Id === user?.id;
+            const partner = isUser1 ? conv.user2 : conv.user1;
+            const partnerId = isUser1 ? conv.user2Id : conv.user1Id;
+            const chatReady =
+              conv.user1Accepted === true && conv.user2Accepted === true;
 
-          return {
-            conversationId: conv.id,
-            partnerId,
-            partnerName: "Nguoi an danh",
-            partnerEmail: "",
-            partnerAvatar: null,
-            partnerCity: partner?.city || null,
-            chatReady,
-            lastTime: formatTimeAgo(conv.updatedAt),
-            status: conv.status as "active" | "ended" | "blocked",
-          };
-        });
+            return {
+              conversationId: conv.id,
+              partnerId,
+              partnerName: "Nguoi an danh",
+              partnerEmail: "",
+              partnerAvatar: null,
+              partnerCity: partner?.city || null,
+              chatReady,
+              lastTime: formatTimeAgo(conv.updatedAt),
+              status: conv.status as "active" | "ended" | "blocked",
+            };
+          });
         setConversations(formatted);
       }
     } catch (error) {
@@ -112,7 +122,7 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
   useEffect(() => {
     if (!user) return;
 
-    const source = new EventSource("/api/chat/stream", {
+    const source = new EventSource("/api/v1/chat/stream", {
       withCredentials: true,
     });
 
@@ -145,9 +155,10 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
     const normalizedQuery = debouncedQuery.trim().toLowerCase();
     if (!normalizedQuery) return conversations;
 
-    return conversations.filter((c) =>
-      c.partnerName.toLowerCase().includes(normalizedQuery) ||
-      c.partnerEmail.toLowerCase().includes(normalizedQuery)
+    return conversations.filter(
+      (c) =>
+        c.partnerName.toLowerCase().includes(normalizedQuery) ||
+        c.partnerEmail.toLowerCase().includes(normalizedQuery),
     );
   }, [conversations, debouncedQuery]);
 
@@ -163,7 +174,10 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
     if (diffMins < 60) return `${diffMins}p`;
     if (diffHours < 24) return `${diffHours}gi`;
     if (diffDays < 7) return `${diffDays}ng`;
-    return date.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" });
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+    });
   };
 
   const getUserInitials = (name: string) => {
@@ -206,7 +220,14 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
           boxShadow: `0 12px 40px rgba(99, 102, 241, 0.35)`,
         }}
       >
-        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+        <svg
+          width="44"
+          height="44"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="white"
+          strokeWidth="2"
+        >
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
@@ -238,10 +259,19 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
             borderRadius: 16,
             padding: "4px 8px 4px 16px",
             transition: "all 0.2s",
-            boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.3)" : "0 4px 16px rgba(0,0,0,0.06)",
+            boxShadow: isDark
+              ? "0 4px 16px rgba(0,0,0,0.3)"
+              : "0 4px 16px rgba(0,0,0,0.06)",
           }}
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={textSecondary} strokeWidth="2">
+          <svg
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke={textSecondary}
+            strokeWidth="2"
+          >
             <circle cx="11" cy="11" r="8" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
           </svg>
@@ -268,7 +298,9 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
                 width: 28,
                 height: 28,
                 borderRadius: "50%",
-                background: isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.06)",
+                background: isDark
+                  ? "rgba(255,255,255,0.1)"
+                  : "rgba(0,0,0,0.06)",
                 border: "none",
                 cursor: "pointer",
                 display: "flex",
@@ -276,7 +308,14 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
                 justifyContent: "center",
               }}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={textSecondary} strokeWidth="2">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={textSecondary}
+                strokeWidth="2"
+              >
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -294,11 +333,19 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
           background: bgSecondary,
           borderRadius: 20,
           border: `1px solid ${borderColor}`,
-          boxShadow: isDark ? "0 4px 16px rgba(0,0,0,0.2)" : "0 4px 16px rgba(0,0,0,0.04)",
+          boxShadow: isDark
+            ? "0 4px 16px rgba(0,0,0,0.2)"
+            : "0 4px 16px rgba(0,0,0,0.04)",
         }}
       >
         {loading ? (
-          <Flex direction="column" align="center" justify="center" gap="4" py="8">
+          <Flex
+            direction="column"
+            align="center"
+            justify="center"
+            gap="4"
+            py="8"
+          >
             <Box
               style={{
                 width: 40,
@@ -309,22 +356,40 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
                 animation: "spin 0.8s linear infinite",
               }}
             />
-            <Text size="2" style={{ color: textSecondary }}>Đang tải...</Text>
+            <Text size="2" style={{ color: textSecondary }}>
+              Đang tải...
+            </Text>
           </Flex>
         ) : filtered.length === 0 ? (
-          <Flex direction="column" align="center" justify="center" gap="3" py="8" px="4">
+          <Flex
+            direction="column"
+            align="center"
+            justify="center"
+            gap="3"
+            py="8"
+            px="4"
+          >
             <Box
               style={{
                 width: 60,
                 height: 60,
                 borderRadius: "50%",
-                background: isDark ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)",
+                background: isDark
+                  ? "rgba(255,255,255,0.05)"
+                  : "rgba(0,0,0,0.04)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke={textSecondary} strokeWidth="2">
+              <svg
+                width="28"
+                height="28"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke={textSecondary}
+                strokeWidth="2"
+              >
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
               </svg>
             </Box>
@@ -349,7 +414,10 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
                   gap: 12,
                   padding: "16px",
                   cursor: "pointer",
-                  borderBottom: index < filtered.length - 1 ? `1px solid ${borderColor}` : "none",
+                  borderBottom:
+                    index < filtered.length - 1
+                      ? `1px solid ${borderColor}`
+                      : "none",
                   transition: "background 0.15s",
                 }}
                 onMouseOver={(e) => {
@@ -381,7 +449,8 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
                       width: 12,
                       height: 12,
                       borderRadius: "50%",
-                      background: chat.status === "active" ? "#22c55e" : "#94a3b8",
+                      background:
+                        chat.status === "active" ? "#22c55e" : "#94a3b8",
                       border: "2px solid",
                       borderColor: bgSecondary,
                     }}
@@ -389,21 +458,36 @@ export const SearchPeople = memo(function SearchPeople({ onSelectConversation }:
                 </Box>
 
                 {/* Info */}
-                <Flex direction="column" gap="0" style={{ flex: 1, minWidth: 0 }}>
+                <Flex
+                  direction="column"
+                  gap="0"
+                  style={{ flex: 1, minWidth: 0 }}
+                >
                   <Flex align="center" gap="2">
-                    <Text size="2" weight="medium" style={{ color: textPrimary }}>
+                    <Text
+                      size="2"
+                      weight="medium"
+                      style={{ color: textPrimary }}
+                    >
                       {chat.partnerName}
                     </Text>
                     <Box
                       style={{
                         padding: "2px 8px",
                         borderRadius: 10,
-                        background: chat.status === "active"
-                          ? "rgba(34, 197, 94, 0.15)"
-                          : "rgba(148, 163, 184, 0.15)",
+                        background:
+                          chat.status === "active"
+                            ? "rgba(34, 197, 94, 0.15)"
+                            : "rgba(148, 163, 184, 0.15)",
                       }}
                     >
-                      <Text size="1" style={{ color: chat.status === "active" ? "#22c55e" : "#94a3b8" }}>
+                      <Text
+                        size="1"
+                        style={{
+                          color:
+                            chat.status === "active" ? "#22c55e" : "#94a3b8",
+                        }}
+                      >
                         {!chat.chatReady
                           ? "Cho xac nhan"
                           : chat.status === "active"

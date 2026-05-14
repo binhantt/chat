@@ -67,7 +67,7 @@ export function GoogleButton() {
   async function handleCredentialResponse(response: { credential: string }) {
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/google-login", {
+      const res = await fetch("/api/v1/auth/google-login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idToken: response.credential }),

@@ -13,7 +13,7 @@ async function fetchWithCookie(url: string, options: RequestInit = {}) {
   let response = await request();
 
   if (response.status === 401 || response.status === 403) {
-    const refresh = await fetch("/api/auth/refresh", {
+    const refresh = await fetch("/api/v1/auth/refresh", {
       method: "POST",
       credentials: "include",
       headers: {
@@ -37,21 +37,21 @@ async function fetchWithCookie(url: string, options: RequestInit = {}) {
 
 // ============ CHAT API ============
 
-export async function getConversations() {
-  const res = await fetchWithCookie("/api/chat/conversations", { method: "GET" });
+export async function getAdminConversations() {
+  const res = await fetchWithCookie("/api/v1/admin/chats", { method: "GET" });
   if (!res.ok) throw new Error("Không thể lấy danh sách cuộc trò chuyện");
   return res.json();
 }
 
 export async function getConversation(id: string) {
-  const res = await fetchWithCookie(`/api/chat/conversations/${id}`, { method: "GET" });
+  const res = await fetchWithCookie(`/api/v1/chat/conversations/${id}`, { method: "GET" });
   if (!res.ok) throw new Error("Không thể lấy thông tin cuộc trò chuyện");
   return res.json();
 }
 
 export async function getMessages(conversationId: string, limit = 50, offset = 0) {
   const res = await fetchWithCookie(
-    `/api/chat/conversations/${conversationId}/messages?limit=${limit}&offset=${offset}`,
+    `/api/v1/chat/conversations/${conversationId}/messages?limit=${limit}&offset=${offset}`,
     { method: "GET" }
   );
   if (!res.ok) throw new Error("Không thể lấy tin nhắn");
@@ -59,7 +59,7 @@ export async function getMessages(conversationId: string, limit = 50, offset = 0
 }
 
 export async function sendMessage(conversationId: string, content: string) {
-  const res = await fetchWithCookie(`/api/chat/conversations/${conversationId}/messages`, {
+  const res = await fetchWithCookie(`/api/v1/chat/conversations/${conversationId}/messages`, {
     method: "POST",
     body: JSON.stringify({ content }),
   });
@@ -68,7 +68,7 @@ export async function sendMessage(conversationId: string, content: string) {
 }
 
 export async function markAsRead(conversationId: string) {
-  const res = await fetchWithCookie(`/api/chat/conversations/${conversationId}/read`, {
+  const res = await fetchWithCookie(`/api/v1/chat/conversations/${conversationId}/read`, {
     method: "PATCH",
   });
   if (!res.ok) throw new Error("Không thể đánh dấu đã đọc");
@@ -76,7 +76,7 @@ export async function markAsRead(conversationId: string) {
 }
 
 export async function blockConversation(conversationId: string) {
-  const res = await fetchWithCookie(`/api/chat/conversations/${conversationId}/block`, {
+  const res = await fetchWithCookie(`/api/v1/chat/conversations/${conversationId}/block`, {
     method: "PATCH",
   });
   if (!res.ok) throw new Error("Không thể chặn cuộc trò chuyện");
@@ -84,7 +84,7 @@ export async function blockConversation(conversationId: string) {
 }
 
 export async function endConversation(conversationId: string) {
-  const res = await fetchWithCookie(`/api/chat/conversations/${conversationId}/end`, {
+  const res = await fetchWithCookie(`/api/v1/chat/conversations/${conversationId}/end`, {
     method: "PATCH",
   });
   if (!res.ok) throw new Error("Không thể kết thúc cuộc trò chuyện");
@@ -94,19 +94,19 @@ export async function endConversation(conversationId: string) {
 // ============ MATCH API ============
 
 export async function joinMatchQueue() {
-  const res = await fetchWithCookie("/api/match", { method: "POST" });
+  const res = await fetchWithCookie("/api/v1/match", { method: "POST" });
   if (!res.ok) throw new Error("Không thể tham gia hàng đợi");
   return res.json();
 }
 
 export async function leaveMatchQueue() {
-  const res = await fetchWithCookie("/api/match", { method: "DELETE" });
+  const res = await fetchWithCookie("/api/v1/match", { method: "DELETE" });
   if (!res.ok) throw new Error("Không thể rời hàng đợi");
   return res.json();
 }
 
 export async function getMatchStatus() {
-  const res = await fetchWithCookie("/api/match", { method: "GET" });
+  const res = await fetchWithCookie("/api/v1/match", { method: "GET" });
   if (!res.ok) throw new Error("Không thể lấy trạng thái tìm kiếm");
   return res.json();
 }
@@ -114,13 +114,13 @@ export async function getMatchStatus() {
 // ============ ADMIN API ============
 
 export async function getAdminUsers() {
-  const res = await fetchWithCookie("/api/admin/users", { method: "GET" });
+  const res = await fetchWithCookie("/api/v1/admin/users", { method: "GET" });
   if (!res.ok) throw new Error("Không thể lấy danh sách người dùng");
   return res.json();
 }
 
 export async function getAdminUser(id: string) {
-  const res = await fetchWithCookie(`/api/admin/users/${id}`, { method: "GET" });
+  const res = await fetchWithCookie(`/api/v1/admin/users/${id}`, { method: "GET" });
   if (!res.ok) throw new Error("Không thể lấy thông tin người dùng");
   return res.json();
 }
@@ -131,7 +131,7 @@ export async function createAdminUser(data: {
   password?: string;
   role?: string;
 }) {
-  const res = await fetchWithCookie("/api/admin/users", {
+  const res = await fetchWithCookie("/api/v1/admin/users", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -151,7 +151,7 @@ export async function updateAdminUser(
     phoneNumber?: string;
   }
 ) {
-  const res = await fetchWithCookie(`/api/admin/users/${id}`, {
+  const res = await fetchWithCookie(`/api/v1/admin/users/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
@@ -166,7 +166,7 @@ export async function updateAdminUserAccess(
     role?: string;
   }
 ) {
-  const res = await fetchWithCookie(`/api/admin/users/${id}/access`, {
+  const res = await fetchWithCookie(`/api/v1/admin/users/${id}/access`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
@@ -186,13 +186,13 @@ export interface ConductRule {
 }
 
 export async function getConductRules(): Promise<ConductRule[]> {
-  const res = await fetchWithCookie("/api/admin/conduct-rules", { method: "GET" });
+  const res = await fetchWithCookie("/api/v1/admin/conduct-rules", { method: "GET" });
   if (!res.ok) throw new Error("Không thể lấy danh sách luật ứng xử");
   return res.json();
 }
 
 export async function createConductRule(data: { phrase: string; note?: string }) {
-  const res = await fetchWithCookie("/api/admin/conduct-rules", {
+  const res = await fetchWithCookie("/api/v1/admin/conduct-rules", {
     method: "POST",
     body: JSON.stringify(data),
   });
@@ -207,7 +207,7 @@ export async function updateConductRule(
   id: string,
   data: { phrase?: string; note?: string | null; isActive?: boolean },
 ) {
-  const res = await fetchWithCookie(`/api/admin/conduct-rules/${id}`, {
+  const res = await fetchWithCookie(`/api/v1/admin/conduct-rules/${id}`, {
     method: "PATCH",
     body: JSON.stringify(data),
   });
@@ -219,7 +219,7 @@ export async function updateConductRule(
 }
 
 export async function deleteConductRule(id: string) {
-  const res = await fetchWithCookie(`/api/admin/conduct-rules/${id}`, {
+  const res = await fetchWithCookie(`/api/v1/admin/conduct-rules/${id}`, {
     method: "DELETE",
   });
   if (!res.ok) throw new Error("Không thể xóa luật ứng xử");
@@ -230,9 +230,11 @@ export async function deleteConductRule(id: string) {
 
 export interface Conversation {
   id: string;
-  participants: string[];
+  user1Id: string;
+  user2Id: string;
+  user1?: { id: string; email: string; fullName: string | null; avatarUrl: string | null };
+  user2?: { id: string; email: string; fullName: string | null; avatarUrl: string | null };
   status: "active" | "ended" | "blocked";
-  matchedAt: string;
   createdAt: string;
   updatedAt: string;
 }

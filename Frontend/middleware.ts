@@ -4,9 +4,10 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const publicPaths = [
     "/login",
-    "/api/auth",
+    "/api/v1/auth",
+    "/api/v1/users/me",
     "/admin/login",
-    "/api/admin",
+    "/api/v1/admin",
   ];
   const { pathname } = request.nextUrl;
 
@@ -22,10 +23,16 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const hasAuth = request.cookies.has("access_token");
+  const hasAuth =
+    request.cookies.has("access_token") || request.cookies.has("refresh_token");
+  const isApiRoute = pathname.startsWith("/api/");
 
   if (!hasAuth && pathname.startsWith("/admin")) {
     return NextResponse.redirect(new URL("/admin/login", request.url));
+  }
+
+  if (!hasAuth && isApiRoute) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   if (!hasAuth) {
