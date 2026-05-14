@@ -3,13 +3,7 @@
 import { Box, Flex, Text, TextField, Button, Select, TextArea, Badge } from "@radix-ui/themes";
 import { useEffect, useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
-
-interface UserProfile {
-  id: string;
-  email: string;
-  fullName: string | null;
-  role: string;
-}
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ReportableUser {
   id: string;
@@ -30,6 +24,7 @@ const reportReasons = [
 
 export function ReportForm() {
   const { theme } = useTheme();
+  const { user: currentUser } = useAuth();
   const isDark = theme === "dark";
   const fieldStyle = {
     background: isDark ? "#111827" : "var(--gray-1)",
@@ -43,27 +38,13 @@ export function ReportForm() {
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [reportedUserId, setReportedUserId] = useState("");
   const [reportableUsers, setReportableUsers] = useState<ReportableUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
 
   useEffect(() => {
-    fetchCurrentUser();
     fetchReportableUsers();
   }, []);
-
-  const fetchCurrentUser = async () => {
-    try {
-      const response = await fetch("/api/v1/users/me");
-      if (response.ok) {
-        const userData = await response.json();
-        setCurrentUser(userData);
-      }
-    } catch (error) {
-      console.error("Failed to fetch current user:", error);
-    }
-  };
 
   const fetchReportableUsers = async () => {
     try {

@@ -67,7 +67,7 @@ export default function HomePage() {
               flex: 1,
               overflow: "hidden",
               background: "var(--gray-2)",
-              padding: 16,
+              padding: activeTab === "chat" ? 0 : 16,
             }}
           >
             <Box
@@ -76,9 +76,9 @@ export default function HomePage() {
                 height: "100%",
                 overflowX: "hidden",
                 overflowY: activeTab === "chat" ? "hidden" : "auto",
-                background: "var(--gray-1)",
-                border: "1px solid var(--gray-5)",
-                borderRadius: 8,
+                background: activeTab === "chat" ? "transparent" : "var(--gray-1)",
+                border: activeTab === "chat" ? "none" : "1px solid var(--gray-5)",
+                borderRadius: activeTab === "chat" ? 0 : 8,
               }}
             >
               {renderActiveTab()}

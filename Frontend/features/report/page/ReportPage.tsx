@@ -1,40 +1,14 @@
 "use client";
 
 import { Flex, Text, Box, Tabs } from "@radix-ui/themes";
-import { useState, useEffect } from "react";
 import { ReportForm, ReportHistory, AdminReportManagement } from "../components";
 import { useTheme } from "@/contexts/ThemeContext";
-
-interface User {
-  id: string;
-  email: string;
-  fullName: string | null;
-  role: string;
-}
+import { useAuth } from "@/contexts/AuthContext";
 
 export function ReportPage() {
   const { theme } = useTheme();
+  const { user, loading } = useAuth();
   const isDark = theme === "dark";
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-
-  const fetchUserData = async () => {
-    try {
-      const response = await fetch('/api/v1/users/me');
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-      }
-    } catch (error) {
-      console.error('Failed to fetch user data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (loading) {
     return (

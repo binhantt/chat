@@ -21,7 +21,8 @@ function createUrlConfig(url: string): TypeOrmModuleOptions {
     type: 'postgres',
     url,
     entities: [User, MatchQueue, Conversation, Message, Report, ConductRule],
-    synchronize: process.env.DB_SYNC === 'true',
+    synchronize: false,
+    logging: false,
     ssl: process.env.DB_SSL === 'true',
   };
 }
@@ -35,7 +36,8 @@ function createHostConfig(): TypeOrmModuleOptions {
     password: getRequiredDatabasePassword(),
     database: process.env.DB_DATABASE ?? 'chat',
     entities: [User, MatchQueue, Conversation, Message, Report, ConductRule],
-    synchronize: process.env.DB_SYNC === 'true',
+    synchronize: false,
+    logging: false,
     ssl: process.env.DB_SSL === 'true',
   };
 }

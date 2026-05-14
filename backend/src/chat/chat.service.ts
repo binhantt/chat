@@ -76,10 +76,9 @@ export class ChatService implements OnModuleInit {
     userId: string,
     isAdmin = false,
   ): Promise<Conversation> {
-    const conversation = await this.conversationRepository.findOne({
-      where: { id: conversationId },
-      relations: ['user1', 'user2'],
-    });
+    const conversation = await this.createConversationListQuery()
+      .where('conversation.id = :conversationId', { conversationId })
+      .getOne();
 
     if (!conversation) {
       throw new NotFoundException('Không tìm thấy cuộc trò chuyện');
@@ -102,27 +101,36 @@ export class ChatService implements OnModuleInit {
     return conversation;
   }
 
-  async getUserConversations(userId: string): Promise<Conversation[]> {
+  async getUserConversations(
+    userId: string,
+    limit = 20,
+    offset = 0,
+  ): Promise<Conversation[]> {
     // Check if user is banned before returning conversations
     if (this.authTokenService.isUserBanned(userId)) {
       return [];
     }
 
-    return this.conversationRepository.find({
-      where: [
-        { user1Id: userId, status: ConversationStatus.Active },
-        { user2Id: userId, status: ConversationStatus.Active },
-      ],
-      relations: ['user1', 'user2'],
-      order: { updatedAt: 'DESC' },
-    });
+    return this.createConversationListQuery()
+      .where('conversation.status = :status', {
+        status: ConversationStatus.Active,
+      })
+      .andWhere(
+        '(conversation.user1Id = :userId OR conversation.user2Id = :userId)',
+        { userId },
+      )
+      .orderBy('conversation.updatedAt', 'DESC')
+      .take(Math.min(Math.max(limit, 1), 50))
+      .skip(Math.max(offset, 0))
+      .getMany();
   }
 
-  async getAdminConversations(): Promise<Conversation[]> {
-    return this.conversationRepository.find({
-      relations: ['user1', 'user2'],
-      order: { updatedAt: 'DESC' },
-    });
+  async getAdminConversations(limit = 50, offset = 0): Promise<Conversation[]> {
+    return this.createConversationListQuery()
+      .orderBy('conversation.updatedAt', 'DESC')
+      .take(Math.min(Math.max(limit, 1), 100))
+      .skip(Math.max(offset, 0))
+      .getMany();
   }
 
   async createMessage(
@@ -181,8 +189,10 @@ export class ChatService implements OnModuleInit {
 
     const savedMessage = await this.messageRepository.save(message);
 
-    conversation.updatedAt = new Date();
-    await this.conversationRepository.save(conversation);
+    await this.conversationRepository.update(conversation.id, {
+      updatedAt: new Date(),
+    });
+
     this.chatRealtimeService.emitMessage(
       [conversation.user1Id, conversation.user2Id],
       savedMessage,
@@ -228,7 +238,6 @@ export class ChatService implements OnModuleInit {
         order: { createdAt: 'DESC' },
         take: limit,
         skip: offset,
-        relations: ['sender'],
       });
     } catch (error) {
       this.logger.error(
@@ -450,5 +459,34 @@ export class ChatService implements OnModuleInit {
     return (
       conversation.user1Accepted === true && conversation.user2Accepted === true
     );
+  }
+
+  private createConversationListQuery() {
+    return this.conversationRepository
+      .createQueryBuilder('conversation')
+      .leftJoinAndSelect('conversation.user1', 'user1')
+      .leftJoinAndSelect('conversation.user2', 'user2')
+      .select([
+        'conversation.id',
+        'conversation.user1Id',
+        'conversation.user2Id',
+        'conversation.status',
+        'conversation.user1Accepted',
+        'conversation.user2Accepted',
+        'conversation.createdAt',
+        'conversation.updatedAt',
+        'user1.id',
+        'user1.email',
+        'user1.fullName',
+        'user1.avatarUrl',
+        'user1.gender',
+        'user1.city',
+        'user2.id',
+        'user2.email',
+        'user2.fullName',
+        'user2.avatarUrl',
+        'user2.gender',
+        'user2.city',
+      ]);
   }
 }

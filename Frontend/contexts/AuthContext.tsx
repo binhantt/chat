@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from "react";
 
 export interface User {
   id: string;
@@ -35,36 +35,55 @@ const AuthContext = createContext<AuthContextType>({
   logout: () => {},
 });
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+const USER_CACHE_TTL_MS = 3000;
+let cachedUser: { user: User | null; expiresAt: number } | null = null;
+let pendingUserRequest: Promise<User | null> | null = null;
+
+async function requestCurrentUser(): Promise<User | null> {
+  if (cachedUser && cachedUser.expiresAt > Date.now()) {
+    return cachedUser.user;
+  }
+
+  if (pendingUserRequest) {
+    return pendingUserRequest;
+  }
+
+  pendingUserRequest = fetch("/api/v1/users/me", {
+    method: "GET",
+    credentials: "include",
+  })
+    .then(async (res) => {
+      const user = res.ok ? ((await res.json()) as User) : null;
+      cachedUser = {
+        user,
+        expiresAt: Date.now() + USER_CACHE_TTL_MS,
+      };
+      return user;
+    })
+    .finally(() => {
+      pendingUserRequest = null;
+    });
+
+  return pendingUserRequest;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     try {
       setLoading(true);
-      // Use frontend API route instead of direct backend call
-      const res = await fetch("/api/v1/users/me", {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data);
-      } else {
-        setUser(null);
-      }
+      setUser(await requestCurrentUser());
     } catch (error) {
       console.error("Error fetching user:", error);
       setUser(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const updateUser = async (userData: Partial<User>) => {
+  const updateUser = useCallback(async (userData: Partial<User>) => {
     try {
       // Use frontend API route instead of direct backend call
       const res = await fetch("/api/v1/users/me", {
@@ -78,6 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (res.ok) {
         const data = await res.json();
+        cachedUser = {
+          user: data,
+          expiresAt: Date.now() + USER_CACHE_TTL_MS,
+        };
         setUser(data);
         return data;
       } else {
@@ -88,9 +111,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Error updating user:", error);
       throw error;
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
+    cachedUser = null;
+    pendingUserRequest = null;
     setUser(null);
     void fetch("/api/v1/auth/logout", {
       method: "POST",
@@ -98,20 +123,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }).finally(() => {
       window.location.href = "/login";
     });
-  };
+  }, []);
 
   useEffect(() => {
     fetchUser();
   }, []);
 
-  const value: AuthContextType = {
-    user,
-    loading,
-    isAuthenticated: !!user,
-    fetchUser,
-    updateUser,
-    logout,
-  };
+  const value: AuthContextType = useMemo(
+    () => ({
+      user,
+      loading,
+      isAuthenticated: !!user,
+      fetchUser,
+      updateUser,
+      logout,
+    }),
+    [fetchUser, loading, logout, updateUser, user],
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

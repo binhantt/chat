@@ -1,6 +1,7 @@
 import './load-env';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import compression from 'compression';
 import { AppModule } from './app.module';
 import {
   createCorsOriginChecker,
@@ -15,6 +16,7 @@ async function bootstrap() {
   const allowedOrigins = getAllowedOrigins();
 
   app.setGlobalPrefix('api');
+  app.use(compression());
   app.use(securityHeadersMiddleware);
   app.use(createOriginGuard(allowedOrigins));
   app.useGlobalPipes(new InputSanitizationPipe());

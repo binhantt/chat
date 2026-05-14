@@ -1,10 +1,10 @@
 "use client";
 
-import { Flex, Text, Box, Avatar } from "@radix-ui/themes";
-import { memo, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Avatar, Badge, Box, Flex, Text } from "@radix-ui/themes";
+import { MagnifyingGlassIcon, Cross2Icon } from "@radix-ui/react-icons";
+import { memo, useState, useEffect, useCallback, useMemo } from "react";
 import { getConversations } from "@/features/athu";
 import { useAuth } from "@/contexts/AuthContext";
-import { useTheme } from "@/contexts/ThemeContext";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 
 interface BackendUser {
@@ -38,10 +38,13 @@ interface ChatPartner {
   chatReady: boolean;
   lastTime: string;
   status: "active" | "ended" | "blocked";
-  lastMessage?: string;
+  preview: string;
+  unreadCount: number;
 }
 
 interface SearchPeopleProps {
+  selectedConversationId?: string | null;
+  showSearchHeader?: boolean;
   onSelectConversation?: (
     conversationId: string,
     partner: {
@@ -56,58 +59,62 @@ interface SearchPeopleProps {
 }
 
 export const SearchPeople = memo(function SearchPeople({
+  selectedConversationId,
+  showSearchHeader = false,
   onSelectConversation,
 }: SearchPeopleProps) {
   const [query, setQuery] = useState("");
   const [conversations, setConversations] = useState<ChatPartner[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const debouncedQuery = useDebouncedValue(query);
   const { user } = useAuth();
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Theme colors
-  const bgPrimary = isDark ? "#1a1a2e" : "#f8fafc";
-  const bgSecondary = isDark ? "#16213e" : "#ffffff";
-  const bgHover = isDark
-    ? "rgba(255,255,255,0.08)"
-    : "rgba(99, 102, 241, 0.06)";
-  const textPrimary = isDark ? "#e2e8f0" : "#1e293b";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
-  const accentColor = "#6366f1";
-  const borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
 
   const fetchConversations = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await getConversations();
-      if (Array.isArray(data)) {
-        const formatted: ChatPartner[] = data
-          .filter((conv: BackendConversation) => conv.status === "active")
-          .map((conv: BackendConversation) => {
-            const isUser1 = conv.user1Id === user?.id;
-            const partner = isUser1 ? conv.user2 : conv.user1;
-            const partnerId = isUser1 ? conv.user2Id : conv.user1Id;
-            const chatReady =
-              conv.user1Accepted === true && conv.user2Accepted === true;
-
-            return {
-              conversationId: conv.id,
-              partnerId,
-              partnerName: "Nguoi an danh",
-              partnerEmail: "",
-              partnerAvatar: null,
-              partnerCity: partner?.city || null,
-              chatReady,
-              lastTime: formatTimeAgo(conv.updatedAt),
-              status: conv.status as "active" | "ended" | "blocked",
-            };
-          });
-        setConversations(formatted);
+      if (!Array.isArray(data)) {
+        setConversations([]);
+        return;
       }
-    } catch (error) {
-      console.error("Error fetching conversations:", error);
+
+      const formatted: ChatPartner[] = data
+        .filter((conv: BackendConversation) => conv.status === "active")
+        .map((conv: BackendConversation) => {
+          const isUser1 = conv.user1Id === user?.id;
+          const partner = isUser1 ? conv.user2 : conv.user1;
+          const partnerId = isUser1 ? conv.user2Id : conv.user1Id;
+          const chatReady =
+            conv.user1Accepted === true && conv.user2Accepted === true;
+          const name = chatReady
+            ? partner?.fullName || partner?.email || "Nguoi dung"
+            : "Nguoi an danh";
+
+          return {
+            conversationId: conv.id,
+            partnerId,
+            partnerName: name,
+            partnerEmail: chatReady ? partner?.email || "" : "",
+            partnerAvatar: chatReady ? partner?.avatarUrl || null : null,
+            partnerCity: chatReady ? partner?.city || null : null,
+            chatReady,
+            lastTime: formatTimeAgo(conv.updatedAt),
+            status: conv.status,
+            preview: chatReady
+              ? partner?.city
+                ? `Vi tri: ${partner.city}`
+                : "San sang tro chuyen"
+              : "An danh den khi ca hai cung thich",
+            unreadCount: 0,
+          };
+        });
+
+      setConversations(formatted);
+    } catch (err) {
+      console.error("Error fetching conversations:", err);
+      setError("Khong tai duoc danh sach hoi thoai");
     } finally {
       setLoading(false);
     }
@@ -115,7 +122,7 @@ export const SearchPeople = memo(function SearchPeople({
 
   useEffect(() => {
     if (user) {
-      fetchConversations();
+      void fetchConversations();
     }
   }, [user, fetchConversations]);
 
@@ -137,8 +144,8 @@ export const SearchPeople = memo(function SearchPeople({
         ) {
           void fetchConversations();
         }
-      } catch (error) {
-        console.error("Invalid chat stream event:", error);
+      } catch (err) {
+        console.error("Invalid chat stream event:", err);
       }
     });
 
@@ -158,36 +165,10 @@ export const SearchPeople = memo(function SearchPeople({
     return conversations.filter(
       (c) =>
         c.partnerName.toLowerCase().includes(normalizedQuery) ||
-        c.partnerEmail.toLowerCase().includes(normalizedQuery),
+        c.partnerEmail.toLowerCase().includes(normalizedQuery) ||
+        c.partnerCity?.toLowerCase().includes(normalizedQuery),
     );
   }, [conversations, debouncedQuery]);
-
-  const formatTimeAgo = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMins < 1) return "Vừa xong";
-    if (diffMins < 60) return `${diffMins}p`;
-    if (diffHours < 24) return `${diffHours}gi`;
-    if (diffDays < 7) return `${diffDays}ng`;
-    return date.toLocaleDateString("vi-VN", {
-      day: "2-digit",
-      month: "2-digit",
-    });
-  };
-
-  const getUserInitials = (name: string) => {
-    if (!name) return "??";
-    const parts = name.trim().split(" ");
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    }
-    return name.slice(0, 2).toUpperCase();
-  };
 
   const handleSelectConversation = (chat: ChatPartner) => {
     onSelectConversation?.(chat.conversationId, {
@@ -201,330 +182,212 @@ export const SearchPeople = memo(function SearchPeople({
   };
 
   return (
-    <Flex
-      direction="column"
-      align="center"
-      gap="5"
-      style={{ width: "100%", maxWidth: 500 }}
-    >
-      {/* Icon */}
-      <Box
-        style={{
-          width: 100,
-          height: 100,
-          borderRadius: "50%",
-          background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow: `0 12px 40px rgba(99, 102, 241, 0.35)`,
-        }}
-      >
-        <svg
-          width="44"
-          height="44"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="white"
-          strokeWidth="2"
-        >
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-      </Box>
+    <Flex direction="column" gap="3" style={{ minHeight: 0, width: "100%" }}>
+      {showSearchHeader && (
+        <Flex direction="column" gap="1">
+          <Text size="5" weight="bold">
+            Tim kiem cuoc tro chuyen
+          </Text>
+          <Text size="2" className="chat-muted">
+            Loc theo ten, email hoac vi tri cua nguoi da chat.
+          </Text>
+        </Flex>
+      )}
 
-      {/* Title */}
-      <Flex direction="column" align="center" gap="2">
-        <Text size="5" weight="bold" style={{ color: textPrimary }}>
-          Tìm kiếm cuộc trò chuyện
-        </Text>
-        <Text size="2" style={{ color: textSecondary, textAlign: "center" }}>
-          Tìm theo tên người dùng hoặc email
-        </Text>
-      </Flex>
-
-      {/* Search Input */}
-      <Box
-        style={{
-          width: "100%",
-          position: "relative",
-        }}
-      >
-        <Box
+      <Box style={{ position: "relative" }}>
+        <MagnifyingGlassIcon
           style={{
-            display: "flex",
-            alignItems: "center",
-            background: bgSecondary,
-            border: `2px solid ${borderColor}`,
-            borderRadius: 16,
-            padding: "4px 8px 4px 16px",
-            transition: "all 0.2s",
-            boxShadow: isDark
-              ? "0 4px 16px rgba(0,0,0,0.3)"
-              : "0 4px 16px rgba(0,0,0,0.06)",
+            position: "absolute",
+            left: 12,
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "var(--chat-muted)",
           }}
-        >
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke={textSecondary}
-            strokeWidth="2"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Nhập tên hoặc email..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+        />
+        <input
+          className="chat-search-input"
+          type="text"
+          placeholder="Tim hoi thoai..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        {query && (
+          <button
+            type="button"
+            className="chat-icon-button"
+            onClick={() => setQuery("")}
+            aria-label="Xoa tim kiem"
+            title="Xoa tim kiem"
             style={{
-              flex: 1,
-              border: "none",
-              background: "transparent",
-              padding: "14px 12px",
-              fontSize: "15px",
-              color: textPrimary,
-              outline: "none",
+              position: "absolute",
+              right: 6,
+              top: "50%",
+              width: 30,
+              height: 30,
+              transform: "translateY(-50%)",
             }}
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                background: isDark
-                  ? "rgba(255,255,255,0.1)"
-                  : "rgba(0,0,0,0.06)",
-                border: "none",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={textSecondary}
-                strokeWidth="2"
-              >
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </button>
-          )}
-        </Box>
-      </Box>
-
-      {/* Results */}
-      <Box
-        style={{
-          width: "100%",
-          maxHeight: 400,
-          overflowY: "auto",
-          background: bgSecondary,
-          borderRadius: 20,
-          border: `1px solid ${borderColor}`,
-          boxShadow: isDark
-            ? "0 4px 16px rgba(0,0,0,0.2)"
-            : "0 4px 16px rgba(0,0,0,0.04)",
-        }}
-      >
-        {loading ? (
-          <Flex
-            direction="column"
-            align="center"
-            justify="center"
-            gap="4"
-            py="8"
           >
-            <Box
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: "50%",
-                border: `3px solid ${borderColor}`,
-                borderTopColor: accentColor,
-                animation: "spin 0.8s linear infinite",
-              }}
-            />
-            <Text size="2" style={{ color: textSecondary }}>
-              Đang tải...
-            </Text>
-          </Flex>
-        ) : filtered.length === 0 ? (
-          <Flex
-            direction="column"
-            align="center"
-            justify="center"
-            gap="3"
-            py="8"
-            px="4"
-          >
-            <Box
-              style={{
-                width: 60,
-                height: 60,
-                borderRadius: "50%",
-                background: isDark
-                  ? "rgba(255,255,255,0.05)"
-                  : "rgba(0,0,0,0.04)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg
-                width="28"
-                height="28"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke={textSecondary}
-                strokeWidth="2"
-              >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </Box>
-            <Text size="2" weight="medium" style={{ color: textSecondary }}>
-              {query ? "Không tìm thấy kết quả" : "Chưa có cuộc trò chuyện nào"}
-            </Text>
-            {query && (
-              <Text size="1" style={{ color: textSecondary, opacity: 0.7 }}>
-                Thử tìm với từ khóa khác
-              </Text>
-            )}
-          </Flex>
-        ) : (
-          <Box>
-            {filtered.map((chat, index) => (
-              <Box
-                key={chat.conversationId}
-                onClick={() => handleSelectConversation(chat)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "16px",
-                  cursor: "pointer",
-                  borderBottom:
-                    index < filtered.length - 1
-                      ? `1px solid ${borderColor}`
-                      : "none",
-                  transition: "background 0.15s",
-                }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.background = bgHover;
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.background = "transparent";
-                }}
-              >
-                {/* Avatar */}
-                <Box position="relative">
-                  <Avatar
-                    size="3"
-                    radius="full"
-                    src={chat.partnerAvatar || undefined}
-                    fallback={getUserInitials(chat.partnerName)}
-                    style={{
-                      background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
-                      color: "white",
-                      fontSize: "14px",
-                      fontWeight: 600,
-                    }}
-                  />
-                  <Box
-                    position="absolute"
-                    style={{
-                      bottom: 0,
-                      right: 0,
-                      width: 12,
-                      height: 12,
-                      borderRadius: "50%",
-                      background:
-                        chat.status === "active" ? "#22c55e" : "#94a3b8",
-                      border: "2px solid",
-                      borderColor: bgSecondary,
-                    }}
-                  />
-                </Box>
-
-                {/* Info */}
-                <Flex
-                  direction="column"
-                  gap="0"
-                  style={{ flex: 1, minWidth: 0 }}
-                >
-                  <Flex align="center" gap="2">
-                    <Text
-                      size="2"
-                      weight="medium"
-                      style={{ color: textPrimary }}
-                    >
-                      {chat.partnerName}
-                    </Text>
-                    <Box
-                      style={{
-                        padding: "2px 8px",
-                        borderRadius: 10,
-                        background:
-                          chat.status === "active"
-                            ? "rgba(34, 197, 94, 0.15)"
-                            : "rgba(148, 163, 184, 0.15)",
-                      }}
-                    >
-                      <Text
-                        size="1"
-                        style={{
-                          color:
-                            chat.status === "active" ? "#22c55e" : "#94a3b8",
-                        }}
-                      >
-                        {!chat.chatReady
-                          ? "Cho xac nhan"
-                          : chat.status === "active"
-                            ? "Hoạt động"
-                            : "Đã kết thúc"}
-                      </Text>
-                    </Box>
-                  </Flex>
-                  <Text
-                    size="1"
-                    style={{
-                      color: textSecondary,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {chat.partnerCity || "Chua co dia diem"}
-                  </Text>
-                </Flex>
-
-                {/* Time */}
-                <Text size="1" style={{ color: textSecondary, flexShrink: 0 }}>
-                  {chat.lastTime}
-                </Text>
-              </Box>
-            ))}
-          </Box>
+            <Cross2Icon />
+          </button>
         )}
       </Box>
 
-      <style>{`
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+      <Box
+        style={{
+          minHeight: 0,
+          overflow: "auto",
+          border: "1px solid var(--chat-border)",
+          borderRadius: "var(--chat-radius)",
+          background: "var(--chat-surface)",
+        }}
+      >
+        {loading ? (
+          <ListState title="Dang tai" detail="Dang lay danh sach hoi thoai..." />
+        ) : error ? (
+          <ListState title="Loi mang" detail={error} danger />
+        ) : filtered.length === 0 ? (
+          <ListState
+            title={query ? "Khong co ket qua" : "Chua co hoi thoai"}
+            detail={
+              query
+                ? "Thu tu khoa khac de tim lai nguoi da chat."
+                : "Bam Tim moi de ghep nguoi va bat dau chat."
+            }
+          />
+        ) : (
+          <Flex direction="column">
+            {filtered.map((chat) => (
+              <button
+                key={chat.conversationId}
+                type="button"
+                className="chat-list-item"
+                data-active={chat.conversationId === selectedConversationId}
+                onClick={() => handleSelectConversation(chat)}
+              >
+                <Avatar
+                  size="3"
+                  radius="full"
+                  src={chat.partnerAvatar || undefined}
+                  fallback={getUserInitials(chat.partnerName)}
+                  style={{
+                    background: "var(--chat-accent)",
+                    color: "white",
+                    fontWeight: 700,
+                  }}
+                />
+
+                <Flex direction="column" gap="1" style={{ minWidth: 0 }}>
+                  <Flex align="center" gap="2" style={{ minWidth: 0 }}>
+                    <Text
+                      size="2"
+                      weight="bold"
+                      className="chat-list-title"
+                      style={{ color: "var(--chat-text)" }}
+                    >
+                      {chat.partnerName}
+                    </Text>
+                    {!chat.chatReady && (
+                      <Badge color="gray" variant="soft">
+                        Cho thich
+                      </Badge>
+                    )}
+                  </Flex>
+                  <Text size="1" className="chat-muted chat-list-preview">
+                    {chat.preview}
+                  </Text>
+                </Flex>
+
+                <Flex direction="column" align="end" gap="2">
+                  <Text size="1" className="chat-muted">
+                    {chat.lastTime}
+                  </Text>
+                  {chat.unreadCount > 0 && (
+                    <Badge color="indigo" variant="solid">
+                      {chat.unreadCount}
+                    </Badge>
+                  )}
+                </Flex>
+              </button>
+            ))}
+          </Flex>
+        )}
+      </Box>
     </Flex>
   );
 });
+
+function ListState({
+  title,
+  detail,
+  danger = false,
+}: {
+  title: string;
+  detail: string;
+  danger?: boolean;
+}) {
+  return (
+    <Box className="chat-empty-state" style={{ minHeight: 180 }}>
+      <Box
+        className="chat-empty-icon"
+        style={{
+          color: danger ? "var(--chat-danger)" : undefined,
+          background: danger ? "rgba(220, 38, 38, 0.1)" : undefined,
+        }}
+      >
+        <ChatBubbleMini />
+      </Box>
+      <Flex direction="column" gap="1" align="center">
+        <Text size="3" weight="bold">
+          {title}
+        </Text>
+        <Text size="2" className="chat-muted">
+          {detail}
+        </Text>
+      </Flex>
+    </Box>
+  );
+}
+
+function ChatBubbleMini() {
+  return (
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
+function getUserInitials(name: string) {
+  if (!name) return "??";
+  const parts = name.trim().split(" ");
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
+
+function formatTimeAgo(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return "Moi";
+  if (diffMins < 60) return `${diffMins}p`;
+  if (diffHours < 24) return `${diffHours}g`;
+  if (diffDays < 7) return `${diffDays}n`;
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+  });
+}

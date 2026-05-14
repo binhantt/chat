@@ -12,6 +12,17 @@ export class PerformanceIndexService implements OnModuleInit {
       return;
     }
 
+    if (process.env.PERFORMANCE_INDEXES === 'false') {
+      this.logger.log('Skipped performance index bootstrap');
+      return;
+    }
+
+    void this.ensureIndexes().catch((error) => {
+      this.logger.error('Failed to ensure performance indexes', error);
+    });
+  }
+
+  private async ensureIndexes(): Promise<void> {
     const indexes = [
       'CREATE INDEX IF NOT EXISTS "idx_conversations_user1_status_updated" ON "conversations" ("user1_id", "status", "updatedAt" DESC)',
       'CREATE INDEX IF NOT EXISTS "idx_conversations_user2_status_updated" ON "conversations" ("user2_id", "status", "updatedAt" DESC)',
@@ -20,6 +31,7 @@ export class PerformanceIndexService implements OnModuleInit {
       'CREATE INDEX IF NOT EXISTS "idx_conversations_active_user1_updated" ON "conversations" ("user1_id", "updatedAt" DESC) WHERE "status" = \'active\'',
       'CREATE INDEX IF NOT EXISTS "idx_conversations_active_user2_updated" ON "conversations" ("user2_id", "updatedAt" DESC) WHERE "status" = \'active\'',
       'CREATE INDEX IF NOT EXISTS "idx_messages_conversation_created" ON "messages" ("conversation_id", "createdAt" DESC)',
+      'CREATE INDEX IF NOT EXISTS "idx_messages_sender_created" ON "messages" ("sender_id", "createdAt" DESC)',
       'CREATE INDEX IF NOT EXISTS "idx_messages_read_status" ON "messages" ("conversation_id", "sender_id", "status")',
       'CREATE INDEX IF NOT EXISTS "idx_messages_created" ON "messages" ("createdAt")',
       'CREATE INDEX IF NOT EXISTS "idx_match_queue_user_created" ON "match_queue" ("userId", "createdAt" DESC)',

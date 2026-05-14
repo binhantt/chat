@@ -16,6 +16,11 @@ export interface ConductCheckResult {
 @Injectable()
 export class ConductService implements OnModuleInit {
   private readonly defaultRules = ['lừa đảo', 'đe dọa', 'quấy rối', 'spam'];
+  private activeRuleCache: Array<{
+    rule: ConductRule;
+    normalizedPhrase: string;
+  }> = [];
+  private activeRuleCacheLoaded = false;
 
   constructor(
     @InjectRepository(ConductRule)
@@ -24,7 +29,10 @@ export class ConductService implements OnModuleInit {
 
   async onModuleInit() {
     const count = await this.conductRuleRepository.count();
-    if (count > 0) return;
+    if (count > 0) {
+      await this.refreshActiveRuleCache();
+      return;
+    }
 
     await this.conductRuleRepository.save(
       this.defaultRules.map((phrase) =>
@@ -35,6 +43,7 @@ export class ConductService implements OnModuleInit {
         }),
       ),
     );
+    await this.refreshActiveRuleCache();
   }
 
   findAll(): Promise<ConductRule[]> {
@@ -56,13 +65,15 @@ export class ConductService implements OnModuleInit {
       throw new ConflictException('Nội dung vi phạm đã tồn tại');
     }
 
-    return this.conductRuleRepository.save(
+    const rule = await this.conductRuleRepository.save(
       this.conductRuleRepository.create({
         phrase: normalizedPhrase,
         note: note?.trim() || null,
         isActive: true,
       }),
     );
+    await this.refreshActiveRuleCache();
+    return rule;
   }
 
   async update(
@@ -90,11 +101,14 @@ export class ConductService implements OnModuleInit {
       rule.isActive = data.isActive;
     }
 
-    return this.conductRuleRepository.save(rule);
+    const savedRule = await this.conductRuleRepository.save(rule);
+    await this.refreshActiveRuleCache();
+    return savedRule;
   }
 
   async remove(id: string): Promise<void> {
     await this.conductRuleRepository.delete(id);
+    await this.refreshActiveRuleCache();
   }
 
   async checkMessage(content: string): Promise<ConductCheckResult> {
@@ -103,15 +117,35 @@ export class ConductService implements OnModuleInit {
       return { violated: false };
     }
 
+    const rules = await this.getActiveRuleCache();
+
+    const rule = rules.find((item) => message.includes(item.normalizedPhrase));
+
+    return rule ? { violated: true, rule: rule.rule } : { violated: false };
+  }
+
+  private async getActiveRuleCache(): Promise<
+    Array<{ rule: ConductRule; normalizedPhrase: string }>
+  > {
+    if (!this.activeRuleCacheLoaded) {
+      await this.refreshActiveRuleCache();
+    }
+
+    return this.activeRuleCache;
+  }
+
+  private async refreshActiveRuleCache(): Promise<void> {
     const rules = await this.conductRuleRepository.find({
       where: { isActive: true },
     });
 
-    const rule = rules.find((item) =>
-      message.includes(this.normalize(item.phrase)),
-    );
-
-    return rule ? { violated: true, rule } : { violated: false };
+    this.activeRuleCache = rules
+      .map((rule) => ({
+        rule,
+        normalizedPhrase: this.normalize(rule.phrase),
+      }))
+      .filter((item) => item.normalizedPhrase.length > 0);
+    this.activeRuleCacheLoaded = true;
   }
 
   private cleanPhrase(phrase: string): string {

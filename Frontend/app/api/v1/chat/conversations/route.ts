@@ -5,7 +5,11 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
 
 export async function GET(request: Request) {
   try {
-    const res = await fetch(`${BACKEND_URL}/api/v1/chat/conversations`, {
+    const url = new URL(request.url);
+    const limit = url.searchParams.get("limit") || "20";
+    const offset = url.searchParams.get("offset") || "0";
+
+    const res = await fetch(`${BACKEND_URL}/api/v1/chat/conversations?limit=${limit}&offset=${offset}`, {
       method: "GET",
       headers: buildBackendHeaders(request, {
         "Content-Type": "application/json",

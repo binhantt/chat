@@ -32,8 +32,16 @@ export class ChatController {
   }
 
   @Get('conversations')
-  async getConversations(@Req() request: AuthenticatedRequest) {
-    return this.chatService.getUserConversations(request.user!.id);
+  async getConversations(
+    @Req() request: AuthenticatedRequest,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
+    return this.chatService.getUserConversations(
+      request.user!.id,
+      limit ? parseInt(limit) : 20,
+      offset ? parseInt(offset) : 0,
+    );
   }
 
   @Get('conversations/:id')
@@ -127,12 +135,19 @@ export class AdminChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Get()
-  async getConversationsForAdmin(@Req() request: AuthenticatedRequest) {
+  async getConversationsForAdmin(
+    @Req() request: AuthenticatedRequest,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ) {
     if (request.user!.role !== 'admin') {
       throw new ForbiddenException('Chi admin moi duoc xem danh sach chat');
     }
 
-    return this.chatService.getAdminConversations();
+    return this.chatService.getAdminConversations(
+      limit ? parseInt(limit) : 50,
+      offset ? parseInt(offset) : 0,
+    );
   }
 
   @Get(':id/messages')

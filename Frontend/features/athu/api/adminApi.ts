@@ -37,8 +37,11 @@ async function fetchWithCookie(url: string, options: RequestInit = {}) {
 
 // ============ CHAT API ============
 
-export async function getAdminConversations() {
-  const res = await fetchWithCookie("/api/v1/admin/chats", { method: "GET" });
+export async function getAdminConversations(limit = 50, offset = 0) {
+  const res = await fetchWithCookie(
+    `/api/v1/admin/chats?limit=${limit}&offset=${offset}`,
+    { method: "GET" },
+  );
   if (!res.ok) throw new Error("Không thể lấy danh sách cuộc trò chuyện");
   return res.json();
 }

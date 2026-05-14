@@ -1,10 +1,15 @@
 "use client";
 
-import { Flex, Text, Box, Button } from "@radix-ui/themes";
+import { Avatar, Badge, Box, Flex, Text } from "@radix-ui/themes";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useTheme } from "@/contexts/ThemeContext";
-import { ChatIcon3D, ChatArea } from "../components";
+import {
+  ChatBubbleIcon,
+  MagnifyingGlassIcon,
+  MixerHorizontalIcon,
+  PersonIcon,
+} from "@radix-ui/react-icons";
+import { ChatArea } from "../components";
 import { MatchPeople } from "../components/MatchPeople";
 import { SearchPeople } from "../components/SearchPeople";
 
@@ -16,6 +21,8 @@ interface MatchedUser {
   gender: string | null;
   city: string | null;
 }
+
+type CenterMode = "welcome" | "search" | "match" | "chat";
 
 const CHAT_SESSION_KEY = "chat.activeConversation";
 
@@ -30,19 +37,10 @@ export function ChatPage() {
   const router = useRouter();
   const pathname = usePathname();
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
-  const [showSearch, setShowSearch] = useState(false);
-  const [showMatch, setShowMatch] = useState(false);
+  const [mode, setMode] = useState<CenterMode>("welcome");
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [matchedUser, setMatchedUser] = useState<MatchedUser | null>(null);
   const clearedConversationRef = useRef<string | null>(null);
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-
-  const bgPrimary = isDark ? "#1a1a2e" : "#f8fafc";
-  const bgSecondary = isDark ? "#16213e" : "#ffffff";
-  const textPrimary = isDark ? "#e2e8f0" : "#1e293b";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
-  const accentColor = "#6366f1";
 
   const clearChatRoute = useCallback(() => {
     if (searchParams.has("conv") || searchParams.has("user")) {
@@ -72,6 +70,7 @@ export function ChatPage() {
       clearChatRoute();
       return;
     }
+
     if (convParam && userParam) {
       setConversationId(convParam);
       setSelectedUser(userParam);
@@ -83,6 +82,7 @@ export function ChatPage() {
         gender: null,
         city: null,
       });
+      setMode("chat");
       return;
     }
 
@@ -95,8 +95,7 @@ export function ChatPage() {
         setConversationId(saved.conversationId);
         setSelectedUser(saved.selectedUser);
         setMatchedUser(saved.matchedUser ?? null);
-        setShowMatch(false);
-        setShowSearch(false);
+        setMode("chat");
       }
     } catch {
       window.sessionStorage.removeItem(CHAT_SESSION_KEY);
@@ -114,43 +113,30 @@ export function ChatPage() {
       return;
     }
 
-    if (!showMatch && !showSearch) {
+    if (mode !== "match" && mode !== "search") {
       window.sessionStorage.removeItem(CHAT_SESSION_KEY);
     }
-  }, [conversationId, matchedUser, selectedUser, showMatch, showSearch]);
-
-  const handleSelectUser = (userId: string) => {
-    clearChatRoute();
-    setSelectedUser(userId);
-    setShowSearch(false);
-    setShowMatch(false);
-    setMatchedUser(null);
-    setConversationId(null);
-  };
+  }, [conversationId, matchedUser, mode, selectedUser]);
 
   const handleSearchClick = () => {
     clearChatRoute();
-    setShowSearch(true);
-    setShowMatch(false);
+    setMode("search");
   };
 
   const handleMatchClick = async () => {
     await leaveCurrentMatch();
     resetChatState();
-    setShowMatch(true);
-    setShowSearch(false);
+    setMode("match");
   };
 
-  const handleBack = () => {
+  const handleHomeClick = () => {
     resetChatState();
-    setShowSearch(false);
-    setShowMatch(false);
+    setMode("welcome");
   };
 
   const handleChatBack = () => {
     resetChatState();
-    setShowMatch(false);
-    setShowSearch(false);
+    setMode("welcome");
   };
 
   const handleMatched = (convId: string, matched: MatchedUser) => {
@@ -158,8 +144,7 @@ export function ChatPage() {
     setConversationId(convId);
     setMatchedUser(matched);
     setSelectedUser(matched.id);
-    setShowSearch(false);
-    setShowMatch(false);
+    setMode("chat");
   };
 
   const handleSelectConversation = (convId: string, partner: MatchedUser) => {
@@ -167,312 +152,281 @@ export function ChatPage() {
     setConversationId(convId);
     setMatchedUser(partner);
     setSelectedUser(partner.id);
-    setShowSearch(false);
-    setShowMatch(false);
+    setMode("chat");
   };
 
   const handleCancelMatch = () => {
     void leaveCurrentMatch();
     resetChatState();
-    setShowSearch(false);
-    setShowMatch(false);
+    setMode("welcome");
   };
 
-  // Welcome Screen
-  if (!selectedUser && !showSearch && !showMatch && !matchedUser) {
-    return (
-      <Box
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: bgPrimary,
-          padding: 24,
-        }}
-      >
-        <Flex
-          direction="column"
-          align="center"
-          gap="6"
-          style={{ maxWidth: 680 }}
-        >
-          {/* Icon */}
-          <Box
-            style={{
-              width: 110,
-              height: 110,
-              borderRadius: "50%",
-              background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: `0 16px 48px rgba(99, 102, 241, 0.3)`,
-            }}
-          >
-            <ChatIcon3D size={48} />
-          </Box>
+  const centerTitle =
+    mode === "chat"
+      ? "Tin nhan"
+      : mode === "search"
+        ? "Tim hoi thoai"
+        : mode === "match"
+          ? "Ghep doi"
+          : "Bat dau";
 
-          {/* Title & Description */}
-          <Flex direction="column" align="center" gap="2">
-            <Text size="6" weight="bold" style={{ color: textPrimary }}>
-              Chào mừng đến ChatApp
-            </Text>
-            <Text
-              size="3"
-              style={{
-                color: textSecondary,
-                textAlign: "center",
-                maxWidth: 400,
-              }}
-            >
-              Kết nối với những người cùng thành phố và bắt đầu cuộc trò chuyện
-              thú vị
-            </Text>
-          </Flex>
-
-          {/* Action Buttons */}
-          <Flex gap="4" justify="center" wrap="wrap">
-            {/* Tìm kiếm Button */}
-            <button
-              onClick={handleSearchClick}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 12,
-                padding: "24px 32px",
-                background: bgSecondary,
-                border: `2px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`,
-                borderRadius: 20,
-                cursor: "pointer",
-                boxShadow: isDark
-                  ? "0 4px 16px rgba(0,0,0,0.3)"
-                  : "0 4px 16px rgba(0,0,0,0.06)",
-                transition: "all 0.2s",
-                minWidth: 200,
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.borderColor = accentColor;
-                e.currentTarget.style.transform = "translateY(-4px)";
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.borderColor = isDark
-                  ? "rgba(255,255,255,0.1)"
-                  : "rgba(0,0,0,0.08)";
-                e.currentTarget.style.transform = "translateY(0)";
-              }}
-            >
-              <Box
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 14,
-                  background: `linear-gradient(135deg, ${accentColor}, #8b5cf6)`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="2"
-                >
-                  <circle cx="11" cy="11" r="8" />
-                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-              </Box>
-              <Flex direction="column" align="center" gap="0">
-                <Text size="3" weight="bold" style={{ color: textPrimary }}>
-                  Tìm kiếm
-                </Text>
-                <Text size="2" style={{ color: textSecondary }}>
-                  Tìm theo tên
-                </Text>
-              </Flex>
-            </button>
-
-            {/* Ghép đôi Button */}
-            <button
-              onClick={handleMatchClick}
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 12,
-                padding: "24px 32px",
-                background: bgSecondary,
-                border: `2px solid ${isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)"}`,
-                borderRadius: 20,
-                cursor: "pointer",
-                boxShadow: isDark
-                  ? "0 4px 16px rgba(0,0,0,0.3)"
-                  : "0 4px 16px rgba(0,0,0,0.06)",
-                transition: "all 0.2s",
-                minWidth: 200,
-              }}
-              onMouseOver={(e) => {
-                e.currentTarget.style.borderColor = "#22c55e";
-                e.currentTarget.style.transform = "translateY(-4px)";
-              }}
-              onMouseOut={(e) => {
-                e.currentTarget.style.borderColor = isDark
-                  ? "rgba(255,255,255,0.1)"
-                  : "rgba(0,0,0,0.08)";
-                e.currentTarget.style.transform = "translateY(0)";
-              }}
-            >
-              <Box
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 14,
-                  background: "linear-gradient(135deg, #22c55e, #10b981)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <svg
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="white"
-                  strokeWidth="2"
-                >
-                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                  <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-              </Box>
-              <Flex direction="column" align="center" gap="0">
-                <Text size="3" weight="bold" style={{ color: textPrimary }}>
-                  Ghép đôi
-                </Text>
-                <Text size="2" style={{ color: textSecondary }}>
-                  Cùng thành phố
-                </Text>
-              </Flex>
-            </button>
-          </Flex>
-        </Flex>
-      </Box>
-    );
-  }
-
-  // Search Screen
-  if (!selectedUser && showSearch) {
-    return (
-      <Box
-        style={{
-          width: "100%",
-          height: "100%",
-          background: bgPrimary,
-          padding: 18,
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-          overflow: "hidden",
-        }}
-      >
-        <Flex align="center" gap="3" style={{ flexShrink: 0 }}>
-          <Button
-            variant="ghost"
-            size="2"
-            onClick={handleBack}
-            style={{ color: textSecondary }}
-          >
-            ← Quay lại
-          </Button>
-          <Text size="5" weight="bold" style={{ color: textPrimary }}>
-            Tìm kiếm người trò chuyện
-          </Text>
-        </Flex>
-        <Box style={{ maxWidth: 520, margin: "0 auto" }}>
-          <SearchPeople onSelectConversation={handleSelectConversation} />
-        </Box>
-      </Box>
-    );
-  }
-
-  // Match Screen
-  if (!selectedUser && showMatch) {
-    return (
-      <Box
-        style={{
-          width: "100%",
-          height: "100%",
-          background: bgPrimary,
-          padding: 24,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        <Flex align="center" gap="3" mb="5">
-          <Button
-            variant="ghost"
-            size="2"
-            onClick={handleCancelMatch}
-            style={{ color: textSecondary }}
-          >
-            ← Quay lại
-          </Button>
-          <Text size="5" weight="bold" style={{ color: textPrimary }}>
-            Ghép đôi ngẫu nhiên
-          </Text>
-        </Flex>
-        <Box style={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-          <MatchPeople onMatched={handleMatched} onCancel={handleCancelMatch} />
-        </Box>
-      </Box>
-    );
-  }
-
-  // Matched Result Screen
-  if (matchedUser && conversationId && !selectedUser) {
-    return (
-      <Box
-        style={{
-          width: "100%",
-          height: "100%",
-          background: bgPrimary,
-          padding: 24,
-        }}
-      >
-        <Flex align="center" gap="3" mb="5">
-          <Button
-            variant="ghost"
-            size="2"
-            onClick={handleCancelMatch}
-            style={{ color: textSecondary }}
-          >
-            ← Quay lại
-          </Button>
-          <Text size="4" weight="bold" style={{ color: "#22c55e" }}>
-            Đã ghép đôi thành công!
-          </Text>
-        </Flex>
-      </Box>
-    );
-  }
-
-  // Chat Area
   return (
-    <Box style={{ width: "100%", height: "100%" }}>
-      <ChatArea
-        selectedUser={selectedUser!}
-        matchedUser={matchedUser}
-        conversationId={conversationId}
-        onBack={handleChatBack}
-      />
+    <Box className="chat-shell">
+      <Box className="chat-panel chat-sidebar-panel">
+        <Box className="chat-panel-header">
+          <Flex direction="column" gap="1">
+            <Text size="4" weight="bold">
+              Chat
+            </Text>
+            <Text size="2" className="chat-muted">
+              Hoi thoai dang hoat dong
+            </Text>
+          </Flex>
+          <button
+            type="button"
+            className="chat-icon-button"
+            onClick={handleHomeClick}
+            title="Trang chat chinh"
+            aria-label="Trang chat chinh"
+          >
+            <ChatBubbleIcon />
+          </button>
+        </Box>
+
+        <Box className="chat-panel-body" style={{ padding: 12 }}>
+          <Flex direction="column" gap="3">
+            <Box className="chat-action-row">
+              <button
+                type="button"
+                className="chat-action-button"
+                data-active={mode === "search"}
+                onClick={handleSearchClick}
+              >
+                <MagnifyingGlassIcon width="20" height="20" />
+                <span>
+                  <Text size="2" weight="bold" as="div">
+                    Tim lai
+                  </Text>
+                  <Text size="1" className="chat-muted" as="div">
+                    Lich su chat
+                  </Text>
+                </span>
+              </button>
+              <button
+                type="button"
+                className="chat-action-button"
+                data-active={mode === "match"}
+                onClick={handleMatchClick}
+              >
+                <PersonIcon width="20" height="20" />
+                <span>
+                  <Text size="2" weight="bold" as="div">
+                    Tim moi
+                  </Text>
+                  <Text size="1" className="chat-muted" as="div">
+                    Ghep nguoi
+                  </Text>
+                </span>
+              </button>
+            </Box>
+
+            <SearchPeople
+              selectedConversationId={conversationId}
+              onSelectConversation={handleSelectConversation}
+            />
+          </Flex>
+        </Box>
+      </Box>
+
+      <Box className="chat-panel chat-main-panel">
+        <Box className="chat-panel-header">
+          <Flex direction="column" gap="1">
+            <Text size="4" weight="bold">
+              {centerTitle}
+            </Text>
+            <Text size="2" className="chat-muted">
+              {mode === "chat"
+                ? "Header va o nhap duoc giu co dinh"
+                : "Mot khung duy nhat, chi doi noi dung ben trong"}
+            </Text>
+          </Flex>
+          {mode !== "welcome" && (
+            <button
+              type="button"
+              className="chat-secondary-button"
+              onClick={handleHomeClick}
+              style={{ height: 36, padding: "0 12px" }}
+            >
+              Dong
+            </button>
+          )}
+        </Box>
+
+        <Box
+          className="chat-panel-body"
+          style={{
+            padding: mode === "chat" ? 0 : 16,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          {mode === "chat" && selectedUser && conversationId ? (
+            <ChatArea
+              selectedUser={selectedUser}
+              matchedUser={matchedUser}
+              conversationId={conversationId}
+              onBack={handleChatBack}
+            />
+          ) : mode === "search" ? (
+            <SearchPeople
+              selectedConversationId={conversationId}
+              onSelectConversation={handleSelectConversation}
+              showSearchHeader
+            />
+          ) : mode === "match" ? (
+            <MatchPeople
+              onMatched={handleMatched}
+              onCancel={handleCancelMatch}
+            />
+          ) : (
+            <WelcomePanel
+              onSearch={handleSearchClick}
+              onMatch={handleMatchClick}
+            />
+          )}
+        </Box>
+      </Box>
+
+      <Box className="chat-panel chat-info-panel">
+        <Box className="chat-panel-header">
+          <Flex align="center" gap="2">
+            <MixerHorizontalIcon />
+            <Text size="4" weight="bold">
+              Thong tin
+            </Text>
+          </Flex>
+        </Box>
+        <InfoPanel mode={mode} user={matchedUser} conversationId={conversationId} />
+      </Box>
+    </Box>
+  );
+}
+
+function WelcomePanel({
+  onSearch,
+  onMatch,
+}: {
+  onSearch: () => void;
+  onMatch: () => void;
+}) {
+  return (
+    <Box className="chat-empty-state" style={{ flex: 1 }}>
+      <Box className="chat-empty-icon">
+        <ChatBubbleIcon width="26" height="26" />
+      </Box>
+      <Flex direction="column" gap="2" align="center">
+        <Text size="6" weight="bold">
+          Chon mot cuoc tro chuyen
+        </Text>
+        <Text size="2" className="chat-muted" style={{ maxWidth: 420 }}>
+          Tim lai hoi thoai cu, hoac bat dau ghep doi moi. Layout khong doi nua,
+          chi noi dung o giua thay doi.
+        </Text>
+      </Flex>
+      <Flex gap="3" wrap="wrap" justify="center">
+        <button
+          type="button"
+          className="chat-primary-button"
+          onClick={onMatch}
+          style={{ height: 40, padding: "0 16px" }}
+        >
+          Tim nguoi moi
+        </button>
+        <button
+          type="button"
+          className="chat-secondary-button"
+          onClick={onSearch}
+          style={{ height: 40, padding: "0 16px" }}
+        >
+          Xem hoi thoai
+        </button>
+      </Flex>
+    </Box>
+  );
+}
+
+function InfoPanel({
+  mode,
+  user,
+  conversationId,
+}: {
+  mode: CenterMode;
+  user: MatchedUser | null;
+  conversationId: string | null;
+}) {
+  if (mode !== "chat" || !conversationId) {
+    return (
+      <Box className="chat-panel-body">
+        <Box className="chat-empty-state">
+          <Box className="chat-empty-icon">
+            <PersonIcon width="24" height="24" />
+          </Box>
+          <Text size="3" weight="bold">
+            Chua chon hoi thoai
+          </Text>
+          <Text size="2" className="chat-muted">
+            Khi vao chat, thong tin nguoi doi dien va trang thai se hien o day.
+          </Text>
+        </Box>
+      </Box>
+    );
+  }
+
+  return (
+    <Box className="chat-panel-body">
+      <Flex direction="column" gap="4">
+        <Flex direction="column" align="center" gap="3">
+          <Avatar
+            size="6"
+            radius="full"
+            src={user?.avatarUrl || undefined}
+            fallback={(user?.fullName || user?.email || "??").slice(0, 2)}
+            style={{ background: "var(--chat-accent)", color: "white" }}
+          />
+          <Flex direction="column" align="center" gap="1">
+            <Text size="4" weight="bold" align="center">
+              {user?.fullName || user?.email || "Nguoi an danh"}
+            </Text>
+            <Badge color="indigo" variant="soft">
+              Dang trong chat
+            </Badge>
+          </Flex>
+        </Flex>
+
+        <InfoRow label="Ma hoi thoai" value={conversationId.slice(0, 8)} />
+        <InfoRow label="Vi tri" value={user?.city || "Chi hien khi ca hai thich"} />
+        <InfoRow label="Email" value={user?.email || "An danh"} />
+      </Flex>
+    </Box>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <Box
+      style={{
+        border: "1px solid var(--chat-border)",
+        borderRadius: "var(--chat-radius)",
+        padding: 12,
+        background: "var(--chat-surface-muted)",
+      }}
+    >
+      <Text size="1" className="chat-muted" as="div">
+        {label}
+      </Text>
+      <Text size="2" weight="medium" as="div">
+        {value}
+      </Text>
     </Box>
   );
 }

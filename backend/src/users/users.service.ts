@@ -20,6 +20,11 @@ import { UserFactoryService } from './services/user-factory.service';
 @Injectable()
 export class UsersService implements OnModuleInit {
   private readonly logger = new Logger(UsersService.name);
+  private readonly userCacheTtlMs = 5000;
+  private readonly userCache = new Map<
+    string,
+    { user: User; expiresAt: number }
+  >();
 
   constructor(
     @InjectRepository(User)
@@ -30,14 +35,22 @@ export class UsersService implements OnModuleInit {
   ) {}
 
   async onModuleInit(): Promise<void> {
-    await this.ensureUsersTable();
+    if (process.env.DB_BOOTSTRAP_SCHEMA === 'true') {
+      await this.ensureUsersTable();
+    }
     await this.seedDefaultAdmin();
   }
 
   async findById(id: string): Promise<User | null> {
+    const cached = this.userCache.get(id);
+    if (cached && cached.expiresAt > Date.now()) {
+      return this.toSafeUser(cached.user);
+    }
+
     const user = await this.usersRepository.findOne({ where: { id } });
     if (user) {
       await this.clearExpiredLock(user);
+      this.cacheUser(user);
     }
     return user;
   }
@@ -201,6 +214,7 @@ export class UsersService implements OnModuleInit {
       );
     });
 
+    this.invalidateUserCache(userId);
     this.logger.log(`Deleted user account and related data: ${userId}`);
   }
 
@@ -318,12 +332,14 @@ export class UsersService implements OnModuleInit {
       existingAdmin.fullName = existingAdmin.fullName ?? 'System Admin';
       existingAdmin.updatedAt = new Date();
       await this.usersRepository.save(existingAdmin);
+      this.invalidateUserCache(existingAdmin.id);
       this.logger.log(`Ensured admin account: ${adminEmail}`);
       return;
     }
 
     const admin = this.userFactoryService.createAdminUser(adminEmail);
     await this.usersRepository.save(admin);
+    this.invalidateUserCache(admin.id);
     this.logger.log(`Seeded admin account: ${adminEmail}`);
   }
 
@@ -386,6 +402,7 @@ export class UsersService implements OnModuleInit {
       user.isActive = true;
       user.updatedAt = new Date();
       await this.usersRepository.save(user);
+      this.invalidateUserCache(user.id);
     }
   }
 
@@ -397,6 +414,23 @@ export class UsersService implements OnModuleInit {
   }
 
   private saveSafeUser(user: User): User {
+    this.invalidateUserCache(user.id);
     return this.toSafeUser(user);
+  }
+
+  private cacheUser(user: User): void {
+    if (this.isLoginLocked(user)) {
+      this.invalidateUserCache(user.id);
+      return;
+    }
+
+    this.userCache.set(user.id, {
+      user: this.toSafeUser(user),
+      expiresAt: Date.now() + this.userCacheTtlMs,
+    });
+  }
+
+  private invalidateUserCache(userId: string): void {
+    this.userCache.delete(userId);
   }
 }

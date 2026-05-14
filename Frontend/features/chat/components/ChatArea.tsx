@@ -84,6 +84,7 @@ export function ChatArea({
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [otherTyping, setOtherTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -244,6 +245,7 @@ export function ChatArea({
         return;
       }
 
+      setLoadError(null);
       try {
         const res = await fetch(
           `/api/v1/chat/conversations/${conversationId}/messages`,
@@ -257,6 +259,7 @@ export function ChatArea({
           const data = await res.json();
           setMessages(Array.isArray(data) ? data.reverse() : []);
           setLoading(false);
+          setLoadError(null);
           return;
         }
 
@@ -270,6 +273,7 @@ export function ChatArea({
           await new Promise((r) => setTimeout(r, 1000));
           fetchMessages(retryCount + 1);
         } else {
+          setLoadError("Khong tai duoc tin nhan. Kiem tra ket noi va thu lai.");
           setLoading(false);
         }
       } catch {
@@ -277,6 +281,7 @@ export function ChatArea({
           await new Promise((r) => setTimeout(r, 1500));
           fetchMessages(retryCount + 1);
         } else {
+          setLoadError("Loi mang khi tai tin nhan. Vui long thu lai.");
           setLoading(false);
         }
       }
@@ -455,6 +460,7 @@ export function ChatArea({
 
   useEffect(() => {
     setLoading(true);
+    setLoadError(null);
     fetchMessages();
   }, [conversationId, fetchMessages]);
 
@@ -567,9 +573,13 @@ export function ChatArea({
   );
 
   return (
-    <Flex direction="column" style={{ height: "100%", background: bgPrimary }}>
+    <Flex
+      direction="column"
+      style={{ height: "100%", minHeight: 0, background: bgPrimary }}
+    >
       {/* Header */}
       <Flex
+        className="chat-sticky-header"
         align="center"
         gap="3"
         px="4"
@@ -582,18 +592,8 @@ export function ChatArea({
         {onBack && (
           <button
             onClick={onBack}
-            style={{
-              width: 36,
-              height: 36,
-              borderRadius: "10px",
-              background: "transparent",
-              border: `1px solid ${borderColor}`,
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              transition: "all 0.2s",
-            }}
+            className="chat-icon-button"
+            style={{ flexShrink: 0 }}
           >
             <svg
               width="18"
@@ -670,15 +670,11 @@ export function ChatArea({
           >
             <button
               type="button"
+              className="chat-secondary-button"
               style={{
                 minWidth: 92,
                 height: 36,
-                borderRadius: 8,
-                background: isDark ? "#1f2937" : "#eef2ff",
-                border: `1px solid ${borderColor}`,
-                color: accentColor,
-                cursor: "pointer",
-                fontWeight: 700,
+                padding: "0 12px",
                 flexShrink: 0,
               }}
             >
@@ -692,21 +688,19 @@ export function ChatArea({
             disabled={currentUserAccepted || accepting}
             title="Thich de hien ten va vi tri khi ca hai cung thich"
             aria-label="Thich"
+            className="chat-primary-button"
             style={{
               minWidth: 86,
               height: 36,
-              borderRadius: 8,
               background:
                 currentUserAccepted || accepting
                   ? isDark
                     ? "#334155"
                     : "#e2e8f0"
                   : "linear-gradient(135deg, #22c55e, #10b981)",
-              border: "none",
               color: currentUserAccepted || accepting ? textSecondary : "white",
               cursor:
                 currentUserAccepted || accepting ? "default" : "pointer",
-              fontWeight: 700,
               flexShrink: 0,
             }}
           >
@@ -715,19 +709,15 @@ export function ChatArea({
         )}
         <button
           onClick={handleEndConversation}
+          className="chat-danger-button"
           title="Thoát cuộc trò chuyện"
           aria-label="Thoát cuộc trò chuyện"
           style={{
             width: 36,
             height: 36,
-            borderRadius: "10px",
-            background: isDark ? "rgba(248, 113, 113, 0.12)" : "#fee2e2",
-            border: `1px solid ${isDark ? "rgba(248, 113, 113, 0.28)" : "#fecaca"}`,
-            cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            transition: "all 0.2s",
             flexShrink: 0,
           }}
         >
@@ -749,7 +739,7 @@ export function ChatArea({
       </Flex>
 
       {/* Messages */}
-      <ScrollArea style={{ flex: 1 }}>
+      <ScrollArea style={{ flex: 1, minHeight: 0 }}>
         <Flex
           direction="column"
           gap="4"
@@ -773,6 +763,35 @@ export function ChatArea({
                 }}
               />
             </Flex>
+          ) : loadError ? (
+            <Box className="chat-empty-state" style={{ flex: 1 }}>
+              <Box
+                className="chat-empty-icon"
+                style={{
+                  color: "var(--chat-danger)",
+                  background: "rgba(220, 38, 38, 0.1)",
+                }}
+              >
+                !
+              </Box>
+              <Text size="3" weight="bold" style={{ color: textPrimary }}>
+                Loi mang
+              </Text>
+              <Text size="2" className="chat-muted">
+                {loadError}
+              </Text>
+              <button
+                type="button"
+                className="chat-secondary-button"
+                onClick={() => {
+                  setLoading(true);
+                  void fetchMessages();
+                }}
+                style={{ height: 36, padding: "0 12px" }}
+              >
+                Thu lai
+              </button>
+            </Box>
           ) : messages.length === 0 ? (
             <Flex
               align="center"
@@ -901,6 +920,7 @@ export function ChatArea({
 
       {/* Input */}
       <Flex
+        className="chat-sticky-input"
         align="center"
         gap="3"
         px="4"

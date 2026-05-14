@@ -38,6 +38,8 @@ export interface MatchStatusResponse {
 export class MatchService {
   private readonly logger = new Logger(MatchService.name);
   private readonly QUEUE_EXPIRY_MINUTES = 15;
+  private readonly MATCH_RETRY_BATCH_SIZE = 100;
+  private retryMatchingRunning = false;
 
   constructor(
     @InjectRepository(MatchQueue)
@@ -77,7 +79,10 @@ export class MatchService {
 
     const match = await this.findMatch(queue);
     if (match) {
-      return this.createMatch(queue, match);
+      const matchedQueue = await this.createMatch(queue, match);
+      if (matchedQueue) {
+        return matchedQueue;
+      }
     }
 
     return queue;
@@ -157,7 +162,10 @@ export class MatchService {
     return result;
   }
 
-  private async cancelActiveMatchForNewSearch(userId: string): Promise<void> {
+  private async cancelActiveMatchForNewSearch(
+    userId: string,
+    excludeQueueIds: string[] = [],
+  ): Promise<void> {
     const activeConversations = await this.conversationRepository.find({
       where: [
         { user1Id: userId, status: ConversationStatus.Active },
@@ -183,15 +191,20 @@ export class MatchService {
       );
     }
 
-    await this.matchQueueRepository
+    const query = this.matchQueueRepository
       .createQueryBuilder()
       .update(MatchQueue)
       .set({ status: MatchQueueStatus.Cancelled })
       .where('userId = :userId', { userId })
       .andWhere('status IN (:...statuses)', {
         statuses: [MatchQueueStatus.Waiting, MatchQueueStatus.Matched],
-      })
-      .execute();
+      });
+
+    if (excludeQueueIds.length > 0) {
+      query.andWhere('id NOT IN (:...excludeQueueIds)', { excludeQueueIds });
+    }
+
+    await query.execute();
   }
 
   private async cancelQueueStateForUser(userId: string): Promise<void> {
@@ -209,27 +222,60 @@ export class MatchService {
   // Retry matching for all waiting users every 3 seconds
   @Interval(3000)
   async retryMatching() {
-    const waitingQueues = await this.matchQueueRepository.find({
-      where: { status: MatchQueueStatus.Waiting },
-      order: { createdAt: 'ASC' },
-    });
+    if (this.retryMatchingRunning) {
+      return;
+    }
 
-    for (const queue of waitingQueues) {
-      // Skip expired queues
-      if (queue.expiresAt && queue.expiresAt < new Date()) {
-        queue.status = MatchQueueStatus.Expired;
-        await this.matchQueueRepository.save(queue);
-        this.logger.log(`Queue ${queue.id} expired`);
-        continue;
+    this.retryMatchingRunning = true;
+    const now = new Date();
+
+    try {
+      const expired = await this.matchQueueRepository
+        .createQueryBuilder()
+        .update(MatchQueue)
+        .set({ status: MatchQueueStatus.Expired })
+        .where('status = :status', { status: MatchQueueStatus.Waiting })
+        .andWhere('expiresAt IS NOT NULL')
+        .andWhere('expiresAt < :now', { now })
+        .execute();
+
+      if ((expired.affected ?? 0) > 0) {
+        this.logger.log(`Expired ${expired.affected} stale match queues`);
       }
 
-      const match = await this.findMatch(queue);
-      if (match) {
-        await this.createMatch(queue, match);
-        this.logger.log(
-          `Background match: ${queue.userId} <-> ${match.userId}`,
-        );
+      const waitingQueues = await this.matchQueueRepository.find({
+        where: { status: MatchQueueStatus.Waiting },
+        order: { createdAt: 'ASC' },
+        take: this.MATCH_RETRY_BATCH_SIZE,
+      });
+
+      const processedQueueIds = new Set<string>();
+      const processedUserIds = new Set<string>();
+
+      for (const queue of waitingQueues) {
+        if (
+          processedQueueIds.has(queue.id) ||
+          processedUserIds.has(queue.userId)
+        ) {
+          continue;
+        }
+
+        const match = await this.findMatch(queue);
+        if (match) {
+          const matchedQueue = await this.createMatch(queue, match);
+          if (matchedQueue) {
+            processedQueueIds.add(queue.id);
+            processedQueueIds.add(match.id);
+            processedUserIds.add(queue.userId);
+            processedUserIds.add(match.userId);
+            this.logger.log(
+              `Background match: ${matchedQueue.userId} <-> ${match.userId}`,
+            );
+          }
+        }
       }
+    } finally {
+      this.retryMatchingRunning = false;
     }
   }
 
@@ -266,13 +312,30 @@ export class MatchService {
   private async createMatch(
     queue: MatchQueue,
     matchedQueue: MatchQueue,
-  ): Promise<MatchQueue> {
-    await this.cancelActiveMatchForNewSearch(queue.userId);
-    await this.cancelActiveMatchForNewSearch(matchedQueue.userId);
+  ): Promise<MatchQueue | null> {
+    const [freshQueue, freshMatchedQueue] = await Promise.all([
+      this.matchQueueRepository.findOne({
+        where: { id: queue.id, status: MatchQueueStatus.Waiting },
+      }),
+      this.matchQueueRepository.findOne({
+        where: { id: matchedQueue.id, status: MatchQueueStatus.Waiting },
+      }),
+    ]);
+
+    if (!freshQueue || !freshMatchedQueue) {
+      return null;
+    }
+
+    const activeQueueIds = [freshQueue.id, freshMatchedQueue.id];
+    await this.cancelActiveMatchForNewSearch(freshQueue.userId, activeQueueIds);
+    await this.cancelActiveMatchForNewSearch(
+      freshMatchedQueue.userId,
+      activeQueueIds,
+    );
 
     const conversation = this.conversationRepository.create({
-      user1Id: queue.userId,
-      user2Id: matchedQueue.userId,
+      user1Id: freshQueue.userId,
+      user2Id: freshMatchedQueue.userId,
       status: ConversationStatus.Active,
       user1Accepted: false,
       user2Accepted: false,
@@ -281,26 +344,26 @@ export class MatchService {
     const savedConversation =
       await this.conversationRepository.save(conversation);
 
-    queue.status = MatchQueueStatus.Matched;
-    queue.matchedWithUserId = matchedQueue.userId;
-    queue.conversationId = savedConversation.id;
-    await this.matchQueueRepository.save(queue);
+    freshQueue.status = MatchQueueStatus.Matched;
+    freshQueue.matchedWithUserId = freshMatchedQueue.userId;
+    freshQueue.conversationId = savedConversation.id;
+    await this.matchQueueRepository.save(freshQueue);
 
-    matchedQueue.status = MatchQueueStatus.Matched;
-    matchedQueue.matchedWithUserId = queue.userId;
-    matchedQueue.conversationId = savedConversation.id;
-    await this.matchQueueRepository.save(matchedQueue);
+    freshMatchedQueue.status = MatchQueueStatus.Matched;
+    freshMatchedQueue.matchedWithUserId = freshQueue.userId;
+    freshMatchedQueue.conversationId = savedConversation.id;
+    await this.matchQueueRepository.save(freshMatchedQueue);
 
     this.chatRealtimeService.emitConversationCreated(
-      [queue.userId, matchedQueue.userId],
+      [freshQueue.userId, freshMatchedQueue.userId],
       savedConversation,
     );
 
     this.logger.log(
-      `Match created: ${queue.userId} <-> ${matchedQueue.userId}`,
+      `Match created: ${freshQueue.userId} <-> ${freshMatchedQueue.userId}`,
     );
 
-    return queue;
+    return freshQueue;
   }
 
   private getPreferredGenders(gender: UserGender): UserGender[] {

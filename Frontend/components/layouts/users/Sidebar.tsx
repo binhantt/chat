@@ -1,6 +1,6 @@
 "use client";
 
-import { Flex, Text } from "@radix-ui/themes";
+import { Box, Flex, Text } from "@radix-ui/themes";
 
 export type TabId = "chat" | "website" | "about" | "vip" | "settings" | "report";
 
@@ -80,13 +80,17 @@ const navItems: { id: TabId; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
+const primaryNavItems = navItems.filter((item) => item.id === "chat");
+const secondaryNavItems = navItems.filter((item) => item.id !== "chat");
+
 export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
   return (
     <Flex
       display={{ initial: "none", md: "flex" }}
       direction="column"
-      gap="1"
+      gap="3"
       px="3"
+      className="chat-app-sidebar"
       data-sidebar
       style={{
         width: 240,
@@ -96,7 +100,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
         paddingTop: 8,
       }}
     >
-      {navItems.map((item) => (
+      {primaryNavItems.map((item) => (
         <NavItem
           key={item.id}
           label={item.label}
@@ -105,6 +109,40 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           onClick={() => onTabChange(item.id)}
         />
       ))}
+
+      <Box
+        style={{
+          height: 1,
+          background: "var(--indigo-5)",
+          margin: "4px 0",
+        }}
+      />
+
+      <details open={activeTab !== "chat"}>
+        <summary
+          style={{
+            listStyle: "none",
+            cursor: "pointer",
+            padding: "8px 12px",
+            color: "var(--gray-11)",
+            fontSize: 14,
+            fontWeight: 600,
+          }}
+        >
+          Menu phu
+        </summary>
+        <Flex direction="column" gap="1" mt="1">
+          {secondaryNavItems.map((item) => (
+            <NavItem
+              key={item.id}
+              label={item.label}
+              icon={item.icon}
+              active={activeTab === item.id}
+              onClick={() => onTabChange(item.id)}
+            />
+          ))}
+        </Flex>
+      </details>
     </Flex>
   );
 }
