@@ -14,16 +14,16 @@ export class PageVisit {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ length: 500 })
+  @Column({ length: 500, type: 'varchar' })
   path!: string;
 
-  @Column({ length: 80 })
+  @Column({ length: 80, type: 'varchar' })
   visitorId!: string;
 
-  @Column({ length: 300, nullable: true })
+  @Column({ length: 300, nullable: true, type: 'varchar' })
   userAgent!: string | null;
 
-  @Column({ length: 64, nullable: true })
+  @Column({ length: 64, nullable: true, type: 'varchar' })
   ipHash!: string | null;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
