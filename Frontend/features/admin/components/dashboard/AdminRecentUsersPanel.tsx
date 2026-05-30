@@ -14,7 +14,7 @@ export function AdminRecentUsersPanel({ users }: { users: AdminUser[] }) {
             Người dùng gần đây
           </Text>
           <Button asChild size="2" variant="soft" style={{ borderRadius: 8 }}>
-            <Link href="/admin/users">Xem tat ca</Link>
+            <Link href="/admin/users">Xem tất cả</Link>
           </Button>
         </Flex>
 

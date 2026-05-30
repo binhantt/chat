@@ -4,7 +4,6 @@ import { AdminDashboardHeader } from "./AdminDashboardHeader";
 import { AdminRecentUsersPanel } from "./AdminRecentUsersPanel";
 import { AdminServerMetricsPanel } from "./AdminServerMetricsPanel";
 import { AdminStatGrid } from "./AdminStatGrid";
-import { AdminStatusPanel } from "./AdminStatusPanel";
 import { AdminVisitStatsPanel } from "./AdminVisitStatsPanel";
 import type { AdminDashboardProps } from "./types";
 
@@ -24,9 +23,8 @@ export function AdminDashboardView({ error, recentUsers, stats }: AdminDashboard
       <AdminServerMetricsPanel />
       <AdminVisitStatsPanel />
 
-      <Grid columns={{ initial: "1", lg: "3" }} gap="4">
+      <Grid columns={{ initial: "1", lg: "2" }} gap="4">
         <AdminChartPanel stats={stats} />
-        <AdminStatusPanel stats={stats} />
         <AdminRecentUsersPanel users={recentUsers} />
       </Grid>
     </Flex>

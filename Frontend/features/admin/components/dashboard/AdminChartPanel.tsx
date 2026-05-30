@@ -1,6 +1,7 @@
 ﻿import { Box, Flex, Text } from "@radix-ui/themes";
 import { authTheme } from "@/features/athu/styles/authTheme";
 import { adminPanelStyle } from "@/features/admin/styles/dashboardTheme";
+import { AdminProgressRow } from "./AdminProgressRow";
 import type { AdminDashboardStats } from "./types";
 
 export function AdminChartPanel({ stats }: { stats: AdminDashboardStats }) {
@@ -15,7 +16,7 @@ export function AdminChartPanel({ stats }: { stats: AdminDashboardStats }) {
             Sơ đồ tài khoản
           </Text>
           <Text as="div" size="2" style={{ color: authTheme.muted, marginTop: 4 }}>
-            Phân bố trạng thái hiện tại trong hệ thống.
+            Gộp biểu đồ và trạng thái tài khoản trong một khung.
           </Text>
         </Box>
 
@@ -57,6 +58,14 @@ export function AdminChartPanel({ stats }: { stats: AdminDashboardStats }) {
             <ChartLegend color={authTheme.control} label="Hoạt động" percent={activePct} value={stats.active} />
             <ChartLegend color="#EF4444" label="Đã khóa" percent={bannedPct} value={stats.banned} />
           </Flex>
+        </Flex>
+
+        <Flex direction="column" gap="3">
+          <Text size="2" weight="bold" style={{ color: authTheme.text }}>
+            Trạng thái người dùng
+          </Text>
+          <AdminProgressRow label="Hoạt động" total={stats.total} value={stats.active} />
+          <AdminProgressRow label="Đã khóa" total={stats.total} value={stats.banned} tone="red" />
         </Flex>
       </Flex>
     </Box>
