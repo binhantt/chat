@@ -42,26 +42,32 @@ export class AnalyticsService {
     const sevenDaysAgo = new Date(now);
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
+    const homePath = '/';
+
     const [totalViews, todayViews, last7DaysViews, uniqueVisitors, popularPaths] =
       await Promise.all([
-        this.pageVisitRepository.count(),
+        this.pageVisitRepository.count({ where: { path: homePath } }),
         this.pageVisitRepository
           .createQueryBuilder('visit')
-          .where('visit.createdAt >= :startOfToday', { startOfToday })
+          .where('visit.path = :homePath', { homePath })
+          .andWhere('visit.createdAt >= :startOfToday', { startOfToday })
           .getCount(),
         this.pageVisitRepository
           .createQueryBuilder('visit')
-          .where('visit.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
+          .where('visit.path = :homePath', { homePath })
+          .andWhere('visit.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
           .getCount(),
         this.pageVisitRepository
           .createQueryBuilder('visit')
           .select('COUNT(DISTINCT visit.visitorId)', 'count')
+          .where('visit.path = :homePath', { homePath })
           .getRawOne<{ count: string }>(),
         this.pageVisitRepository
           .createQueryBuilder('visit')
           .select('visit.path', 'path')
           .addSelect('COUNT(*)', 'count')
-          .where('visit.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
+          .where('visit.path = :homePath', { homePath })
+          .andWhere('visit.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
           .groupBy('visit.path')
           .orderBy('count', 'DESC')
           .limit(5)

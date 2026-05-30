@@ -8,8 +8,9 @@ export function PageVisitTracker() {
   const lastTrackedPathRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const search = window.location.search || "";
-    const path = `${pathname || "/"}${search}`;
+    if (pathname !== "/") return;
+
+    const path = "/";
 
     if (lastTrackedPathRef.current === path) return;
     lastTrackedPathRef.current = path;
