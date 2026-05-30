@@ -105,13 +105,14 @@ export class ChatService implements OnModuleInit {
     userId: string,
     limit = 20,
     offset = 0,
+    cursor?: string,
   ): Promise<Conversation[]> {
     // Check if user is banned before returning conversations
     if (this.authTokenService.isUserBanned(userId)) {
       return [];
     }
 
-    return this.createConversationListQuery()
+    const query = this.createConversationListQuery()
       .where('conversation.status = :status', {
         status: ConversationStatus.Active,
       })
@@ -120,17 +121,114 @@ export class ChatService implements OnModuleInit {
         { userId },
       )
       .orderBy('conversation.updatedAt', 'DESC')
-      .take(Math.min(Math.max(limit, 1), 50))
-      .skip(Math.max(offset, 0))
-      .getMany();
+      .addOrderBy('conversation.id', 'DESC')
+      .take(Math.min(Math.max(limit, 1), 50));
+
+    const decodedCursor = this.decodeConversationCursor(cursor);
+    if (decodedCursor) {
+      query.andWhere(
+        '(conversation.updatedAt < :updatedAt OR (conversation.updatedAt = :updatedAt AND conversation.id < :id))',
+        decodedCursor,
+      );
+    } else if (offset > 0) {
+      query.skip(Math.max(offset, 0));
+    }
+
+    return query.getMany();
   }
 
-  async getAdminConversations(limit = 50, offset = 0): Promise<Conversation[]> {
-    return this.createConversationListQuery()
+  async getAdminConversations({
+    cursor,
+    limit = 50,
+    status,
+  }: {
+    cursor?: string;
+    limit?: number;
+    status?: ConversationStatus;
+  } = {}): Promise<{
+    items: Conversation[];
+    limit: number;
+    nextCursor: string | null;
+    stats: {
+      active: number;
+      blocked: number;
+      ended: number;
+      total: number;
+    };
+  }> {
+    const safeLimit = Math.min(Math.max(limit || 50, 1), 100);
+    const query = this.createConversationListQuery()
       .orderBy('conversation.updatedAt', 'DESC')
-      .take(Math.min(Math.max(limit, 1), 100))
-      .skip(Math.max(offset, 0))
-      .getMany();
+      .addOrderBy('conversation.id', 'DESC')
+      .take(safeLimit + 1);
+
+    if (status) {
+      query.where('conversation.status = :status', { status });
+    }
+
+    const decodedCursor = this.decodeConversationCursor(cursor);
+    if (decodedCursor) {
+      const condition =
+        '(conversation.updatedAt < :updatedAt OR (conversation.updatedAt = :updatedAt AND conversation.id < :id))';
+      if (status) {
+        query.andWhere(condition, decodedCursor);
+      } else {
+        query.where(condition, decodedCursor);
+      }
+    }
+
+    const [rows, stats] = await Promise.all([
+      query.getMany(),
+      this.getAdminConversationStats(),
+    ]);
+    const items = rows.slice(0, safeLimit);
+    const nextCursor =
+      rows.length > safeLimit
+        ? this.encodeConversationCursor(items[items.length - 1])
+        : null;
+
+    return {
+      items,
+      limit: safeLimit,
+      nextCursor,
+      stats,
+    };
+  }
+
+  private async getAdminConversationStats(): Promise<{
+    active: number;
+    blocked: number;
+    ended: number;
+    total: number;
+  }> {
+    const rows = await this.conversationRepository
+      .createQueryBuilder('conversation')
+      .select('conversation.status', 'status')
+      .addSelect('COUNT(conversation.id)', 'count')
+      .groupBy('conversation.status')
+      .getRawMany<{ status: ConversationStatus; count: string }>();
+
+    const stats = {
+      active: 0,
+      blocked: 0,
+      ended: 0,
+      total: 0,
+    };
+
+    for (const row of rows) {
+      const count = Number(row.count) || 0;
+      stats.total += count;
+
+      if (row.status === ConversationStatus.Active) {
+        stats.active = count;
+      } else if (row.status === ConversationStatus.Blocked) {
+        stats.blocked = count;
+      } else if (row.status === ConversationStatus.Ended) {
+        stats.ended = count;
+      }
+    }
+
+    return stats;
   }
 
   async createMessage(
@@ -209,6 +307,7 @@ export class ChatService implements OnModuleInit {
     limit: number = 50,
     offset: number = 0,
     isAdmin = false,
+    cursor?: string,
   ): Promise<Message[]> {
     try {
       const conversation = await this.conversationRepository.findOne({
@@ -233,12 +332,7 @@ export class ChatService implements OnModuleInit {
         throw new ForbiddenException('Cuoc tro chuyen da ket thuc');
       }
 
-      return this.messageRepository.find({
-        where: { conversationId },
-        order: { createdAt: 'DESC' },
-        take: limit,
-        skip: offset,
-      });
+      return this.findMessages({ conversationId, cursor, limit, offset });
     } catch (error) {
       this.logger.error(
         `Error fetching messages for conversation ${conversationId}:`,
@@ -252,6 +346,7 @@ export class ChatService implements OnModuleInit {
     conversationId: string,
     limit: number = 100,
     offset: number = 0,
+    cursor?: string,
   ): Promise<Message[]> {
     const conversation = await this.conversationRepository.findOne({
       where: { id: conversationId },
@@ -261,13 +356,65 @@ export class ChatService implements OnModuleInit {
       throw new NotFoundException('KhÃ´ng tÃ¬m tháº¥y cuá»™c trÃ² chuyá»‡n');
     }
 
-    return this.messageRepository.find({
-      where: { conversationId },
-      order: { createdAt: 'DESC' },
-      take: limit,
-      skip: offset,
-      relations: ['sender'],
+    return this.findMessages({
+      conversationId,
+      cursor,
+      includeSender: true,
+      limit,
+      offset,
     });
+  }
+
+  private findMessages({
+    conversationId,
+    cursor,
+    includeSender = false,
+    limit,
+    offset,
+  }: {
+    conversationId: string;
+    cursor?: string;
+    includeSender?: boolean;
+    limit: number;
+    offset: number;
+  }): Promise<Message[]> {
+    const query = this.messageRepository
+      .createQueryBuilder('message')
+      .select([
+        'message.id',
+        'message.conversationId',
+        'message.senderId',
+        'message.content',
+        'message.status',
+        'message.createdAt',
+      ])
+      .where('message.conversationId = :conversationId', { conversationId })
+      .orderBy('message.createdAt', 'DESC')
+      .addOrderBy('message.id', 'DESC')
+      .take(Math.min(Math.max(limit, 1), 100));
+
+    if (includeSender) {
+      query
+        .leftJoinAndSelect('message.sender', 'sender')
+        .addSelect([
+          'sender.id',
+          'sender.email',
+          'sender.fullName',
+          'sender.avatarUrl',
+        ]);
+    }
+
+    const decodedCursor = this.decodeMessageCursor(cursor);
+    if (decodedCursor) {
+      query.andWhere(
+        '(message.createdAt < :createdAt OR (message.createdAt = :createdAt AND message.id < :id))',
+        decodedCursor,
+      );
+    } else if (offset > 0) {
+      query.skip(Math.max(offset, 0));
+    }
+
+    return query.getMany();
   }
 
   async markMessagesAsRead(
@@ -481,12 +628,67 @@ export class ChatService implements OnModuleInit {
         'user1.avatarUrl',
         'user1.gender',
         'user1.city',
+        'user1.dateOfBirth',
+        'user1.phoneNumber',
+        'user1.bio',
         'user2.id',
         'user2.email',
         'user2.fullName',
         'user2.avatarUrl',
         'user2.gender',
         'user2.city',
+        'user2.dateOfBirth',
+        'user2.phoneNumber',
+        'user2.bio',
       ]);
+  }
+
+  private encodeConversationCursor(conversation: Conversation): string {
+    return Buffer.from(
+      JSON.stringify({
+        id: conversation.id,
+        updatedAt: conversation.updatedAt.toISOString(),
+      }),
+    ).toString('base64url');
+  }
+
+  private decodeConversationCursor(
+    cursor?: string,
+  ): { id: string; updatedAt: Date } | null {
+    if (!cursor) return null;
+
+    try {
+      const parsed = JSON.parse(
+        Buffer.from(cursor, 'base64url').toString('utf8'),
+      ) as { id?: string; updatedAt?: string };
+      if (!parsed.id || !parsed.updatedAt) return null;
+
+      const updatedAt = new Date(parsed.updatedAt);
+      if (Number.isNaN(updatedAt.getTime())) return null;
+
+      return { id: parsed.id, updatedAt };
+    } catch {
+      return null;
+    }
+  }
+
+  private decodeMessageCursor(
+    cursor?: string,
+  ): { createdAt: Date; id: string } | null {
+    if (!cursor) return null;
+
+    try {
+      const parsed = JSON.parse(
+        Buffer.from(cursor, 'base64url').toString('utf8'),
+      ) as { createdAt?: string; id?: string };
+      if (!parsed.createdAt || !parsed.id) return null;
+
+      const createdAt = new Date(parsed.createdAt);
+      if (Number.isNaN(createdAt.getTime())) return null;
+
+      return { createdAt, id: parsed.id };
+    } catch {
+      return null;
+    }
   }
 }

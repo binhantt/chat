@@ -1,4 +1,3 @@
-
 import "@radix-ui/themes/styles.css";
 import "@/app/globals.css";
 
@@ -8,45 +7,58 @@ import { Providers } from "@/components/providers/Providers";
 import { getSiteUrl } from "@/lib/site";
 
 const siteUrl = new URL(getSiteUrl());
+const logoPath = "/nguoi-la-logo.svg";
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
-  applicationName: "ChatApp",
+  applicationName: "Người Lạ",
   title: {
-    default: "ChatApp - Ket noi va tro chuyen truc tuyen",
-    template: "%s | ChatApp",
+    default: "Người Lạ - Kết nối và trò chuyện trực tuyến",
+    template: "%s | Người Lạ",
   },
   description:
-    "ChatApp giup nguoi dung ket noi, tro chuyen truc tuyen, quan ly ho so ca nhan va bao cao noi dung khong phu hop trong mot khong gian an toan.",
+    "Người Lạ giúp người dùng kết nối, trò chuyện trực tuyến, quản lý hồ sơ cá nhân và báo cáo nội dung không phù hợp trong một không gian an toàn.",
   keywords: [
-    "ChatApp",
-    "ung dung chat",
-    "tro chuyen truc tuyen",
-    "ket noi ban be",
-    "chat an toan",
-    "bao cao nguoi dung",
+    "Người Lạ",
+    "ứng dụng trò chuyện",
+    "trò chuyện trực tuyến",
+    "kết nối bạn bè",
+    "trò chuyện an toàn",
+    "báo cáo người dùng",
   ],
-  authors: [{ name: "ChatApp" }],
-  creator: "ChatApp",
-  publisher: "ChatApp",
+  authors: [{ name: "Người Lạ" }],
+  creator: "Người Lạ",
+  publisher: "Người Lạ",
   alternates: {
     canonical: "/",
+  },
+  icons: {
+    apple: logoPath,
+    icon: logoPath,
+    shortcut: logoPath,
   },
   manifest: "/manifest.webmanifest",
   openGraph: {
     type: "website",
     locale: "vi_VN",
     url: "/",
-    siteName: "ChatApp",
-    title: "ChatApp - Ket noi va tro chuyen truc tuyen",
+    images: [
+      {
+        alt: "Người Lạ",
+        url: logoPath,
+      },
+    ],
+    siteName: "Người Lạ",
+    title: "Người Lạ - Kết nối và trò chuyện trực tuyến",
     description:
-      "Ket noi, tro chuyen va quan ly trai nghiem chat truc tuyen trong mot khong gian gon gang, rieng tu va an toan.",
+      "Kết nối, trò chuyện và quản lý trải nghiệm trực tuyến trong một không gian gọn gàng, riêng tư và an toàn.",
   },
   twitter: {
     card: "summary",
-    title: "ChatApp - Ket noi va tro chuyen truc tuyen",
+    images: [logoPath],
+    title: "Người Lạ - Kết nối và trò chuyện trực tuyến",
     description:
-      "Ung dung chat truc tuyen voi ho so ca nhan, goi VIP va cong cu bao cao noi dung.",
+      "Ứng dụng trò chuyện trực tuyến với hồ sơ cá nhân, gói VIP và công cụ báo cáo nội dung.",
   },
   robots: {
     index: true,
@@ -59,7 +71,7 @@ export const metadata: Metadata = {
       "max-video-preview": -1,
     },
   },
-  category: "communication",
+  category: "mạng xã hội",
 };
 
 export const viewport: Viewport = {
@@ -82,6 +94,7 @@ export default function RootLayout({
             accentColor="indigo"
             panelBackground="solid"
             radius="small"
+            scaling="105%"
             appearance="inherit"
           >
             {children}

@@ -33,7 +33,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error("Error sending typing state:", error);
     return NextResponse.json(
-      { message: "Không thể gửi trạng thái đang nhập" },
+      { message: "Cannot send typing state" },
       { status: 500 },
     );
   }

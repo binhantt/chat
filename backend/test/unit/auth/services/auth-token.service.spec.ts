@@ -79,6 +79,16 @@ describe('AuthTokenService', () => {
     );
   });
 
+  it('revokes refresh tokens', () => {
+    const refreshToken = service.createRefreshToken(userId);
+
+    service.revokeRefreshToken(refreshToken);
+
+    expect(() => service.verifyRefreshToken(refreshToken)).toThrow(
+      UnauthorizedException,
+    );
+  });
+
   it('creates an access token that cannot be forged by editing the user id', () => {
     const accessToken = service.createAccessToken(userId);
     const [, , expiresAt, signature] = accessToken.split(':');

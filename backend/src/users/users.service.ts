@@ -7,6 +7,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { performance } from 'node:perf_hooks';
 import { DataSource, Repository } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ProfileSetupDto } from './dto/profile-setup.dto';
@@ -16,6 +17,19 @@ import { User, UserLockType, UserRole } from './entities/user.entity';
 import { GoogleUserProfile } from './interfaces/google-user-profile.interface';
 import { PasswordService } from './services/password.service';
 import { UserFactoryService } from './services/user-factory.service';
+
+type AdminUserListRow = {
+  id: string;
+  email: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  role: UserRole;
+  isActive: boolean;
+  lockType: UserLockType;
+  lockedUntil: Date | string | null;
+  createdAt: Date | string;
+  updatedAt: Date | string;
+};
 
 @Injectable()
 export class UsersService implements OnModuleInit {
@@ -47,7 +61,29 @@ export class UsersService implements OnModuleInit {
       return this.toSafeUser(cached.user);
     }
 
-    const user = await this.usersRepository.findOne({ where: { id } });
+    const user = await this.usersRepository.findOne({
+      select: {
+        id: true,
+        email: true,
+        googleId: true,
+        fullName: true,
+        avatarUrl: true,
+        dateOfBirth: true,
+        phoneNumber: true,
+        bio: true,
+        gender: true,
+        city: true,
+        role: true,
+        isActive: true,
+        lockType: true,
+        lockedUntil: true,
+        lockReason: true,
+        lockedByReportId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      where: { id },
+    });
     if (user) {
       await this.clearExpiredLock(user);
       this.cacheUser(user);
@@ -55,14 +91,69 @@ export class UsersService implements OnModuleInit {
     return user;
   }
 
-  async findAll(): Promise<User[]> {
-    const users = await this.usersRepository.find({
-      order: {
-        createdAt: 'DESC',
-      },
-    });
+  async findAll({
+    cursor,
+    limit = 20,
+    status,
+  }: {
+    cursor?: string;
+    limit?: number;
+    status?: 'active' | 'banned';
+  } = {}): Promise<{
+    items: User[];
+    limit: number;
+    nextCursor: string | null;
+  }> {
+    const safeLimit = Math.min(Math.max(limit || 20, 1), 100);
+    const query = this.usersRepository
+      .createQueryBuilder('user')
+      .select('user.id', 'id')
+      .addSelect('user.email', 'email')
+      .addSelect('user.fullName', 'fullName')
+      .addSelect('user.avatarUrl', 'avatarUrl')
+      .addSelect('user.role', 'role')
+      .addSelect('user.isActive', 'isActive')
+      .addSelect('user.lockType', 'lockType')
+      .addSelect('user.lockedUntil', 'lockedUntil')
+      .addSelect('user.createdAt', 'createdAt')
+      .addSelect('user.updatedAt', 'updatedAt')
+      .orderBy('user.createdAt', 'DESC')
+      .addOrderBy('user.id', 'DESC')
+      .take(safeLimit + 1);
 
-    return users.map((user) => this.toSafeUser(user));
+    if (status === 'active') {
+      query.where('user.isActive = :isActive AND user.lockType = :lockType', {
+        isActive: true,
+        lockType: UserLockType.None,
+      });
+    } else if (status === 'banned') {
+      query.where('(user.isActive = :isActive OR user.lockType != :lockType)', {
+        isActive: false,
+        lockType: UserLockType.None,
+      });
+    }
+
+    const decodedCursor = this.decodeUserCursor(cursor);
+    if (decodedCursor) {
+      const condition =
+        '(user.createdAt < :createdAt OR (user.createdAt = :createdAt AND user.id < :id))';
+      if (status === 'active' || status === 'banned') {
+        query.andWhere(condition, decodedCursor);
+      } else {
+        query.where(condition, decodedCursor);
+      }
+    }
+
+    const rows = await query.getRawMany<AdminUserListRow>();
+    const items = rows
+      .slice(0, safeLimit)
+      .map((row) => this.toAdminUserListItem(row));
+    const nextCursor =
+      rows.length > safeLimit
+        ? this.encodeUserCursor(items[items.length - 1])
+        : null;
+
+    return { items, limit: safeLimit, nextCursor };
   }
 
   async findByIdOrFail(id: string): Promise<User> {
@@ -120,34 +211,54 @@ export class UsersService implements OnModuleInit {
   async validatePassword(
     email: string,
     password: string,
+    timing?: { dbMs?: number; passwordMs?: number },
   ): Promise<User | null> {
+    const dbStart = performance.now();
     const user = await this.findByEmailWithPassword(email);
+    if (timing) {
+      timing.dbMs = performance.now() - dbStart;
+    }
 
     if (!user?.passwordHash) {
       return null;
     }
 
-    return this.passwordService.verify(password, user.passwordHash)
-      ? this.toSafeUser(user)
-      : null;
+    const passwordStart = performance.now();
+    const passwordValid = this.passwordService.verify(
+      password,
+      user.passwordHash,
+    );
+    if (timing) {
+      timing.passwordMs = performance.now() - passwordStart;
+    }
+
+    return passwordValid ? this.toSafeUser(user) : null;
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const user = await this.findByIdOrFail(id);
+    const patch = this.toProfileUpdatePatch(updateUserDto);
+    if (Object.keys(patch).length === 0) {
+      return this.findByIdOrFail(id);
+    }
 
-    Object.assign(user, {
-      ...updateUserDto,
+    const result = await this.usersRepository.update(id, {
+      ...patch,
       updatedAt: new Date(),
     });
 
-    return this.saveSafeUser(await this.usersRepository.save(user));
+    if (!result.affected) {
+      throw new NotFoundException('Không tìm thấy user');
+    }
+
+    this.invalidateUserCache(id);
+    return this.findByIdOrFail(id);
   }
 
   async deleteOwnAccount(userId: string): Promise<void> {
     await this.findByIdOrFail(userId);
 
     await this.dataSource.transaction(async (manager) => {
-      const conversations = await manager.query(
+      const conversations = await manager.query<Array<{ id: string }>>(
         `
           SELECT id
           FROM conversations
@@ -227,8 +338,9 @@ export class UsersService implements OnModuleInit {
 
     if (
       actingUserId === id &&
-      (updateUserAccessDto.role !== UserRole.Admin ||
-        !updateUserAccessDto.isActive)
+      ((updateUserAccessDto.role !== undefined &&
+        updateUserAccessDto.role !== UserRole.Admin) ||
+        updateUserAccessDto.isActive === false)
     ) {
       throw new BadRequestException(
         'Admin khong the tu ha quyen hoac tu khoa phien cua chinh minh',
@@ -237,12 +349,29 @@ export class UsersService implements OnModuleInit {
 
     user.role = updateUserAccessDto.role ?? user.role;
     user.isActive = updateUserAccessDto.isActive ?? user.isActive;
-    if (user.isActive && user.lockType === UserLockType.Permanent) {
+    if (user.isActive && user.lockType !== UserLockType.None) {
       user.lockType = UserLockType.None;
       user.lockedUntil = null;
       user.lockReason = null;
       user.lockedByReportId = null;
     }
+    user.updatedAt = new Date();
+
+    return this.saveSafeUser(await this.usersRepository.save(user));
+  }
+
+  async unlockFromReport(userId: string, reportId: string): Promise<User> {
+    const user = await this.findByIdOrFail(userId);
+
+    if (user.lockedByReportId !== reportId) {
+      return user;
+    }
+
+    user.isActive = true;
+    user.lockType = UserLockType.None;
+    user.lockedUntil = null;
+    user.lockReason = null;
+    user.lockedByReportId = null;
     user.updatedAt = new Date();
 
     return this.saveSafeUser(await this.usersRepository.save(user));
@@ -306,14 +435,7 @@ export class UsersService implements OnModuleInit {
     userId: string,
     profileSetupDto: ProfileSetupDto,
   ): Promise<User> {
-    const user = await this.findByIdOrFail(userId);
-
-    Object.assign(user, {
-      ...profileSetupDto,
-      updatedAt: new Date(),
-    });
-
-    return this.saveSafeUser(await this.usersRepository.save(user));
+    return this.update(userId, profileSetupDto);
   }
 
   private async seedDefaultAdmin(): Promise<void> {
@@ -363,10 +485,12 @@ export class UsersService implements OnModuleInit {
   private async findGoogleUser(
     profile: GoogleUserProfile,
   ): Promise<User | null> {
-    return (
-      (await this.findByGoogleId(profile.googleId)) ??
-      (await this.findByEmail(profile.email))
-    );
+    return this.usersRepository.findOne({
+      where: [
+        { googleId: profile.googleId },
+        { email: profile.email.toLowerCase() },
+      ],
+    });
   }
 
   private updateGoogleUser(user: User, profile: GoogleUserProfile): User {
@@ -401,7 +525,14 @@ export class UsersService implements OnModuleInit {
       user.lockedByReportId = null;
       user.isActive = true;
       user.updatedAt = new Date();
-      await this.usersRepository.save(user);
+      await this.usersRepository.update(user.id, {
+        isActive: user.isActive,
+        lockType: user.lockType,
+        lockedByReportId: user.lockedByReportId,
+        lockedUntil: user.lockedUntil,
+        lockReason: user.lockReason,
+        updatedAt: user.updatedAt,
+      });
       this.invalidateUserCache(user.id);
     }
   }
@@ -418,6 +549,60 @@ export class UsersService implements OnModuleInit {
     return this.toSafeUser(user);
   }
 
+  private toProfileUpdatePatch(
+    data: Partial<UpdateUserDto | ProfileSetupDto>,
+  ): Partial<User> {
+    const patch: Partial<User> = {};
+
+    if ('fullName' in data) {
+      patch.fullName = data.fullName ?? null;
+    }
+    if ('avatarUrl' in data) {
+      patch.avatarUrl = data.avatarUrl ?? null;
+    }
+    if ('dateOfBirth' in data) {
+      patch.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+    }
+    if ('phoneNumber' in data) {
+      patch.phoneNumber = data.phoneNumber ?? null;
+    }
+    if ('bio' in data) {
+      patch.bio = data.bio ?? null;
+    }
+    if ('gender' in data) {
+      patch.gender = data.gender ?? null;
+    }
+    if ('city' in data) {
+      patch.city = data.city ?? null;
+    }
+
+    return patch;
+  }
+
+  private toAdminUserListItem(row: AdminUserListRow): User {
+    return Object.assign(new User(), {
+      id: row.id,
+      email: row.email,
+      googleId: null,
+      fullName: row.fullName,
+      avatarUrl: row.avatarUrl,
+      dateOfBirth: null,
+      phoneNumber: null,
+      bio: null,
+      gender: null,
+      city: null,
+      role: row.role,
+      isActive: row.isActive,
+      lockType: row.lockType,
+      lockedUntil: row.lockedUntil ? new Date(row.lockedUntil) : null,
+      lockReason: null,
+      lockedByReportId: null,
+      createdAt: new Date(row.createdAt),
+      updatedAt: new Date(row.updatedAt),
+      passwordHash: null,
+    });
+  }
+
   private cacheUser(user: User): void {
     if (this.isLoginLocked(user)) {
       this.invalidateUserCache(user.id);
@@ -432,5 +617,34 @@ export class UsersService implements OnModuleInit {
 
   private invalidateUserCache(userId: string): void {
     this.userCache.delete(userId);
+  }
+
+  private encodeUserCursor(user: User): string {
+    return Buffer.from(
+      JSON.stringify({
+        createdAt: user.createdAt.toISOString(),
+        id: user.id,
+      }),
+    ).toString('base64url');
+  }
+
+  private decodeUserCursor(
+    cursor?: string,
+  ): { createdAt: Date; id: string } | null {
+    if (!cursor) return null;
+
+    try {
+      const parsed = JSON.parse(
+        Buffer.from(cursor, 'base64url').toString('utf8'),
+      ) as { createdAt?: string; id?: string };
+      if (!parsed.createdAt || !parsed.id) return null;
+
+      const createdAt = new Date(parsed.createdAt);
+      if (Number.isNaN(createdAt.getTime())) return null;
+
+      return { createdAt, id: parsed.id };
+    } catch {
+      return null;
+    }
   }
 }

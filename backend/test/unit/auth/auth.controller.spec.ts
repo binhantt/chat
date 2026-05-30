@@ -9,12 +9,14 @@ describe('AuthController', () => {
     emailLogin: jest.Mock;
     refreshAccessToken: jest.Mock;
     adminEmailLogin: jest.Mock;
+    logout: jest.Mock;
   };
   let authCookieService: {
     setAuthCookies: jest.Mock;
     getRefreshToken: jest.Mock;
     setAccessToken: jest.Mock;
     setCsrfToken: jest.Mock;
+    clearAuthCookies: jest.Mock;
   };
   let response: { cookie: jest.Mock };
 
@@ -24,12 +26,14 @@ describe('AuthController', () => {
       emailLogin: jest.fn(),
       refreshAccessToken: jest.fn(),
       adminEmailLogin: jest.fn(),
+      logout: jest.fn(),
     };
     authCookieService = {
       setAuthCookies: jest.fn(),
       getRefreshToken: jest.fn(),
       setAccessToken: jest.fn(),
       setCsrfToken: jest.fn(),
+      clearAuthCookies: jest.fn(),
     };
     response = { cookie: jest.fn() };
   });
@@ -79,6 +83,24 @@ describe('AuthController', () => {
       'new-access',
     );
     expect(authCookieService.setCsrfToken).toHaveBeenCalledWith(response);
+  });
+
+  it('revokes refresh token and clears cookies on logout', async () => {
+    authCookieService.getRefreshToken.mockReturnValue('refresh');
+    authService.logout.mockReturnValue({ success: true });
+    const controller = new AuthController(
+      authService as never,
+      authCookieService as never,
+    );
+
+    expect(
+      controller.logout(
+        { headers: { cookie: 'refresh_token=refresh' } } as never,
+        response as never,
+      ),
+    ).toEqual({ success: true });
+    expect(authService.logout).toHaveBeenCalledWith('refresh');
+    expect(authCookieService.clearAuthCookies).toHaveBeenCalledWith(response);
   });
 
   it('sets cookies after admin login', async () => {

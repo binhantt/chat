@@ -13,6 +13,12 @@ export interface ConductCheckResult {
   rule?: ConductRule;
 }
 
+export interface ConductRulePage {
+  items: ConductRule[];
+  limit: number;
+  nextCursor: string | null;
+}
+
 @Injectable()
 export class ConductService implements OnModuleInit {
   private readonly defaultRules = ['lừa đảo', 'đe dọa', 'quấy rối', 'spam'];
@@ -46,10 +52,40 @@ export class ConductService implements OnModuleInit {
     await this.refreshActiveRuleCache();
   }
 
-  findAll(): Promise<ConductRule[]> {
-    return this.conductRuleRepository.find({
-      order: { createdAt: 'DESC' },
-    });
+  async findAll({
+    cursor,
+    limit = 20,
+  }: {
+    cursor?: string;
+    limit?: number;
+  } = {}): Promise<ConductRulePage> {
+    const safeLimit = Math.min(Math.max(limit || 20, 1), 100);
+    const query = this.conductRuleRepository
+      .createQueryBuilder('rule')
+      .orderBy('rule.createdAt', 'DESC')
+      .addOrderBy('rule.id', 'DESC')
+      .take(safeLimit + 1);
+
+    const decodedCursor = this.decodeCursor(cursor);
+    if (decodedCursor) {
+      query.where(
+        '(rule.createdAt < :createdAt OR (rule.createdAt = :createdAt AND rule.id < :id))',
+        decodedCursor,
+      );
+    }
+
+    const rows = await query.getMany();
+    const items = rows.slice(0, safeLimit);
+    const nextCursor =
+      rows.length > safeLimit
+        ? this.encodeCursor(items[items.length - 1])
+        : null;
+
+    return {
+      items,
+      limit: safeLimit,
+      nextCursor,
+    };
   }
 
   async create(phrase: string, note?: string): Promise<ConductRule> {
@@ -135,9 +171,10 @@ export class ConductService implements OnModuleInit {
   }
 
   private async refreshActiveRuleCache(): Promise<void> {
-    const rules = await this.conductRuleRepository.find({
-      where: { isActive: true },
-    });
+    const rules =
+      (await this.conductRuleRepository.find({
+        where: { isActive: true },
+      })) ?? [];
 
     this.activeRuleCache = rules
       .map((rule) => ({
@@ -159,5 +196,34 @@ export class ConductService implements OnModuleInit {
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
+  }
+
+  private encodeCursor(rule: ConductRule): string {
+    return Buffer.from(
+      JSON.stringify({
+        createdAt: rule.createdAt.toISOString(),
+        id: rule.id,
+      }),
+    ).toString('base64url');
+  }
+
+  private decodeCursor(
+    cursor?: string,
+  ): { createdAt: Date; id: string } | null {
+    if (!cursor) return null;
+
+    try {
+      const parsed = JSON.parse(
+        Buffer.from(cursor, 'base64url').toString('utf8'),
+      ) as { createdAt?: string; id?: string };
+      if (!parsed.createdAt || !parsed.id) return null;
+
+      const createdAt = new Date(parsed.createdAt);
+      if (Number.isNaN(createdAt.getTime())) return null;
+
+      return { createdAt, id: parsed.id };
+    } catch {
+      return null;
+    }
   }
 }

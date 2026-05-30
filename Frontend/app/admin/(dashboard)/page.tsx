@@ -1,5 +1,7 @@
-import { DashboardPage } from "@/features/admin/pages";
+﻿import { DashboardPage } from "@/features/admin/page/DashboardPage";
 
-export default function AdminDashboardRoute() {
+export const dynamic = "force-dynamic";
+
+export default async function AdminDashboardRoute() {
   return <DashboardPage />;
 }

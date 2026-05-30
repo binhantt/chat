@@ -1,5 +1,3 @@
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-
 async function fetchWithCookie(url: string, options: RequestInit = {}) {
   const request = () => fetch(url, {
     ...options,
@@ -12,7 +10,7 @@ async function fetchWithCookie(url: string, options: RequestInit = {}) {
 
   let response = await request();
 
-  if (response.status === 401 || response.status === 403) {
+  if (response.status === 401 && (await isAccessTokenResponse(response))) {
     const refresh = await fetch('/api/v1/auth/refresh', {
       method: 'POST',
       credentials: 'include',
@@ -29,6 +27,13 @@ async function fetchWithCookie(url: string, options: RequestInit = {}) {
   return response;
 }
 
+async function isAccessTokenResponse(response: Response): Promise<boolean> {
+  const data = (await response.clone().json().catch(() => null)) as { message?: string } | null;
+  const message = data?.message?.toLowerCase() ?? "";
+
+  return message.includes("access token");
+}
+
 // ============ CHAT API ============
 
 export async function getConversations(limit = 20, offset = 0) {
@@ -36,13 +41,13 @@ export async function getConversations(limit = 20, offset = 0) {
     `/api/v1/chat/conversations?limit=${limit}&offset=${offset}`,
     { method: 'GET' },
   );
-  if (!res.ok) throw new Error('Không thể lấy danh sách cuộc trò chuyện');
+  if (!res.ok) throw new Error('Cannot fetch conversations');
   return res.json();
 }
 
 export async function getConversation(id: string) {
   const res = await fetchWithCookie(`/api/v1/chat/conversations/${id}`, { method: 'GET' });
-  if (!res.ok) throw new Error('Không thể lấy thông tin cuộc trò chuyện');
+  if (!res.ok) throw new Error('Cannot fetch conversation info');
   return res.json();
 }
 
@@ -51,7 +56,7 @@ export async function getMessages(conversationId: string, limit = 50, offset = 0
     `/api/v1/chat/conversations/${conversationId}/messages?limit=${limit}&offset=${offset}`,
     { method: 'GET' }
   );
-  if (!res.ok) throw new Error('Không thể lấy tin nhắn');
+  if (!res.ok) throw new Error('Cannot fetch messages');
   return res.json();
 }
 
@@ -60,7 +65,7 @@ export async function sendMessage(conversationId: string, content: string) {
     method: 'POST',
     body: JSON.stringify({ content }),
   });
-  if (!res.ok) throw new Error('Không thể gửi tin nhắn');
+  if (!res.ok) throw new Error('Cannot send message');
   return res.json();
 }
 
@@ -68,7 +73,7 @@ export async function markAsRead(conversationId: string) {
   const res = await fetchWithCookie(`/api/v1/chat/conversations/${conversationId}/read`, {
     method: 'PATCH',
   });
-  if (!res.ok) throw new Error('Không thể đánh dấu đã đọc');
+  if (!res.ok) throw new Error('Cannot mark as read');
   return res.json();
 }
 
@@ -76,7 +81,7 @@ export async function blockConversation(conversationId: string) {
   const res = await fetchWithCookie(`/api/v1/chat/conversations/${conversationId}/block`, {
     method: 'PATCH',
   });
-  if (!res.ok) throw new Error('Không thể chặn cuộc trò chuyện');
+  if (!res.ok) throw new Error('Cannot block conversation');
   return res.json();
 }
 
@@ -84,7 +89,7 @@ export async function endConversation(conversationId: string) {
   const res = await fetchWithCookie(`/api/v1/chat/conversations/${conversationId}/end`, {
     method: 'PATCH',
   });
-  if (!res.ok) throw new Error('Không thể kết thúc cuộc trò chuyện');
+  if (!res.ok) throw new Error('Cannot end conversation');
   return res.json();
 }
 
@@ -92,19 +97,19 @@ export async function endConversation(conversationId: string) {
 
 export async function joinMatchQueue() {
   const res = await fetchWithCookie('/api/v1/match', { method: 'POST' });
-  if (!res.ok) throw new Error('Không thể tham gia hàng đợi');
+  if (!res.ok) throw new Error('Cannot join queue');
   return res.json();
 }
 
 export async function leaveMatchQueue() {
   const res = await fetchWithCookie('/api/v1/match', { method: 'DELETE' });
-  if (!res.ok) throw new Error('Không thể rời hàng đợi');
+  if (!res.ok) throw new Error('Cannot leave queue');
   return res.json();
 }
 
 export async function getMatchStatus() {
   const res = await fetchWithCookie('/api/v1/match', { method: 'GET' });
-  if (!res.ok) throw new Error('Không thể lấy trạng thái tìm kiếm');
+  if (!res.ok) throw new Error('Cannot fetch search status');
   return res.json();
 }
 

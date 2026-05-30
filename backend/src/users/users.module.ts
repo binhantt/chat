@@ -5,6 +5,7 @@ import { AuthTokenService } from '../auth/services/auth-token.service';
 import { AbacGuard } from '../auth/guards/abac.guard';
 import { DemoAuthGuard } from '../auth/guards/demo-auth.guard';
 import { User } from './entities/user.entity';
+import { AdminSystemController } from './admin-system.controller';
 import { AdminUserController, UserController } from './user.controller';
 import { PasswordService } from './services/password.service';
 import { UserFactoryService } from './services/user-factory.service';
@@ -13,7 +14,7 @@ import { UserRepository } from './repositories/user.repository';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User])],
-  controllers: [UserController, AdminUserController],
+  controllers: [UserController, AdminUserController, AdminSystemController],
   providers: [
     UsersService,
     PasswordService,

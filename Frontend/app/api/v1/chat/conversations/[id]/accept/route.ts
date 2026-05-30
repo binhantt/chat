@@ -58,7 +58,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error("Error accepting conversation:", error);
     return NextResponse.json(
-      { message: "Khong the xac nhan cuoc tro chuyen" },
+      { message: "Cannot accept conversation" },
       { status: 500 },
     );
   }

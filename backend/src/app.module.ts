@@ -9,6 +9,7 @@ import { ChatModule } from './chat/chat.module';
 import { MatchModule } from './match/match.module';
 import { ReportModule } from './report/report.module';
 import { ConductModule } from './conduct/conduct.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { createPostgresConfig } from './database/postgres.config';
 import { PerformanceIndexService } from './database/performance-index.service';
 
@@ -22,6 +23,7 @@ import { PerformanceIndexService } from './database/performance-index.service';
     MatchModule,
     ReportModule,
     ConductModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PerformanceIndexService],

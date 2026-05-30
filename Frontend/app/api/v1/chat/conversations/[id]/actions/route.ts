@@ -27,7 +27,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: "Không thể đánh dấu đã đọc" },
+        { message: "Cannot mark as read" },
         { status: res.status },
       );
     }
@@ -37,7 +37,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error("Error marking as read:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi đánh dấu đã đọc" },
+      { message: "An error occurred while marking as read" },
       { status: 500 },
     );
   }
@@ -61,7 +61,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: "Không thể chặn cuộc trò chuyện" },
+        { message: "Cannot block conversation" },
         { status: res.status },
       );
     }
@@ -71,7 +71,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error("Error blocking conversation:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi chặn cuộc trò chuyện" },
+      { message: "An error occurred while blocking conversation" },
       { status: 500 },
     );
   }
@@ -95,7 +95,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: "Không thể kết thúc cuộc trò chuyện" },
+        { message: "Cannot end conversation" },
         { status: res.status },
       );
     }
@@ -105,7 +105,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error("Error ending conversation:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi kết thúc cuộc trò chuyện" },
+      { message: "An error occurred while ending conversation" },
       { status: 500 },
     );
   }

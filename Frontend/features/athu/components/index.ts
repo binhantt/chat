@@ -1,3 +1,11 @@
+export { AuthBenefits } from "./AuthBenefits";
+export { AuthBrand } from "./AuthBrand";
+export { AuthCopy } from "./AuthCopy";
+export { AuthError } from "./AuthError";
+export { AuthPanel } from "./AuthPanel";
+export { AuthShell } from "./AuthShell";
+export { AuthTerms } from "./AuthTerms";
+export { AuthVisual } from "./AuthVisual";
 export { GoogleButton } from "./GoogleButton";
-export { Logo } from "./Logo";
-export {   LeftDecor, RightDecor } from "./PageDecorations";
+export { GoogleButtonSlot } from "./GoogleButtonSlot";
+export { GoogleLoadingButton } from "./GoogleLoadingButton";

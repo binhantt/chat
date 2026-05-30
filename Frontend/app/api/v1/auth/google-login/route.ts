@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi đăng nhập" },
+      { message: "An error occurred during login" },
       { status: 500 },
     );
   }

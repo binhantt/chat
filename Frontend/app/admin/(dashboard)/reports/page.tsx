@@ -1,4 +1,4 @@
-import { ReportsPage } from "@/features/admin/pages/ReportsPage";
+﻿import { ReportsPage } from "@/features/admin/page/ReportsPage";
 
 export default function ReportsRoutePage() {
   return <ReportsPage />;

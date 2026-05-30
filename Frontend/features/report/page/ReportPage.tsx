@@ -1,64 +1,89 @@
 "use client";
 
-import { Flex, Text, Box, Tabs } from "@radix-ui/themes";
-import { ReportForm, ReportHistory, AdminReportManagement } from "../components";
-import { useTheme } from "@/contexts/ThemeContext";
+import { Box, Flex, Spinner, Tabs, Text } from "@radix-ui/themes";
+import {
+  ExclamationTriangleIcon,
+  FileTextIcon,
+  LockClosedIcon,
+} from "@radix-ui/react-icons";
 import { useAuth } from "@/contexts/AuthContext";
+import { authTheme } from "@/features/athu/styles/authTheme";
+import {
+  FeatureTile,
+  UserHero,
+  UserPageShell,
+  UserPanel,
+} from "@/features/user-layout/components";
+import { ReportForm, ReportHistory } from "../components";
 
 export function ReportPage() {
-  const { theme } = useTheme();
-  const { user, loading } = useAuth();
-  const isDark = theme === "dark";
+  const { loading } = useAuth();
 
   if (loading) {
     return (
-      <Box
-        style={{
-          flex: 1,
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          background: isDark ? "#0f172a" : "var(--gray-1)",
-        }}
-      >
-        <Text size="3">Đang tải...</Text>
-      </Box>
+      <UserPageShell>
+        <Flex align="center" gap="3" justify="center" style={{ minHeight: 320 }}>
+          <Spinner />
+          <Text style={{ color: authTheme.muted }}>Đang tải...</Text>
+        </Flex>
+      </UserPageShell>
     );
   }
 
   return (
-    <Box style={{ flex: 1, padding: "24px", background: isDark ? "#0f172a" : "var(--gray-1)" }}>
-      <Flex direction="column" gap="6" style={{ maxWidth: 1200, margin: "0 auto" }}>
+    <UserPageShell>
+      <UserHero
+        badge="Báo cáo và an toàn"
+        description="Gửi báo cáo khi gặp hành vi không phù hợp để giữ trải nghiệm trò chuyện an toàn."
+        icon={<ExclamationTriangleIcon />}
+        title="Công cụ bảo vệ cộng đồng Người Lạ."
+      >
+        <UserPanel maxWidth={340}>
+          <Flex direction="column" gap="3">
+            <FeatureTile
+              description="Chỉ báo cáo người bạn đã từng trò chuyện."
+              icon={<LockClosedIcon height={22} width={22} />}
+              title="Đúng ngữ cảnh"
+              tone="cyan"
+            />
+            <FeatureTile
+              description="Theo dõi trạng thái xử lý báo cáo của bạn."
+              icon={<FileTextIcon height={22} width={22} />}
+              title="Minh bạch"
+              tone="blue"
+            />
+          </Flex>
+        </UserPanel>
+      </UserHero>
 
-        <Flex direction="column" gap="1">
-          <Text size="6" weight="bold" color="indigo">Báo cáo</Text>
-          <Text size="2" color="gray">
-            {user?.role === 'admin'
-              ? "Quản lý báo cáo và xem xét các vấn đề"
-              : "Gửi báo cáo vấn đề hoặc phản hồi"}
-          </Text>
-        </Flex>
-
+      <UserPanel>
         <Tabs.Root defaultValue="user-reports" style={{ width: "100%" }}>
-          <Tabs.List style={{ marginBottom: "24px" }}>
+          <Tabs.List style={{ marginBottom: 20 }}>
             <Tabs.Trigger value="user-reports">Báo cáo của tôi</Tabs.Trigger>
-            {user?.role === 'admin' && (
-              <Tabs.Trigger value="admin-management">Quản lý báo cáo</Tabs.Trigger>
-            )}
           </Tabs.List>
 
           <Tabs.Content value="user-reports" style={{ width: "100%" }}>
-            <ReportForm />
-            <ReportHistory />
+            <Flex direction="column" gap="4">
+              <Box
+                style={{
+                  background: "rgba(255, 255, 255, 0.66)",
+                  borderRadius: 8,
+                }}
+              >
+                <ReportForm />
+              </Box>
+              <Box
+                style={{
+                  background: "rgba(255, 255, 255, 0.66)",
+                  borderRadius: 8,
+                }}
+              >
+                <ReportHistory />
+              </Box>
+            </Flex>
           </Tabs.Content>
-
-          {user?.role === 'admin' && (
-            <Tabs.Content value="admin-management" style={{ width: "100%" }}>
-              <AdminReportManagement />
-            </Tabs.Content>
-          )}
         </Tabs.Root>
-      </Flex>
-    </Box>
+      </UserPanel>
+    </UserPageShell>
   );
 }

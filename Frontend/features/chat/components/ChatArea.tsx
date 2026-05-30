@@ -73,12 +73,12 @@ interface ChatAreaProps {
 }
 
 export function ChatArea({
-  selectedUser,
   matchedUser,
   conversationId,
   onBack,
 }: ChatAreaProps) {
   const { user } = useAuth();
+  const userId = user?.id;
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [messages, setMessages] = useState<Message[]>([]);
@@ -89,10 +89,10 @@ export function ChatArea({
   const [otherTyping, setOtherTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [conversationEnded, setConversationEnded] = useState(false);
   const [resolvedUser, setResolvedUser] = useState<MatchedUser | null>(
     matchedUser ?? null,
   );
-  const [chatReady, setChatReady] = useState(false);
   const [currentUserAccepted, setCurrentUserAccepted] = useState(false);
   const [accepting, setAccepting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -110,7 +110,7 @@ export function ChatArea({
     "👍",
     "👏",
     "🙏",
-    "❤️",
+    "❤",
     "🔥",
     "✨",
     "🎉",
@@ -119,7 +119,8 @@ export function ChatArea({
   ];
 
   const otherUser = resolvedUser ?? matchedUser;
-  const visibleUser = chatReady
+  const canViewProfile = currentUserAccepted;
+  const visibleUser = canViewProfile
     ? otherUser
     : otherUser
       ? {
@@ -168,9 +169,9 @@ export function ChatArea({
     yesterday.setDate(yesterday.getDate() - 1);
 
     if (date.toDateString() === today.toDateString()) {
-      return "Hôm nay";
+      return "Hom nay";
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return "Hôm qua";
+      return "Hom qua";
     } else {
       return date.toLocaleDateString("vi-VN", {
         day: "numeric",
@@ -192,7 +193,7 @@ export function ChatArea({
   };
 
   const fetchConversationUser = useCallback(async () => {
-    if (!conversationId || !user?.id) {
+    if (!conversationId || !userId) {
       setResolvedUser(matchedUser ?? null);
       return;
     }
@@ -204,93 +205,85 @@ export function ChatArea({
 
       if (!res.ok) {
         if (res.status === 403 || res.status === 404) {
-          onBack?.();
+          setConversationEnded(true);
         }
         return;
       }
 
       const conversation = (await res.json()) as ConversationDetail;
-      const isUser1 = conversation.user1Id === user.id;
+      const isUser1 = conversation.user1Id === userId;
       const partner = isUser1 ? conversation.user2 : conversation.user1;
       const partnerId = isUser1 ? conversation.user2Id : conversation.user1Id;
-      const chatReady =
-        conversation.user1Accepted === true &&
-        conversation.user2Accepted === true;
-      const currentUserAccepted = isUser1
+      const nextCurrentUserAccepted = isUser1
         ? conversation.user1Accepted === true
         : conversation.user2Accepted === true;
+      const canViewProfile = nextCurrentUserAccepted;
 
-      setChatReady(chatReady);
-      setCurrentUserAccepted(currentUserAccepted);
+      setCurrentUserAccepted(nextCurrentUserAccepted);
       setResolvedUser({
         id: partner?.id || partnerId,
-        email: chatReady ? partner?.email || "" : "",
-        fullName: chatReady ? partner?.fullName || null : null,
-        avatarUrl: chatReady ? partner?.avatarUrl || null : null,
-        gender: chatReady ? partner?.gender || null : null,
-        city: chatReady ? partner?.city || matchedUser?.city || null : null,
-        dateOfBirth: chatReady ? partner?.dateOfBirth || null : null,
-        phoneNumber: chatReady ? partner?.phoneNumber || null : null,
-        bio: chatReady ? partner?.bio || null : null,
+        email: canViewProfile ? partner?.email || "" : "",
+        fullName: canViewProfile ? partner?.fullName || null : null,
+        avatarUrl: canViewProfile ? partner?.avatarUrl || null : null,
+        gender: canViewProfile ? partner?.gender || null : null,
+        city: canViewProfile ? partner?.city || matchedUser?.city || null : null,
+        dateOfBirth: canViewProfile ? partner?.dateOfBirth || null : null,
+        phoneNumber: canViewProfile ? partner?.phoneNumber || null : null,
+        bio: canViewProfile ? partner?.bio || null : null,
       });
     } catch (error) {
       console.error("Error fetching conversation user:", error);
     }
-  }, [conversationId, matchedUser, onBack, user?.id]);
+  }, [conversationId, matchedUser, userId]);
 
   const fetchMessages = useCallback(
-    async (retryCount = 0) => {
+    async () => {
       if (!conversationId) {
         onBack?.();
         return;
       }
 
-      setLoadError(null);
-      try {
-        const res = await fetch(
-          `/api/v1/chat/conversations/${conversationId}/messages`,
-          {
-            credentials: "include",
-            signal: AbortSignal.timeout(8000),
-          },
-        );
+      for (let attempt = 0; attempt < 4; attempt += 1) {
+        setLoadError(null);
+        try {
+          const res = await fetch(
+            `/api/v1/chat/conversations/${conversationId}/messages`,
+            {
+              credentials: "include",
+              signal: AbortSignal.timeout(8000),
+            },
+          );
 
-        if (res.ok) {
-          const data = await res.json();
-          setMessages(Array.isArray(data) ? data.reverse() : []);
-          setLoading(false);
-          setLoadError(null);
-          return;
-        }
+          if (res.ok) {
+            const data = await res.json();
+            setMessages(Array.isArray(data) ? data.reverse() : []);
+            setLoading(false);
+            setLoadError(null);
+            return;
+          }
 
         if (res.status === 403 || res.status === 404) {
+          setConversationEnded(true);
           setLoading(false);
-          onBack?.();
           return;
         }
-
-        if (retryCount < 3) {
-          await new Promise((r) => setTimeout(r, 1000));
-          fetchMessages(retryCount + 1);
-        } else {
-          setLoadError("Khong tai duoc tin nhan. Kiem tra ket noi va thu lai.");
-          setLoading(false);
+        } catch {
+          // Retry below.
         }
-      } catch {
-        if (retryCount < 3) {
-          await new Promise((r) => setTimeout(r, 1500));
-          fetchMessages(retryCount + 1);
-        } else {
-          setLoadError("Loi mang khi tai tin nhan. Vui long thu lai.");
-          setLoading(false);
+
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 1200));
         }
       }
+
+      setLoadError("Không tải được tin nhắn. Kiểm tra kết nối và thử lại.");
+      setLoading(false);
     },
     [conversationId, onBack],
   );
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !conversationId || sending) return;
+    if (!newMessage.trim() || !conversationId || sending || conversationEnded) return;
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
@@ -315,6 +308,9 @@ export function ChatArea({
         setNewMessage("");
       } else {
         const error = await res.json();
+        if (res.status === 403 || res.status === 404) {
+          setConversationEnded(true);
+        }
         setSendError(error.message || "Không thể gửi tin nhắn");
       }
     } catch (error) {
@@ -328,6 +324,7 @@ export function ChatArea({
   const sendTypingState = useCallback(
     async (isTyping: boolean) => {
       if (!conversationId) return;
+      if (conversationEnded) return;
 
       try {
         await fetch(`/api/v1/chat/conversations/${conversationId}/typing`, {
@@ -340,7 +337,7 @@ export function ChatArea({
         // Typing is a soft realtime signal, so failed requests should not block chat.
       }
     },
-    [conversationId],
+    [conversationEnded, conversationId],
   );
 
   const leaveCurrentMatch = useCallback(async () => {
@@ -368,22 +365,16 @@ export function ChatArea({
 
       if (!res.ok) {
         const error = await res.json().catch(() => null);
-        setSendError(error?.message || "Khong the thich cuoc tro chuyen");
+        setSendError(error?.message || "Không thể thích cuộc trò chuyện");
         return;
       }
 
-      const conversation = (await res.json()) as ConversationDetail;
-      const ready =
-        conversation.user1Accepted === true &&
-        conversation.user2Accepted === true;
+      await res.json().catch(() => null);
       setCurrentUserAccepted(true);
-      setChatReady(ready);
-      if (ready) {
-        await fetchConversationUser();
-      }
+      await fetchConversationUser();
     } catch (error) {
       console.error("Error accepting conversation:", error);
-      setSendError("Khong the thich cuoc tro chuyen");
+      setSendError("Không thể thích cuộc trò chuyện");
     } finally {
       setAccepting(false);
     }
@@ -392,6 +383,7 @@ export function ChatArea({
   const handleMessageChange = (value: string) => {
     setNewMessage(value);
     setSendError(null);
+    if (conversationEnded) return;
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
@@ -404,7 +396,7 @@ export function ChatArea({
       return;
     }
 
-    const now = Date.now();
+    const now = getTimestamp();
     if (now - lastTypingSentRef.current > 1200) {
       lastTypingSentRef.current = now;
       void sendTypingState(true);
@@ -427,7 +419,7 @@ export function ChatArea({
       return;
     }
 
-    const confirmed = window.confirm("Bạn có muốn thoát cuộc trò chuyện?");
+    const confirmed = window.confirm("Ban co muon thoat cuoc tro chuyen?");
     if (!confirmed) return;
 
     try {
@@ -459,9 +451,12 @@ export function ChatArea({
   };
 
   useEffect(() => {
-    setLoading(true);
-    setLoadError(null);
-    fetchMessages();
+    queueMicrotask(() => {
+      setConversationEnded(false);
+      setLoading(true);
+      setLoadError(null);
+      void fetchMessages();
+    });
   }, [conversationId, fetchMessages]);
 
   useEffect(() => {
@@ -481,7 +476,7 @@ export function ChatArea({
         if (payload?.type === "typing") {
           if (
             payload.conversationId === conversationId &&
-            payload.userId !== user?.id
+            payload.userId !== userId
           ) {
             setOtherTyping(payload.isTyping === true);
           }
@@ -491,21 +486,20 @@ export function ChatArea({
         if (payload?.type === "conversation.ended") {
           if (payload.conversationId === conversationId) {
             setOtherTyping(false);
-            if (payload.endedByUserId !== user?.id) {
-              window.alert("Người kia đã thoát cuộc trò chuyện");
+            setConversationEnded(true);
+            if (payload.endedByUserId !== userId) {
+              window.alert("Nguoi kia da thoat cuoc tro chuyen");
             }
-            onBack?.();
           }
           return;
         }
 
         if (payload?.type === "conversation.accepted") {
           if (payload.conversationId === conversationId) {
-            if (payload.acceptedByUserId === user?.id) {
+            if (payload.acceptedByUserId === userId) {
               setCurrentUserAccepted(true);
             }
             if (payload.chatReady === true) {
-              setChatReady(true);
               void fetchConversationUser();
             }
           }
@@ -541,7 +535,7 @@ export function ChatArea({
         eventSourceRef.current = null;
       }
     };
-  }, [conversationId, fetchConversationUser, onBack, user?.id]);
+  }, [conversationId, fetchConversationUser, onBack, userId]);
 
   useEffect(() => {
     return () => {
@@ -553,7 +547,9 @@ export function ChatArea({
   }, []);
 
   useEffect(() => {
-    void fetchConversationUser();
+    queueMicrotask(() => {
+      void fetchConversationUser();
+    });
   }, [fetchConversationUser]);
 
   useEffect(() => {
@@ -575,7 +571,14 @@ export function ChatArea({
   return (
     <Flex
       direction="column"
-      style={{ height: "100%", minHeight: 0, background: bgPrimary }}
+      style={{
+        height: "100%",
+        maxHeight: "100%",
+        minHeight: 0,
+        minWidth: 0,
+        overflow: "hidden",
+        background: bgPrimary,
+      }}
     >
       {/* Header */}
       <Flex
@@ -607,7 +610,7 @@ export function ChatArea({
             </svg>
           </button>
         )}
-        {chatReady && visibleUser ? (
+        {canViewProfile && visibleUser ? (
           <ProfileDialog
             user={visibleUser}
             accentColor={accentColor}
@@ -635,9 +638,9 @@ export function ChatArea({
               visibleUser?.email ||
               "Nguoi tro chuyen an danh"}
           </Text>
-          {!chatReady && (
+          {!canViewProfile && (
             <Text size="2" style={{ color: textSecondary }}>
-              An danh den khi ca hai cung thich
+              Bam Thich de xem ten va ho so
             </Text>
           )}
           {visibleUser?.city && (
@@ -647,7 +650,7 @@ export function ChatArea({
           )}
           {otherTyping && (
             <Text size="2" style={{ color: accentColor }}>
-              Đang nhập...
+              Đang nhập tin nhắn...
             </Text>
           )}
         </Flex>
@@ -662,7 +665,7 @@ export function ChatArea({
             recentPartners={[]}
           />
         )}
-        {chatReady && visibleUser && (
+        {canViewProfile && visibleUser && (
           <ProfileDialog
             user={visibleUser}
             accentColor={accentColor}
@@ -682,11 +685,11 @@ export function ChatArea({
             </button>
           </ProfileDialog>
         )}
-        {!chatReady && (
+        {!canViewProfile && (
           <button
             onClick={handleAcceptConversation}
             disabled={currentUserAccepted || accepting}
-            title="Thich de hien ten va vi tri khi ca hai cung thich"
+            title="Thích để xem hồ sơ người đang trò chuyện"
             aria-label="Thich"
             className="chat-primary-button"
             style={{
@@ -704,14 +707,14 @@ export function ChatArea({
               flexShrink: 0,
             }}
           >
-            {currentUserAccepted ? "Da thich" : accepting ? "..." : "Thich"}
+            {currentUserAccepted ? "Đã thích" : accepting ? "..." : "Thích"}
           </button>
         )}
         <button
           onClick={handleEndConversation}
           className="chat-danger-button"
-          title="Thoát cuộc trò chuyện"
-          aria-label="Thoát cuộc trò chuyện"
+          title="Thoat cuoc tro chuyen"
+          aria-label="Thoat cuoc tro chuyen"
           style={{
             width: 36,
             height: 36,
@@ -739,12 +742,26 @@ export function ChatArea({
       </Flex>
 
       {/* Messages */}
-      <ScrollArea style={{ flex: 1, minHeight: 0 }}>
+      <ScrollArea
+        type="auto"
+        scrollbars="vertical"
+        style={{
+          flex: "1 1 auto",
+          minHeight: 0,
+          minWidth: 0,
+          overflow: "hidden",
+        }}
+      >
         <Flex
           direction="column"
           gap="4"
           p="4"
-          style={{ background: bgPrimary, minHeight: "100%" }}
+          style={{
+            background: bgPrimary,
+            minHeight: "100%",
+            minWidth: 0,
+            overflowWrap: "anywhere",
+          }}
         >
           {loading ? (
             <Flex
@@ -819,7 +836,7 @@ export function ChatArea({
                 weight="medium"
                 style={{ color: textSecondary, textAlign: "center" }}
               >
-                Bắt đầu cuộc trò chuyện với
+                Bat dau cuoc tro chuyen voi
               </Text>
               <Text size="4" weight="bold" style={{ color: textPrimary }}>
                 {visibleUser?.fullName ||
@@ -850,7 +867,7 @@ export function ChatArea({
                     </Flex>
 
                     {dateMessages.map((msg) => {
-                      const isMe = msg.senderId === user?.id;
+                      const isMe = msg.senderId === userId;
                       return (
                         <Flex
                           key={msg.id}
@@ -859,6 +876,7 @@ export function ChatArea({
                           style={{
                             maxWidth: "75%",
                             marginLeft: isMe ? "auto" : "0",
+                            minWidth: 0,
                           }}
                         >
                           {!isMe && (
@@ -883,6 +901,8 @@ export function ChatArea({
                               borderRadius: "18px",
                               background: isMe ? bgMessageMe : bgMessageOther,
                               color: isMe ? textOnPrimary : textPrimary,
+                              maxWidth: "100%",
+                              overflowWrap: "anywhere",
                               boxShadow: isMe
                                 ? "0 4px 20px rgba(99, 102, 241, 0.3)"
                                 : "0 2px 10px rgba(0,0,0,0.05)",
@@ -912,6 +932,39 @@ export function ChatArea({
                   </Flex>
                 ),
               )}
+              {otherTyping && (
+                <Flex justify="start" gap="2" style={{ maxWidth: "75%", minWidth: 0 }}>
+                  <Avatar
+                    size="1"
+                    radius="full"
+                    src={visibleUser?.avatarUrl || undefined}
+                    fallback={getUserInitials(
+                      visibleUser?.fullName,
+                      visibleUser?.email || "??",
+                    )}
+                    style={{
+                      background: accentColor,
+                      color: "white",
+                      alignSelf: "flex-end",
+                    }}
+                  />
+                  <Box
+                    p="3"
+                    style={{
+                      background: bgMessageOther,
+                      borderRadius: "18px",
+                      borderBottomLeftRadius: 6,
+                      color: textSecondary,
+                      maxWidth: "100%",
+                    }}
+                  >
+                    <Flex align="center" gap="2">
+                      <TypingDots color={accentColor} />
+                      <Text size="2">Đang nhập dữ liệu...</Text>
+                    </Flex>
+                  </Box>
+                </Flex>
+              )}
             </>
           )}
           <div ref={messagesEndRef} />
@@ -928,9 +981,29 @@ export function ChatArea({
         style={{
           borderTop: `1px solid ${borderColor}`,
           background: bgSecondary,
+          flexShrink: 0,
           position: "relative",
         }}
       >
+        {conversationEnded && (
+          <Text
+            size="2"
+            style={{
+              position: "absolute",
+              left: 24,
+              right: 24,
+              bottom: 72,
+              color: "#92400e",
+              background: isDark ? "rgba(120, 53, 15, 0.92)" : "#fef3c7",
+              border: `1px solid ${isDark ? "rgba(251, 191, 36, 0.35)" : "#fde68a"}`,
+              borderRadius: 10,
+              padding: "8px 12px",
+              zIndex: 16,
+            }}
+          >
+            Cuoc tro chuyen da ket thuc. Ban khong the gui tin nhan nua.
+          </Text>
+        )}
         {sendError && (
           <Text
             size="2"
@@ -951,7 +1024,8 @@ export function ChatArea({
           </Text>
         )}
         <TextField.Root
-          placeholder="Nhập tin nhắn..."
+          disabled={conversationEnded}
+          placeholder={conversationEnded ? "Cuoc tro chuyen da ket thuc" : "Nhap tin nhan..."}
           value={newMessage}
           onChange={(e) => handleMessageChange(e.target.value)}
           onKeyDown={handleKeyDown}
@@ -965,16 +1039,17 @@ export function ChatArea({
         <Box style={{ position: "relative", flexShrink: 0 }}>
           <button
             type="button"
+            disabled={conversationEnded}
             onClick={() => setShowEmojiPicker((current) => !current)}
-            title="Gửi icon"
-            aria-label="Gửi icon"
+            title="Gui icon"
+            aria-label="Gui icon"
             style={{
               width: 44,
               height: 44,
               borderRadius: "50%",
               background: isDark ? "#1f2937" : "#eef2ff",
               border: `1px solid ${borderColor}`,
-              cursor: "pointer",
+              cursor: conversationEnded ? "not-allowed" : "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -1042,24 +1117,24 @@ export function ChatArea({
         </Box>
         <button
           onClick={sendMessage}
-          disabled={!newMessage.trim() || sending}
+          disabled={!newMessage.trim() || sending || conversationEnded}
           style={{
             width: 48,
             height: 48,
             borderRadius: "50%",
             background:
-              newMessage.trim() && !sending
+              newMessage.trim() && !sending && !conversationEnded
                 ? "linear-gradient(135deg, #6366f1, #8b5cf6)"
                 : isDark
                   ? "#374151"
                   : "#e2e8f0",
             border: "none",
-            cursor: newMessage.trim() && !sending ? "pointer" : "not-allowed",
+            cursor: newMessage.trim() && !sending && !conversationEnded ? "pointer" : "not-allowed",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             boxShadow:
-              newMessage.trim() && !sending
+              newMessage.trim() && !sending && !conversationEnded
                 ? "0 4px 16px rgba(99, 102, 241, 0.4)"
                 : "none",
             transition: "all 0.3s ease",
@@ -1118,6 +1193,10 @@ function getCsrfHeaders(): HeadersInit {
         "X-CSRF-Token": decodeURIComponent(csrfToken),
       }
     : {};
+}
+
+function getTimestamp() {
+  return Date.now();
 }
 
 function AvatarButton({
@@ -1182,7 +1261,7 @@ function ProfileDialog({
             />
             <Flex direction="column" gap="1">
               <Text size="5" weight="bold">
-                {user.fullName || user.email || "Nguoi dung"}
+                {user.fullName || user.email || "Người dùng"}
               </Text>
               {user.city && (
                 <Badge color="indigo" variant="soft">
@@ -1193,20 +1272,20 @@ function ProfileDialog({
           </Flex>
 
           <Flex direction="column" gap="2">
-            <ProfileField label="Email" value={user.email || "Chua co"} />
+            <ProfileField label="Email" value={user.email || "Chưa có"} />
             <ProfileField
-              label="Gioi tinh"
-              value={formatGender(user.gender) || "Chua cap nhat"}
+              label="Giới tính"
+              value={formatGender(user.gender) || "Chưa cập nhật"}
             />
-            <ProfileField label="Vi tri" value={user.city || "Chua cap nhat"} />
+            <ProfileField label="Vị trí" value={formatCity(user.city) || "Chưa cập nhật"} />
             {user.dateOfBirth && (
               <ProfileField
-                label="Ngay sinh"
+                label="Ngày sinh"
                 value={new Date(user.dateOfBirth).toLocaleDateString("vi-VN")}
               />
             )}
             {user.phoneNumber && (
-              <ProfileField label="So dien thoai" value={user.phoneNumber} />
+              <ProfileField label="Số điện thoại" value={user.phoneNumber} />
             )}
           </Flex>
 
@@ -1219,10 +1298,10 @@ function ProfileDialog({
             }}
           >
             <Text size="1" style={{ color: textSecondary }}>
-              Gioi thieu
+              Giới thiệu
             </Text>
             <Text size="2" style={{ display: "block", marginTop: 4 }}>
-              {user.bio || "Nguoi nay chua them gioi thieu."}
+              {user.bio || "Người này chưa thêm giới thiệu."}
             </Text>
           </Box>
 
@@ -1239,7 +1318,7 @@ function ProfileDialog({
                   cursor: "pointer",
                 }}
               >
-                Dong
+                Đóng
               </button>
             </Dialog.Close>
           </Flex>
@@ -1260,9 +1339,42 @@ function ProfileField({ label, value }: { label: string; value: string }) {
   );
 }
 
+function TypingDots({ color }: { color: string }) {
+  return (
+    <Flex align="center" gap="1" aria-hidden="true">
+      {[0, 1, 2].map((index) => (
+        <Box
+          key={index}
+          style={{
+            animation: "typing-dot 1s ease-in-out infinite",
+            animationDelay: `${index * 0.16}s`,
+            background: color,
+            borderRadius: "50%",
+            height: 6,
+            opacity: 0.45,
+            width: 6,
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes typing-dot {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
+          40% { transform: translateY(-4px); opacity: 1; }
+        }
+      `}</style>
+    </Flex>
+  );
+}
+
 function formatGender(gender: string | null | undefined): string | null {
   if (gender === "male") return "Nam";
-  if (gender === "female") return "Nu";
-  if (gender === "other") return "Khac";
+  if (gender === "female") return "Nữ";
+  if (gender === "other") return "Khác";
   return null;
+}
+
+function formatCity(city: string | null | undefined): string {
+  if (city === "TP. Ho Chi Minh") return "TP. Hồ Chí Minh";
+  if (city === "Ha Noi") return "Hà Nội";
+  return city || "";
 }

@@ -45,6 +45,19 @@ export class AuthTokenService {
     return this.getSessionUserId(tokenId, session);
   }
 
+  revokeRefreshToken(refreshToken: string | null): void {
+    if (!refreshToken) {
+      return;
+    }
+
+    try {
+      const tokenId = this.verifyRefreshTokenSignature(refreshToken);
+      this.refreshSessions.delete(tokenId);
+    } catch {
+      return;
+    }
+  }
+
   getAccessTokenMaxAge(): number {
     return ACCESS_TOKEN_TTL_MS;
   }

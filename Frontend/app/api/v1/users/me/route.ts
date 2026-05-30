@@ -1,11 +1,23 @@
 import { NextResponse } from "next/server";
-import { buildBackendHeaders } from "@/app/api/_utils/backendHeaders";
+import {
+  applyBackendSetCookies,
+  buildBackendHeaders,
+  buildBackendHeadersFromCookie,
+  isMissingAccessTokenError,
+  refreshBackendSessionCookie,
+} from "@/app/api/_utils/backendHeaders";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
-const authCookies = ["access_token", "refresh_token", "user_id"];
-const ME_CACHE_TTL_MS = 3000;
+const authCookies = ["access_token", "refresh_token", "user_id", "csrf_token"];
+const ME_CACHE_TTL_MS = 60 * 1000;
 const meCache = new Map<string, { data: unknown; status: number; expiresAt: number }>();
-const meInflight = new Map<string, Promise<{ data: unknown; status: number }>>();
+const meInflight = new Map<string, Promise<BackendJsonResult>>();
+
+type BackendJsonResult = {
+  data: unknown;
+  response: Response;
+  status: number;
+};
 
 async function proxyJson(res: Response) {
   const data = await res.json().catch(() => ({}));
@@ -25,11 +37,20 @@ export async function GET(request: Request) {
       ? await getCachedMeResponse(request, cacheKey)
       : await fetchMeFromBackend(request);
 
-    return NextResponse.json(result.data, { status: result.status });
+    const response = NextResponse.json(result.data, { status: result.status });
+    applyBackendSetCookies(response, result.response);
+    if (result.status === 401 && isLockedSessionResponse(result.data)) {
+      clearAuthCookies(response);
+      if (cacheKey) {
+        meCache.delete(cacheKey);
+        meInflight.delete(cacheKey);
+      }
+    }
+    return response;
   } catch (error) {
     console.error("Error fetching user:", error);
     return NextResponse.json(
-      { message: "Khong the lay thong tin nguoi dung" },
+      { message: "Cannot fetch user information" },
       { status: 500 },
     );
   }
@@ -39,25 +60,49 @@ export async function PATCH(request: Request) {
   try {
     const cacheKey = getMeCacheKey(request);
     const body = await request.json().catch(() => ({}));
-    const res = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
-      method: "PATCH",
-      headers: buildBackendHeaders(request, {
-        "Content-Type": "application/json",
-      }),
-      credentials: "include",
-      body: JSON.stringify(body),
+    const payload = JSON.stringify(body);
+    let backendHeaders = buildBackendHeaders(request, {
+      "Content-Type": "application/json",
     });
+    let res = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
+      method: "PATCH",
+      headers: backendHeaders,
+      credentials: "include",
+      body: payload,
+    });
+    let data = await res.json().catch(() => ({}));
+
+    if (res.status === 401 && isMissingAccessTokenError(data)) {
+      const refreshedCookieHeader = await refreshBackendSessionCookie(request, BACKEND_URL);
+      if (refreshedCookieHeader) {
+        backendHeaders = buildBackendHeadersFromCookie(refreshedCookieHeader, {
+          "Content-Type": "application/json",
+        });
+        res = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
+          method: "PATCH",
+          headers: backendHeaders,
+          credentials: "include",
+          body: payload,
+        });
+        data = await res.json().catch(() => ({}));
+      }
+    }
 
     if (cacheKey) {
       meCache.delete(cacheKey);
       meInflight.delete(cacheKey);
     }
 
-    return proxyJson(res);
+    const response = NextResponse.json(data, { status: res.status });
+    applyBackendSetCookies(response, res);
+    if (res.status === 401 && isLockedSessionResponse(data)) {
+      clearAuthCookies(response);
+    }
+    return response;
   } catch (error) {
     console.error("Error updating user:", error);
     return NextResponse.json(
-      { message: "Khong the cap nhat thong tin nguoi dung" },
+      { message: "Cannot update user information" },
       { status: 500 },
     );
   }
@@ -85,21 +130,13 @@ export async function DELETE(request: Request) {
 
     const response = NextResponse.json({ success: true });
 
-    for (const name of authCookies) {
-      response.cookies.set(name, "", {
-        path: "/",
-        maxAge: 0,
-        httpOnly: name !== "user_id",
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-      });
-    }
+    clearAuthCookies(response);
 
     return response;
   } catch (error) {
     console.error("Error deleting account:", error);
     return NextResponse.json(
-      { message: "Khong the xoa tai khoan" },
+      { message: "Cannot delete account" },
       { status: 500 },
     );
   }
@@ -108,7 +145,7 @@ export async function DELETE(request: Request) {
 async function getCachedMeResponse(
   request: Request,
   cacheKey: string,
-): Promise<{ data: unknown; status: number }> {
+): Promise<BackendJsonResult> {
   const existing = meInflight.get(cacheKey);
   if (existing) {
     return existing;
@@ -134,7 +171,7 @@ async function getCachedMeResponse(
 
 async function fetchMeFromBackend(
   request: Request,
-): Promise<{ data: unknown; status: number }> {
+): Promise<BackendJsonResult> {
   const res = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
     method: "GET",
     headers: buildBackendHeaders(request, {
@@ -142,8 +179,52 @@ async function fetchMeFromBackend(
     }),
     credentials: "include",
   });
-  const data = await res.json().catch(() => ({}));
-  return { data, status: res.status };
+  let data = await res.json().catch(() => ({}));
+
+  if (res.status !== 401 || !isMissingAccessTokenError(data)) {
+    return { data, response: res, status: res.status };
+  }
+
+  const refreshedCookieHeader = await refreshBackendSessionCookie(request, BACKEND_URL);
+  if (!refreshedCookieHeader) {
+    return { data, response: res, status: res.status };
+  }
+
+  const retryRes = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
+    method: "GET",
+    headers: buildBackendHeadersFromCookie(refreshedCookieHeader, {
+      "Content-Type": "application/json",
+    }),
+    credentials: "include",
+  });
+  data = await retryRes.json().catch(() => ({}));
+  return { data, response: retryRes, status: retryRes.status };
+}
+
+function clearAuthCookies(response: NextResponse): void {
+  for (const name of authCookies) {
+    response.cookies.set(name, "", {
+      path: "/",
+      maxAge: 0,
+      httpOnly: name !== "user_id" && name !== "csrf_token",
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+}
+
+function isLockedSessionResponse(data: unknown): boolean {
+  if (typeof data !== "object" || data === null || !("message" in data)) {
+    return false;
+  }
+
+  const message = String(data.message).toLowerCase();
+  return (
+    message.includes("khoa") ||
+    message.includes("vi pham") ||
+    message.includes("banned") ||
+    message.includes("locked")
+  );
 }
 
 function getMeCacheKey(request: Request): string | null {

@@ -35,12 +35,47 @@ export interface ReportWithContext {
     lockedUntil: Date | null;
     isActive: boolean;
   };
-  recentPartners: ReportableUser[];
+  recentPartners?: ReportableUser[];
 }
 
 export interface UpdateReportStatusInput {
   status: ReportStatus;
   lockType?: UserLockType;
+}
+
+export interface AdminReportPage {
+  items: ReportWithContext[];
+  limit: number;
+  nextCursor: string | null;
+}
+
+interface AdminReportRow {
+  report_createdAt: Date;
+  report_description: string | null;
+  report_id: string;
+  report_lockType: UserLockType;
+  report_reason: string;
+  report_reportedUserId: string;
+  report_reporterId: string;
+  report_status: string;
+  reportedUser_email: string;
+  reportedUser_fullName: string | null;
+  reportedUser_id: string;
+  reportedUser_isActive: boolean;
+  reportedUser_lockedUntil: Date | null;
+  reportedUser_lockType: UserLockType;
+  reporter_email: string;
+  reporter_fullName: string | null;
+  reporter_id: string;
+}
+
+interface RecentPartnerRow {
+  avatarUrl: string | null;
+  email: string;
+  fullName: string | null;
+  id: string;
+  lastConversationAt: Date;
+  targetUserId: string;
 }
 
 @Injectable()
@@ -78,44 +113,7 @@ export class ReportService {
   }
 
   async getReportableUsers(userId: string): Promise<ReportableUser[]> {
-    const conversations = await this.conversationRepository.find({
-      where: [{ user1Id: userId }, { user2Id: userId }],
-      relations: ['user1', 'user2'],
-      order: { updatedAt: 'DESC' },
-      take: 10,
-    });
-
-    return this.toUniquePartners(userId, conversations, 10);
-  }
-
-  private toUniquePartners(
-    userId: string,
-    conversations: Conversation[],
-    limit: number,
-  ): ReportableUser[] {
-    const users = new Map<string, ReportableUser>();
-
-    for (const conv of conversations) {
-      const partner = conv.user1Id === userId ? conv.user2 : conv.user1;
-
-      if (users.has(partner.id)) {
-        continue;
-      }
-
-      users.set(partner.id, {
-        id: partner.id,
-        fullName: partner.fullName,
-        email: partner.email,
-        avatarUrl: partner.avatarUrl,
-        lastConversationAt: conv.updatedAt,
-      });
-
-      if (users.size >= limit) {
-        break;
-      }
-    }
-
-    return Array.from(users.values());
+    return (await this.getRecentPartnersMap([userId], 10)).get(userId) ?? [];
   }
 
   async findMyReports(reporterId: string): Promise<ReportWithContext[]> {
@@ -125,21 +123,114 @@ export class ReportService {
       relations: ['reporter', 'reportedUser'],
     });
 
-    return Promise.all(
-      reports.map((report) => this.toReportWithContext(report)),
+    const recentPartnersByUserId = await this.getRecentPartnersMap(
+      reports.map((report) => report.reportedUserId),
+    );
+
+    return reports.map((report) =>
+      this.toReportContext(
+        report,
+        recentPartnersByUserId.get(report.reportedUserId) ?? [],
+      ),
     );
   }
 
-  async findAllForAdmin(): Promise<ReportWithContext[]> {
-    const reports = await this.reportRepository.find({
-      where: {},
-      order: { createdAt: 'DESC' },
-      relations: ['reporter', 'reportedUser'],
-    });
+  async findAllForAdmin({
+    cursor,
+    limit = 20,
+    status,
+  }: {
+    cursor?: string;
+    limit?: number;
+    status?: string;
+  } = {}): Promise<AdminReportPage> {
+    const safeLimit = Math.min(Math.max(limit || 20, 1), 100);
+    const query = this.reportRepository
+      .createQueryBuilder('report')
+      .leftJoin('report.reporter', 'reporter')
+      .leftJoin('report.reportedUser', 'reportedUser')
+      .select([
+        'report.id AS "report_id"',
+        'report.reason AS "report_reason"',
+        'report.description AS "report_description"',
+        'report.status AS "report_status"',
+        'report.lockType AS "report_lockType"',
+        'report.createdAt AS "report_createdAt"',
+        'report.reporterId AS "report_reporterId"',
+        'report.reportedUserId AS "report_reportedUserId"',
+        'reporter.id AS "reporter_id"',
+        'reporter.fullName AS "reporter_fullName"',
+        'reporter.email AS "reporter_email"',
+        'reportedUser.id AS "reportedUser_id"',
+        'reportedUser.fullName AS "reportedUser_fullName"',
+        'reportedUser.email AS "reportedUser_email"',
+        'reportedUser.lockType AS "reportedUser_lockType"',
+        'reportedUser.lockedUntil AS "reportedUser_lockedUntil"',
+        'reportedUser.isActive AS "reportedUser_isActive"',
+      ])
+      .orderBy('report.createdAt', 'DESC')
+      .addOrderBy('report.id', 'DESC')
+      .take(safeLimit + 1);
 
-    return Promise.all(
-      reports.map((report) => this.toReportWithContext(report)),
+    if (this.isReportStatus(status)) {
+      query.where('report.status = :status', { status });
+    }
+
+    const decodedCursor = this.decodeReportCursor(cursor);
+    if (decodedCursor) {
+      const condition =
+        '(report.createdAt < :createdAt OR (report.createdAt = :createdAt AND report.id < :id))';
+      if (this.isReportStatus(status)) {
+        query.andWhere(condition, decodedCursor);
+      } else {
+        query.where(condition, decodedCursor);
+      }
+    }
+
+    const rows = await query.getRawMany<AdminReportRow>();
+    const items = rows
+      .slice(0, safeLimit)
+      .map((row) => this.toAdminReportListItem(row));
+    const nextCursor =
+      rows.length > safeLimit
+        ? this.encodeReportCursor(items[items.length - 1])
+        : null;
+
+    return { items, limit: safeLimit, nextCursor };
+  }
+
+  async getAdminStats() {
+    const [totalReports, statusRows, categoryRows] = await Promise.all([
+      this.reportRepository.count(),
+      this.reportRepository
+        .createQueryBuilder('report')
+        .select('report.status', 'status')
+        .addSelect('COUNT(report.id)', 'count')
+        .groupBy('report.status')
+        .getRawMany<{ status: ReportStatus; count: string }>(),
+      this.reportRepository
+        .createQueryBuilder('report')
+        .select('report.reason', 'reason')
+        .addSelect('COUNT(report.id)', 'count')
+        .groupBy('report.reason')
+        .getRawMany<{ reason: string; count: string }>(),
+    ]);
+
+    const statusCounts = Object.fromEntries(
+      statusRows.map((row) => [row.status, Number(row.count)]),
+    ) as Partial<Record<ReportStatus, number>>;
+    const reportsByCategory = Object.fromEntries(
+      categoryRows.map((row) => [row.reason, Number(row.count)]),
     );
+
+    return {
+      totalReports,
+      pendingReports: statusCounts[ReportStatus.Pending] ?? 0,
+      reviewedReports: statusCounts[ReportStatus.Reviewed] ?? 0,
+      resolvedReports: statusCounts[ReportStatus.Resolved] ?? 0,
+      rejectedReports: statusCounts[ReportStatus.Rejected] ?? 0,
+      reportsByCategory,
+    };
   }
 
   async findOneForAdmin(id: string): Promise<ReportWithContext> {
@@ -178,17 +269,18 @@ export class ReportService {
       }
 
       report.lockType = input.lockType;
-      await this.usersService.lockFromReport(
+      report.reportedUser = await this.usersService.lockFromReport(
         report.reportedUserId,
         input.lockType,
         report.id,
         `Vi pham theo bao cao ${report.id}`,
       );
-      report.reportedUser = await this.usersService.findByIdOrFail(
-        report.reportedUserId,
-      );
-    } else if (input.status === ReportStatus.Rejected) {
+    } else {
       report.lockType = UserLockType.None;
+      report.reportedUser = await this.usersService.unlockFromReport(
+        report.reportedUserId,
+        report.id,
+      );
     }
 
     const savedReport = await this.reportRepository.save(report);
@@ -201,21 +293,106 @@ export class ReportService {
     userId: string,
     limit = 10,
   ): Promise<ReportableUser[]> {
-    const conversations = await this.conversationRepository.find({
-      where: [{ user1Id: userId }, { user2Id: userId }],
-      relations: ['user1', 'user2'],
-      order: { updatedAt: 'DESC' },
-      take: limit,
-    });
+    return (await this.getRecentPartnersMap([userId], limit)).get(userId) ?? [];
+  }
 
-    return this.toUniquePartners(userId, conversations, limit);
+  private async getRecentPartnersMap(
+    userIds: string[],
+    limit = 10,
+  ): Promise<Map<string, ReportableUser[]>> {
+    const uniqueUserIds = Array.from(new Set(userIds.filter(Boolean)));
+    const partnersByUserId = new Map<string, ReportableUser[]>();
+
+    for (const userId of uniqueUserIds) {
+      partnersByUserId.set(userId, []);
+    }
+
+    if (uniqueUserIds.length === 0) {
+      return partnersByUserId;
+    }
+
+    const rows = await this.conversationRepository.query<RecentPartnerRow[]>(
+      `
+        WITH target_users AS (
+          SELECT unnest($1::uuid[]) AS target_user_id
+        ),
+        distinct_partners AS (
+          SELECT DISTINCT ON (target_users.target_user_id, partner.id)
+            target_users.target_user_id AS "targetUserId",
+            partner.id AS id,
+            partner."fullName" AS "fullName",
+            partner.email AS email,
+            partner."avatarUrl" AS "avatarUrl",
+            conversation."updatedAt" AS "lastConversationAt"
+          FROM target_users
+          JOIN conversations conversation
+            ON conversation.user1_id = target_users.target_user_id
+            OR conversation.user2_id = target_users.target_user_id
+          JOIN users partner
+            ON partner.id = CASE
+              WHEN conversation.user1_id = target_users.target_user_id
+                THEN conversation.user2_id
+              ELSE conversation.user1_id
+            END
+          ORDER BY target_users.target_user_id, partner.id, conversation."updatedAt" DESC
+        ),
+        ranked_partners AS (
+          SELECT
+            *,
+            ROW_NUMBER() OVER (
+              PARTITION BY "targetUserId"
+              ORDER BY "lastConversationAt" DESC
+            ) AS partner_rank
+          FROM distinct_partners
+        )
+        SELECT
+          "targetUserId",
+          id,
+          "fullName",
+          email,
+          "avatarUrl",
+          "lastConversationAt"
+        FROM ranked_partners
+        WHERE partner_rank <= $2
+        ORDER BY "targetUserId", "lastConversationAt" DESC
+      `,
+      [uniqueUserIds, limit],
+    );
+
+    for (const row of rows) {
+      const partners = partnersByUserId.get(row.targetUserId);
+      if (!partners) {
+        continue;
+      }
+
+      partners.push({
+        id: row.id,
+        fullName: row.fullName,
+        email: row.email,
+        avatarUrl: row.avatarUrl,
+        lastConversationAt: new Date(row.lastConversationAt),
+      });
+    }
+
+    return partnersByUserId;
   }
 
   private async toReportWithContext(
     report: Report,
+    includeRecentPartners = true,
   ): Promise<ReportWithContext> {
-    const recentPartners = await this.getRecentPartners(report.reportedUserId);
-    return {
+    const recentPartners = includeRecentPartners
+      ? await this.getRecentPartners(report.reportedUserId)
+      : undefined;
+
+    return this.toReportContext(report, recentPartners);
+  }
+
+  private toReportContext(
+    report: Report,
+    recentPartners?: ReportableUser[],
+  ): ReportWithContext {
+    const result: ReportWithContext = {
       id: report.id,
       reason: report.reason,
       description: report.description,
@@ -235,7 +412,73 @@ export class ReportService {
         lockedUntil: report.reportedUser.lockedUntil,
         isActive: report.reportedUser.isActive,
       },
-      recentPartners,
     };
+
+    if (recentPartners) {
+      result.recentPartners = recentPartners;
+    }
+
+    return result;
+  }
+
+  private toAdminReportListItem(row: AdminReportRow): ReportWithContext {
+    return {
+      id: row.report_id,
+      reason: row.report_reason,
+      description: row.report_description,
+      status: row.report_status,
+      lockType: row.report_lockType,
+      createdAt: new Date(row.report_createdAt),
+      reporter: {
+        id: row.reporter_id,
+        fullName: row.reporter_fullName,
+        email: row.reporter_email,
+      },
+      reportedUser: {
+        id: row.reportedUser_id,
+        fullName: row.reportedUser_fullName,
+        email: row.reportedUser_email,
+        lockType: row.reportedUser_lockType,
+        lockedUntil: row.reportedUser_lockedUntil
+          ? new Date(row.reportedUser_lockedUntil)
+          : null,
+        isActive: row.reportedUser_isActive,
+      },
+    };
+  }
+
+  private isReportStatus(status?: string): status is ReportStatus {
+    return Boolean(
+      status && Object.values(ReportStatus).includes(status as ReportStatus),
+    );
+  }
+
+  private encodeReportCursor(report: ReportWithContext): string {
+    return Buffer.from(
+      JSON.stringify({
+        createdAt: new Date(report.createdAt).toISOString(),
+        id: report.id,
+      }),
+    ).toString('base64url');
+  }
+
+  private decodeReportCursor(
+    cursor?: string,
+  ): { createdAt: Date; id: string } | null {
+    if (!cursor) return null;
+
+    try {
+      const parsed = JSON.parse(
+        Buffer.from(cursor, 'base64url').toString('utf8'),
+      ) as { createdAt?: string; id?: string };
+      if (!parsed.createdAt || !parsed.id) return null;
+
+      const createdAt = new Date(parsed.createdAt);
+      if (Number.isNaN(createdAt.getTime())) return null;
+
+      return { createdAt, id: parsed.id };
+    } catch {
+      return null;
+    }
   }
 }

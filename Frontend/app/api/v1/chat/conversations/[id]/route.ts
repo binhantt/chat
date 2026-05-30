@@ -24,7 +24,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: "Không thể lấy thông tin cuộc trò chuyện" },
+        { message: "Cannot fetch conversation information" },
         { status: res.status },
       );
     }
@@ -34,7 +34,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error("Error fetching conversation:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi lấy thông tin cuộc trò chuyện" },
+      { message: "An error occurred while fetching conversation info" },
       { status: 500 },
     );
   }

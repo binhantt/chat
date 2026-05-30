@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Controller,
   ForbiddenException,
@@ -6,11 +6,13 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { DemoAuthGuard } from '../auth/guards/demo-auth.guard';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
+import { UserRole } from '../users/entities/user.entity';
 import { CreateReportDto } from './dto/create-report.dto';
 import { ReportService } from './report.service';
 
@@ -35,7 +37,7 @@ export class ReportController {
   }
 }
 
-@Controller('v1/admin/reports')
+@Controller('v1/manager/reports')
 @UseGuards(DemoAuthGuard)
 export class AdminReportController {
   constructor(private readonly reportService: ReportService) {}
@@ -43,33 +45,22 @@ export class AdminReportController {
   @Get('stats')
   async getStats(@Req() request: AuthenticatedRequest) {
     this.assertAdmin(request);
-    const reports = await this.reportService.findAllForAdmin();
-    const reportsByCategory = reports.reduce<Record<string, number>>(
-      (stats, report) => {
-        stats[report.reason] = (stats[report.reason] ?? 0) + 1;
-        return stats;
-      },
-      {},
-    );
-
-    return {
-      totalReports: reports.length,
-      pendingReports: reports.filter((report) => report.status === 'pending')
-        .length,
-      reviewedReports: reports.filter((report) => report.status === 'reviewed')
-        .length,
-      resolvedReports: reports.filter((report) => report.status === 'resolved')
-        .length,
-      rejectedReports: reports.filter((report) => report.status === 'rejected')
-        .length,
-      reportsByCategory,
-    };
+    return this.reportService.getAdminStats();
   }
 
   @Get()
-  findAll(@Req() request: AuthenticatedRequest) {
+  findAll(
+    @Req() request: AuthenticatedRequest,
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
+    @Query('status') status?: string,
+  ) {
     this.assertAdmin(request);
-    return this.reportService.findAllForAdmin();
+    return this.reportService.findAllForAdmin({
+      cursor,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      status,
+    });
   }
 
   @Get(':id')
@@ -89,7 +80,7 @@ export class AdminReportController {
   }
 
   private assertAdmin(request: AuthenticatedRequest) {
-    if (request.user!.role !== 'admin') {
+    if (request.user!.role !== UserRole.Admin) {
       throw new ForbiddenException('Chi admin moi co quyen quan ly bao cao');
     }
   }

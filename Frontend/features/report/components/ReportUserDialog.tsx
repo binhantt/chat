@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Flex, Text, Button, Select, TextArea, Avatar, Dialog, Box, Callout } from "@radix-ui/themes";
 import { useState } from "react";
@@ -73,8 +73,8 @@ export function ReportUserDialog({ reportedUser, recentPartners, onSuccess }: Re
         setDescription("");
         onSuccess?.();
       }, 1500);
-    } catch (err: any) {
-      setError(err.message || "Không thể gửi báo cáo");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể gửi báo cáo");
     } finally {
       setSubmitting(false);
     }

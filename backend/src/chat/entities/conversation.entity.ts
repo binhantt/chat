@@ -30,6 +30,8 @@ export enum ConversationStatus {
 ])
 @Index('idx_conversations_user1_updated', ['user1Id', 'updatedAt'])
 @Index('idx_conversations_user2_updated', ['user2Id', 'updatedAt'])
+@Index('idx_conversations_status_updated_id', ['status', 'updatedAt', 'id'])
+@Index('idx_conversations_updated_id', ['updatedAt', 'id'])
 export class Conversation {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

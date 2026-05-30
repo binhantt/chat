@@ -29,7 +29,9 @@ export enum ReportStatus {
 @Index('idx_reports_reporter_created', ['reporterId', 'createdAt'])
 @Index('idx_reports_reported_created', ['reportedUserId', 'createdAt'])
 @Index('idx_reports_status_created', ['status', 'createdAt'])
+@Index('idx_reports_status_created_id', ['status', 'createdAt', 'id'])
 @Index('idx_reports_created', ['createdAt'])
+@Index('idx_reports_created_id', ['createdAt', 'id'])
 export class Report {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

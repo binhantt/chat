@@ -2,10 +2,10 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ChatApp",
-    short_name: "ChatApp",
+    name: "Người Lạ",
+    short_name: "Người Lạ",
     description:
-      "Ung dung tro chuyen truc tuyen voi ho so ca nhan, goi VIP va cong cu bao cao noi dung.",
+      "Ứng dụng trò chuyện trực tuyến với hồ sơ cá nhân, gói VIP và công cụ báo cáo nội dung.",
     start_url: "/",
     scope: "/",
     display: "standalone",
@@ -15,7 +15,7 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "vi",
     icons: [
       {
-        src: "/window.svg",
+        src: "/nguoi-la-logo.svg",
         sizes: "any",
         type: "image/svg+xml",
       },

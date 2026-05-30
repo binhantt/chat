@@ -1,4 +1,4 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+﻿import { Body, Controller, Post, Req, Res } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { EmailLoginDto } from './dto/email-login.dto';
@@ -57,9 +57,15 @@ export class AuthController {
     this.authCookieService.setCsrfToken(response);
     return result;
   }
+
+  @Post('logout')
+  logout(@Res({ passthrough: true }) response: Response) {
+    this.authCookieService.clearAuthCookies(response);
+    return this.authService.logout();
+  }
 }
 
-@Controller('v1/admin')
+@Controller('v1/manager')
 export class AdminAuthController {
   constructor(
     private readonly authService: AuthService,

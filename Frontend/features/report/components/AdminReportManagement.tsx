@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import {
   Avatar,
@@ -166,7 +166,7 @@ export function AdminReportManagement() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/v1/admin/reports");
+      const response = await fetch("/api/v1/manager/reports");
       if (!response.ok) {
         throw new Error("Không thể tải danh sách báo cáo");
       }
@@ -181,7 +181,9 @@ export function AdminReportManagement() {
   }, []);
 
   useEffect(() => {
-    fetchReports();
+    queueMicrotask(() => {
+      void fetchReports();
+    });
   }, [fetchReports]);
 
   const stats = useMemo(() => ({
@@ -192,7 +194,9 @@ export function AdminReportManagement() {
   }), [reports]);
 
   useEffect(() => {
-    setExpandedId(null);
+    queueMicrotask(() => {
+      setExpandedId(null);
+    });
   }, [statusFilter]);
 
   const filteredReports = useMemo(() => (
@@ -226,7 +230,7 @@ export function AdminReportManagement() {
 
     setUpdating(true);
     try {
-      const response = await fetch(`/api/v1/admin/reports/${expandedReport.id}/status`, {
+      const response = await fetch(`/api/v1/manager/reports/${expandedReport.id}/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -267,7 +271,7 @@ export function AdminReportManagement() {
         <Flex direction="column" gap="1">
           <Heading size="6">Quản lý báo cáo</Heading>
           <Text size="2" color="gray">
-            Xem nội dung báo cáo, đối chiếu người liên quan và khóa tài khoản khi xác nhận vi phạm.
+            Xem noi dung bao cao, doi chieu nguoi lien quan va khoa tai khoan khi xac nhan vi pham.
           </Text>
         </Flex>
         <Button variant="ghost" size="1" onClick={fetchReports}>
@@ -298,7 +302,7 @@ export function AdminReportManagement() {
         <Flex justify="between" align="center" gap="3" wrap="wrap">
           <Flex gap="2" wrap="wrap">
             {[
-              { value: "all", label: "Tất cả" },
+              { value: "all", label: "Tat ca" },
               { value: "pending", label: "Chờ xử lý" },
               { value: "reviewed", label: "Đã xem xét" },
               { value: "resolved", label: "Vi phạm" },
@@ -315,7 +319,7 @@ export function AdminReportManagement() {
             ))}
           </Flex>
           <Text size="2" color="gray">
-            Hiển thị {filteredReports.length} / {reports.length}
+            Hien thi {filteredReports.length} / {reports.length}
           </Text>
         </Flex>
       </Card>
@@ -326,13 +330,13 @@ export function AdminReportManagement() {
             <thead>
               <tr style={{ borderBottom: "1px solid var(--gray-4)" }}>
                 <th style={{ textAlign: "left", padding: "12px 14px", width: 130 }}>
-                  <Text size="2" color="gray" weight="medium">Loại</Text>
+                  <Text size="2" color="gray" weight="medium">Loai</Text>
                 </th>
                 <th style={{ textAlign: "left", padding: "12px 14px", width: "30%" }}>
                   <Text size="2" color="gray" weight="medium">Nội dung báo cáo</Text>
                 </th>
                 <th style={{ textAlign: "left", padding: "12px 14px", width: "18%" }}>
-                  <Text size="2" color="gray" weight="medium">Người báo cáo</Text>
+                  <Text size="2" color="gray" weight="medium">Nguoi bao cao</Text>
                 </th>
                 <th style={{ textAlign: "left", padding: "12px 14px", width: "18%" }}>
                   <Text size="2" color="gray" weight="medium">Người bị báo cáo</Text>
@@ -341,10 +345,10 @@ export function AdminReportManagement() {
                   <Text size="2" color="gray" weight="medium">Trạng thái</Text>
                 </th>
                 <th style={{ textAlign: "left", padding: "12px 14px", width: 145 }}>
-                  <Text size="2" color="gray" weight="medium">Ngày gửi</Text>
+                  <Text size="2" color="gray" weight="medium">Ngay gui</Text>
                 </th>
                 <th style={{ textAlign: "right", padding: "12px 14px", width: 96 }}>
-                  <Text size="2" color="gray" weight="medium">Thao tác</Text>
+                  <Text size="2" color="gray" weight="medium">Thao tac</Text>
                 </th>
               </tr>
             </thead>
@@ -454,11 +458,11 @@ export function AdminReportManagement() {
 
                               {report.recentPartners && report.recentPartners.length > 0 && (
                                 <Flex direction="column" gap="2">
-                                  <Text size="2" weight="bold">Người đã nói chuyện gần đây</Text>
+                                  <Text size="2" weight="bold">Nguoi da noi chuyen gan day</Text>
                                   <Flex gap="2" wrap="wrap">
                                     {report.recentPartners.map((partner) => (
                                       <Badge key={partner.id} color="cyan" variant="soft">
-                                        {partner.fullName || partner.email || "Ẩn danh"}
+                                        {partner.fullName || partner.email || "An danh"}
                                       </Badge>
                                     ))}
                                   </Flex>
@@ -468,7 +472,7 @@ export function AdminReportManagement() {
                               {report.reportedUser.lockType && report.reportedUser.lockType !== "none" && (
                                 <Badge color="red" variant="soft" style={{ width: "fit-content" }}>
                                   Tài khoản đang bị khóa: {report.reportedUser.lockType}
-                                  {report.reportedUser.lockedUntil ? ` đến ${formatDate(report.reportedUser.lockedUntil)}` : ""}
+                                  {report.reportedUser.lockedUntil ? ` den ${formatDate(report.reportedUser.lockedUntil)}` : ""}
                                 </Badge>
                               )}
 
@@ -484,7 +488,7 @@ export function AdminReportManagement() {
                                       }}
                                       size="2"
                                     >
-                                      <Select.Trigger placeholder="Chọn trạng thái" style={{ minWidth: 180 }} />
+                                      <Select.Trigger placeholder="Chon trang thai" style={{ minWidth: 180 }} />
                                       <Select.Content>
                                         {statusOptions.map((option) => (
                                           <Select.Item key={option.value} value={option.value}>
@@ -496,7 +500,7 @@ export function AdminReportManagement() {
 
                                     {newStatus === "resolved" && (
                                       <Select.Root value={lockType} onValueChange={setLockType} size="2">
-                                        <Select.Trigger placeholder="Chọn mức khóa" style={{ minWidth: 180 }} />
+                                        <Select.Trigger placeholder="Chon muc khoa" style={{ minWidth: 180 }} />
                                         <Select.Content>
                                           {lockOptions.map((option) => (
                                             <Select.Item key={option.value} value={option.value}>
@@ -541,7 +545,7 @@ export function AdminReportManagement() {
         {filteredReports.length > 0 && (
           <Flex justify="between" align="center" gap="3" mt="4" wrap="wrap">
             <Text size="2" color="gray">
-              Hiển thị {pageStart + 1}-{Math.min(pageStart + REPORTS_PER_PAGE, filteredReports.length)} / {filteredReports.length}
+              Hien thi {pageStart + 1}-{Math.min(pageStart + REPORTS_PER_PAGE, filteredReports.length)} / {filteredReports.length}
             </Text>
             <Flex align="center" gap="2">
               <Button
@@ -551,7 +555,7 @@ export function AdminReportManagement() {
                 onClick={() => setPage((value) => Math.max(1, value - 1))}
               >
                 <ChevronLeftIcon width={16} height={16} />
-                Trước
+                Truoc
               </Button>
               <Text size="2" color="gray">
                 Trang {currentPage} / {totalPages}

@@ -5,6 +5,17 @@ import { Conversation } from '../chat/entities/conversation.entity';
 import { Message } from '../chat/entities/message.entity';
 import { Report } from '../report/entities/report.entity';
 import { ConductRule } from '../conduct/entities/conduct-rule.entity';
+import { PageVisit } from '../analytics/entities/page-visit.entity';
+
+const entities = [
+  User,
+  MatchQueue,
+  Conversation,
+  Message,
+  Report,
+  ConductRule,
+  PageVisit,
+];
 
 export function createPostgresConfig(): TypeOrmModuleOptions {
   const url = process.env.DATABASE_URL;
@@ -20,7 +31,7 @@ function createUrlConfig(url: string): TypeOrmModuleOptions {
   return {
     type: 'postgres',
     url,
-    entities: [User, MatchQueue, Conversation, Message, Report, ConductRule],
+    entities,
     synchronize: false,
     logging: false,
     ssl: process.env.DB_SSL === 'true',
@@ -35,7 +46,7 @@ function createHostConfig(): TypeOrmModuleOptions {
     username: process.env.DB_USERNAME ?? 'postgres',
     password: getRequiredDatabasePassword(),
     database: process.env.DB_DATABASE ?? 'chat',
-    entities: [User, MatchQueue, Conversation, Message, Report, ConductRule],
+    entities,
     synchronize: false,
     logging: false,
     ssl: process.env.DB_SSL === 'true',

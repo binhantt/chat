@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error fetching reportable users:", error);
     return NextResponse.json(
-      { message: "Da xay ra loi khi lay danh sach nguoi co the bao cao" },
+      { message: "An error occurred while fetching reportable users" },
       { status: 500 },
     );
   }

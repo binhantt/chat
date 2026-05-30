@@ -27,7 +27,7 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: "Không thể lấy tin nhắn" },
+        { message: "Cannot fetch messages" },
         { status: res.status },
       );
     }
@@ -37,7 +37,7 @@ export async function GET(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error("Error fetching messages:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi lấy tin nhắn" },
+      { message: "An error occurred while fetching messages" },
       { status: 500 },
     );
   }
@@ -63,7 +63,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     if (!res.ok) {
       const error = await res.json();
       return NextResponse.json(
-        { message: error.message || "Không thể gửi tin nhắn" },
+        { message: error.message || "Cannot send message" },
         { status: res.status },
       );
     }
@@ -73,7 +73,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error("Error sending message:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi gửi tin nhắn" },
+      { message: "An error occurred while sending message" },
       { status: 500 },
     );
   }

@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Interval } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { MatchQueue, MatchQueueStatus } from './entities/match-queue.entity';
 import { User, UserGender } from '../users/entities/user.entity';
 import {
@@ -114,9 +114,22 @@ export class MatchService {
       status.matchedWithUserId &&
       status.conversationId
     ) {
-      const conversation = await this.conversationRepository.findOne({
-        where: { id: status.conversationId },
-      });
+      const [conversation, matchedUser] = await Promise.all([
+        this.conversationRepository.findOne({
+          where: { id: status.conversationId },
+        }),
+        this.userRepository.findOne({
+          select: {
+            avatarUrl: true,
+            city: true,
+            email: true,
+            fullName: true,
+            gender: true,
+            id: true,
+          },
+          where: { id: status.matchedWithUserId },
+        }),
+      ]);
 
       if (!conversation || conversation.status !== ConversationStatus.Active) {
         status.status = MatchQueueStatus.Cancelled;
@@ -144,9 +157,6 @@ export class MatchService {
       result.partnerAccepted = partnerAccepted;
       result.chatReady = chatReady;
 
-      const matchedUser = await this.userRepository.findOne({
-        where: { id: status.matchedWithUserId },
-      });
       if (matchedUser) {
         result.matchedUser = {
           id: matchedUser.id,
@@ -174,16 +184,23 @@ export class MatchService {
       order: { updatedAt: 'DESC' },
     });
 
-    for (const conversation of activeConversations) {
-      conversation.status = ConversationStatus.Ended;
-      conversation.updatedAt = new Date();
-      await this.conversationRepository.save(conversation);
-
-      await this.matchQueueRepository.update(
-        { conversationId: conversation.id },
-        { status: MatchQueueStatus.Cancelled },
+    if (activeConversations.length > 0) {
+      const conversationIds = activeConversations.map(
+        (conversation) => conversation.id,
       );
 
+      await this.conversationRepository.update(
+        { id: In(conversationIds) },
+        { status: ConversationStatus.Ended, updatedAt: new Date() },
+      );
+
+      await this.matchQueueRepository.update(
+        { conversationId: In(conversationIds) },
+        { status: MatchQueueStatus.Cancelled },
+      );
+    }
+
+    for (const conversation of activeConversations) {
       this.chatRealtimeService.emitConversationEnded(
         [conversation.user1Id, conversation.user2Id],
         conversation.id,
@@ -260,7 +277,12 @@ export class MatchService {
           continue;
         }
 
-        const match = await this.findMatch(queue);
+        const match = this.findMatchInBatch(
+          queue,
+          waitingQueues,
+          processedQueueIds,
+          processedUserIds,
+        );
         if (match) {
           const matchedQueue = await this.createMatch(queue, match);
           if (matchedQueue) {
@@ -284,29 +306,59 @@ export class MatchService {
       return null;
     }
 
-    for (const gender of this.getPreferredGenders(userQueue.gender)) {
-      const match = await this.findWaitingMatchByGender(userQueue, gender);
+    const preferredGenders = this.getPreferredGenders(userQueue.gender);
+    return this.matchQueueRepository
+      .createQueryBuilder('mq')
+      .where('mq.status = :status', { status: MatchQueueStatus.Waiting })
+      .andWhere('mq.userId != :userId', { userId: userQueue.userId })
+      .andWhere('mq.gender IN (:...preferredGenders)', { preferredGenders })
+      .andWhere('mq.city = :city', { city: userQueue.city })
+      .andWhere('mq.expiresAt > :now', { now: new Date() })
+      .addSelect(
+        'CASE mq.gender ' +
+          preferredGenders
+            .map((gender, index) => `WHEN '${gender}' THEN ${index}`)
+            .join(' ') +
+          ' ELSE 99 END',
+        'gender_rank',
+      )
+      .orderBy('gender_rank', 'ASC')
+      .addOrderBy('mq.createdAt', 'ASC')
+      .getOne();
+  }
+
+  private findMatchInBatch(
+    userQueue: MatchQueue,
+    waitingQueues: MatchQueue[],
+    processedQueueIds: Set<string>,
+    processedUserIds: Set<string>,
+  ): MatchQueue | null {
+    if (!userQueue.gender || !userQueue.city) {
+      return null;
+    }
+
+    const preferredGenders = this.getPreferredGenders(userQueue.gender);
+    const now = Date.now();
+
+    for (const gender of preferredGenders) {
+      const match = waitingQueues.find(
+        (queue) =>
+          queue.id !== userQueue.id &&
+          queue.userId !== userQueue.userId &&
+          !processedQueueIds.has(queue.id) &&
+          !processedUserIds.has(queue.userId) &&
+          queue.status === MatchQueueStatus.Waiting &&
+          queue.gender === gender &&
+          queue.city === userQueue.city &&
+          (!queue.expiresAt || queue.expiresAt.getTime() > now),
+      );
+
       if (match) {
         return match;
       }
     }
 
     return null;
-  }
-
-  private async findWaitingMatchByGender(
-    userQueue: MatchQueue,
-    gender: UserGender,
-  ): Promise<MatchQueue | null> {
-    return this.matchQueueRepository
-      .createQueryBuilder('mq')
-      .where('mq.status = :status', { status: MatchQueueStatus.Waiting })
-      .andWhere('mq.userId != :userId', { userId: userQueue.userId })
-      .andWhere('mq.gender = :gender', { gender })
-      .andWhere('mq.city = :city', { city: userQueue.city })
-      .andWhere('mq.expiresAt > :now', { now: new Date() })
-      .orderBy('mq.createdAt', 'ASC')
-      .getOne();
   }
 
   private async createMatch(

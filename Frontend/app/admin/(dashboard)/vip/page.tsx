@@ -1,4 +1,4 @@
-import { VipPackagesPage } from "@/features/admin/pages";
+﻿import { VipPackagesPage } from "@/features/admin/page";
 
 export default function VipRoutePage() {
   return <VipPackagesPage />;

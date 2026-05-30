@@ -10,22 +10,23 @@ import {
 @Entity('conduct_rules')
 @Index('idx_conduct_rules_active', ['isActive'])
 @Index('idx_conduct_rules_created', ['createdAt'])
+@Index('idx_conduct_rules_created_id', ['createdAt', 'id'])
 export class ConductRule {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  declare id: string;
 
   @Column({ type: 'varchar', length: 160, unique: true })
-  phrase: string;
+  declare phrase: string;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
-  isActive: boolean;
+  declare isActive: boolean;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  note: string | null;
+  declare note: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  declare createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  declare updatedAt: Date;
 }

@@ -80,11 +80,35 @@ describe('UsersService', () => {
   });
 
   it('returns safe users without password hashes', async () => {
-    repository.find.mockResolvedValue([makeUser()]);
+    repository.createQueryBuilder.mockReturnValue({
+      addSelect: jest.fn().mockReturnThis(),
+      addOrderBy: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getRawMany: jest.fn().mockResolvedValue([
+        {
+          id: 'user-1',
+          email: 'user@example.com',
+          fullName: 'User One',
+          avatarUrl: null,
+          role: UserRole.User,
+          isActive: true,
+          lockType: UserLockType.None,
+          lockedUntil: null,
+          createdAt: new Date('2026-01-01T00:00:00.000Z'),
+          updatedAt: new Date('2026-01-01T00:00:00.000Z'),
+        },
+      ]),
+      orderBy: jest.fn().mockReturnThis(),
+      select: jest.fn().mockReturnThis(),
+      take: jest.fn().mockReturnThis(),
+      where: jest.fn().mockReturnThis(),
+    });
 
-    await expect(service.findAll()).resolves.toEqual([
-      expect.objectContaining({ id: 'user-1', passwordHash: null }),
-    ]);
+    await expect(service.findAll()).resolves.toEqual({
+      items: [expect.objectContaining({ id: 'user-1', passwordHash: null })],
+      limit: 20,
+      nextCursor: null,
+    });
   });
 
   it('throws when a user cannot be found by id', async () => {

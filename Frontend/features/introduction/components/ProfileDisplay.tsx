@@ -1,6 +1,6 @@
 "use client";
 
-import { Flex, Text, Box, Avatar, Badge } from "@radix-ui/themes";
+import { Flex, Text, Box, Avatar } from "@radix-ui/themes";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function ProfileDisplay() {
@@ -30,9 +30,6 @@ export function ProfileDisplay() {
           <Text size="5" weight="bold">
             {user.fullName || "Chưa đặt tên hiển thị"}
           </Text>
-          <Badge color={user.role === "admin" ? "indigo" : "gray"} variant="soft">
-            {user.role === "admin" ? "Admin" : "Người dùng"}
-          </Badge>
         </Flex>
       </Flex>
 

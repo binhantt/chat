@@ -33,7 +33,7 @@ export async function GET(request: Request) {
   }
 
   if (!backendResponse.ok || !backendResponse.body) {
-    return new Response("Unable to open chat stream", {
+    return new Response("Không thể mở luồng trò chuyện", {
       status: backendResponse.status,
     });
   }
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
         }
 
         streamController.enqueue(value);
-      } catch (error) {
+      } catch {
         controller.abort();
 
         try {

@@ -1,36 +1,101 @@
 "use client";
 
-import { Flex, Text, TextField, Select, Button, Callout } from "@radix-ui/themes";
-import { useEffect, useState } from "react";
+import {
+  Button,
+  Callout,
+  Flex,
+  Select,
+  Text,
+  TextArea,
+  TextField,
+} from "@radix-ui/themes";
+import {
+  CalendarIcon,
+  EnterIcon,
+  FaceIcon,
+  IdCardIcon,
+  MobileIcon,
+  PersonIcon,
+  SewingPinIcon,
+} from "@radix-ui/react-icons";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import type { User } from "@/contexts/AuthContext";
+import { authTheme } from "@/features/athu/styles/authTheme";
+
+const cities = [
+  "Hà Nội",
+  "TP. Hồ Chí Minh",
+  "Đà Nẵng",
+  "Hai Phong",
+  "Cần Thơ",
+  "An Giang",
+  "Bình Dương",
+  "Đồng Nai",
+  "Khánh Hòa",
+  "Lâm Đồng",
+  "Nghệ An",
+  "Quang Ninh",
+  "Thanh Hoa",
+  "Thừa Thiên Huế",
+];
+
+const cityAliases: Record<string, string> = {
+  "Ha Noi": "Hà Nội",
+  "TP. Ho Chi Minh": "TP. Hồ Chí Minh",
+  "Can Tho": "Cần Thơ",
+  "Binh Duong": "Bình Dương",
+  "Dong Nai": "Đồng Nai",
+  "Khanh Hoa": "Khánh Hòa",
+  "Lam Dong": "Lâm Đồng",
+  "Nghe An": "Nghệ An",
+  "Thua Thien Hue": "Thừa Thiên Huế",
+};
 
 export function AboutForm() {
-  const { user, fetchUser, loading: authLoading } = useAuth();
+  const { user, updateUser, loading: authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <Flex align="center" justify="center" p="5">
+        <Text style={{ color: authTheme.muted }}>Đang tải thông tin...</Text>
+      </Flex>
+    );
+  }
+
+  if (!user) {
+    return (
+      <Flex align="center" direction="column" gap="2" justify="center" p="5">
+        <Text style={{ color: authTheme.muted }}>
+          Vui lòng đăng nhập để cập nhật hồ sơ
+        </Text>
+      </Flex>
+    );
+  }
+
+  return <EditableProfileForm key={`${user.id}-${user.updatedAt}`} user={user} onSaved={updateUser} />;
+}
+
+function EditableProfileForm({
+  onSaved,
+  user,
+}: {
+  onSaved: (userData: Partial<User>) => Promise<void>;
+  user: User;
+}) {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    fullName: "",
-    dateOfBirth: "",
-    phoneNumber: "",
-    bio: "",
-    gender: "",
-    city: "",
-  });
+  const [formData, setFormData] = useState(() => ({
+    bio: user.bio || "",
+    city: normalizeCity(user.city),
+    dateOfBirth: user.dateOfBirth
+      ? new Date(user.dateOfBirth).toISOString().split("T")[0]
+      : "",
+    fullName: user.fullName || "",
+    gender: user.gender || "",
+    phoneNumber: user.phoneNumber || "",
+  }));
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
-  // Update form data when user is loaded
-  useEffect(() => {
-    if (user) {
-      setFormData({
-        fullName: user.fullName || "",
-        dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : "",
-        phoneNumber: user.phoneNumber || "",
-        bio: user.bio || "",
-        gender: user.gender || "",
-        city: user.city || "",
-      });
-    }
-  }, [user]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -38,175 +103,213 @@ export function AboutForm() {
     setSuccess(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
     setError(null);
     setSuccess(false);
 
     try {
-      const updateData = {
-        fullName: formData.fullName || null,
-        dateOfBirth: formData.dateOfBirth || null,
-        phoneNumber: formData.phoneNumber || null,
+      await onSaved({
         bio: formData.bio || null,
-        gender: formData.gender || null,
         city: formData.city || null,
-      };
-
-      const res = await fetch("/api/v1/users/setup-profile", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(updateData),
+        dateOfBirth: formData.dateOfBirth || null,
+        fullName: formData.fullName || null,
+        gender: (formData.gender || null) as User["gender"],
+        phoneNumber: formData.phoneNumber || null,
       });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        throw new Error(data?.message || "Không thể cập nhật thông tin");
-      }
-
-      await fetchUser();
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      window.setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Lỗi khi cập nhật thông tin");
+      setError(err instanceof Error ? err.message : "Lỗi khi cập nhật hồ sơ");
     } finally {
       setLoading(false);
     }
   };
 
-  if (authLoading) {
-    return (
-      <Flex align="center" justify="center" p="5">
-        <Text color="gray">Đang tải thông tin...</Text>
-      </Flex>
-    );
-  }
-
-  if (!user) {
-    return (
-      <Flex align="center" justify="center" p="5" direction="column" gap="2">
-        <Text color="gray">Vui lòng đăng nhập để cập nhật thông tin</Text>
-      </Flex>
-    );
-  }
-
   return (
-    <Flex direction="column" gap="5" style={{ maxWidth: 480, width: "100%" }}>
-      <Flex direction="column" gap="1">
-        <Text size="2" weight="medium" color="gray">
-          Họ và tên
-        </Text>
-        <TextField.Root
-          placeholder="Nhập họ và tên của bạn"
+    <form onSubmit={handleSubmit}>
+      <Flex direction="column" gap="4">
+        <ProfileTextInput
+          icon={<PersonIcon />}
+          label="Họ và tên"
+          onChange={(value) => handleInputChange("fullName", value)}
+          placeholder="Nhập tên hiển thị"
           value={formData.fullName}
-          onChange={(e) => handleInputChange("fullName", e.target.value)}
-          style={{ background: "var(--gray-1)" }}
         />
-      </Flex>
 
-      <Flex direction="column" gap="1">
-        <Text size="2" weight="medium" color="gray">
-          Ngày sinh
-        </Text>
-        <TextField.Root
-          type="date"
-          value={formData.dateOfBirth}
-          onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-          style={{ background: "var(--gray-1)" }}
-        />
-      </Flex>
+        <Flex gap="3" wrap="wrap">
+          <ProfileTextInput
+            icon={<CalendarIcon />}
+            label="Ngày sinh"
+            onChange={(value) => handleInputChange("dateOfBirth", value)}
+            type="date"
+            value={formData.dateOfBirth}
+          />
+          <ProfileTextInput
+            icon={<MobileIcon />}
+            label="Số điện thoại"
+            onChange={(value) => handleInputChange("phoneNumber", value)}
+            placeholder="Nhập số điện thoại"
+            value={formData.phoneNumber}
+          />
+        </Flex>
 
-      <Flex direction="column" gap="1">
-        <Text size="2" weight="medium" color="gray">
-          Số điện thoại
-        </Text>
-        <TextField.Root
-          placeholder="Nhập số điện thoại"
-          value={formData.phoneNumber}
-          onChange={(e) => handleInputChange("phoneNumber", e.target.value)}
-          style={{ background: "var(--gray-1)" }}
-        />
-      </Flex>
+        <Flex gap="3" wrap="wrap">
+          <ProfileSelect
+            icon={<FaceIcon />}
+            label="Giới tính"
+            onChange={(value) => handleInputChange("gender", value)}
+            options={[
+              ["male", "Nam"],
+              ["female", "Nữ"],
+              ["other", "Khác"],
+            ]}
+            placeholder="Chọn giới tính"
+            value={formData.gender}
+          />
+          <ProfileSelect
+            icon={<SewingPinIcon />}
+            label="Tỉnh/Thành phố"
+            onChange={(value) => handleInputChange("city", value)}
+            options={cities.map((city) => [city, city])}
+            placeholder="Chọn vị trí"
+            value={formData.city}
+          />
+        </Flex>
 
-      <Flex direction="column" gap="1">
-        <Text size="2" weight="medium" color="gray">
-          Giới tính
-        </Text>
-        <Select.Root
-          value={formData.gender}
-          onValueChange={(value) => handleInputChange("gender", value)}
+        <Flex direction="column" gap="2">
+          <FieldLabel icon={<IdCardIcon />} label="Giới thiệu bản thân" />
+          <TextArea
+            placeholder="Viết một vài câu về bạn"
+            resize="vertical"
+            value={formData.bio}
+            onChange={(event) => handleInputChange("bio", event.target.value)}
+            style={inputStyle}
+          />
+        </Flex>
+
+        {error && (
+          <Callout.Root color="red" size="1">
+            <Callout.Text>{error}</Callout.Text>
+          </Callout.Root>
+        )}
+
+        {success && (
+          <Callout.Root color="green" size="1">
+            <Callout.Text>Cập nhật hồ sơ thành công!</Callout.Text>
+          </Callout.Root>
+        )}
+
+        <Button
+          disabled={loading}
+          size="3"
+          type="submit"
+          style={{
+            background: authTheme.control,
+            borderRadius: 8,
+            color: "#FFFFFF",
+            marginTop: 4,
+          }}
         >
-          <Select.Trigger placeholder="Chọn giới tính" style={{ width: "100%", background: "var(--gray-1)" }} />
-          <Select.Content>
-            <Select.Item value="male">Nam</Select.Item>
-            <Select.Item value="female">Nữ</Select.Item>
-            <Select.Item value="other">Khác</Select.Item>
-          </Select.Content>
-        </Select.Root>
+          <EnterIcon />
+          {loading ? "Đang lưu..." : "Lưu hồ sơ"}
+        </Button>
       </Flex>
+    </form>
+  );
+}
 
-      <Flex direction="column" gap="1">
-        <Text size="2" weight="medium" color="gray">
-          Tỉnh/Thành phố
-        </Text>
-        <Select.Root
-          value={formData.city}
-          onValueChange={(value) => handleInputChange("city", value)}
-        >
-          <Select.Trigger placeholder="Chọn tỉnh/thành phố" style={{ width: "100%", background: "var(--gray-1)" }} />
-          <Select.Content>
-            {[
-              "Hà Nội", "TP. Hồ Chí Minh", "Hải Phòng", "Đà Nẵng", "Cần Thơ",
-              "An Giang", "Bà Rịa - Vũng Tàu", "Bắc Giang", "Bắc Kạn", "Bạc Liêu",
-              "Bắc Ninh", "Bến Tre", "Bình Định", "Bình Dương", "Bình Phước",
-              "Bình Thuận", "Cà Mau", "Cao Bằng", "Đắk Lắk", "Đắk Nông",
-              "Điện Biên", "Đồng Nai", "Đồng Tháp", "Gia Lai", "Hà Giang",
-              "Hà Nam", "Hà Tĩnh", "Hải Dương", "Hậu Giang", "Hòa Bình",
-              "Hưng Yên", "Khánh Hòa", "Kiên Giang", "Kon Tum", "Lai Châu",
-              "Lâm Đồng", "Lạng Sơn", "Lào Cai", "Long An", "Nam Định",
-              "Nghệ An", "Ninh Bình", "Ninh Thuận", "Phú Thọ", "Phú Yên",
-              "Quảng Bình", "Quảng Nam", "Quảng Ngãi", "Quảng Ninh", "Quảng Trị",
-              "Sóc Trăng", "Sơn La", "Tây Ninh", "Thái Bình", "Thái Nguyên",
-              "Thanh Hóa", "Thừa Thiên Huế", "Tiền Giang", "Trà Vinh", "Tuyên Quang",
-              "Vĩnh Long", "Vĩnh Phúc", "Yên Bái"
-            ].map((city) => (
-              <Select.Item key={city} value={city}>{city}</Select.Item>
-            ))}
-          </Select.Content>
-        </Select.Root>
-      </Flex>
-
-      <Flex direction="column" gap="1">
-        <Text size="2" weight="medium" color="gray">
-          Giới thiệu bản thân
-        </Text>
-        <TextField.Root
-          placeholder="Viết một vài câu giới thiệu về bạn"
-          value={formData.bio}
-          onChange={(e) => handleInputChange("bio", e.target.value)}
-          style={{ background: "var(--gray-1)" }}
-        />
-      </Flex>
-
-      {error && (
-        <Callout.Root color="red" size="1">
-          <Callout.Text>{error}</Callout.Text>
-        </Callout.Root>
-      )}
-
-      {success && (
-        <Callout.Root color="green" size="1">
-          <Callout.Text>Cập nhật thông tin thành công!</Callout.Text>
-        </Callout.Root>
-      )}
-
-      <Button size="3" color="indigo" style={{ marginTop: 4 }} disabled={loading} onClick={handleSubmit}>
-        {loading ? "Đang lưu..." : "Lưu thông tin"}
-      </Button>
+function ProfileTextInput({
+  icon,
+  label,
+  onChange,
+  placeholder,
+  type = "text",
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  type?: "date" | "text";
+  value: string;
+}) {
+  return (
+    <Flex direction="column" gap="2" style={{ flex: 1, minWidth: 220 }}>
+      <FieldLabel icon={icon} label={label} />
+      <TextField.Root
+        placeholder={placeholder}
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        style={inputStyle}
+      />
     </Flex>
   );
 }
+
+function ProfileSelect({
+  icon,
+  label,
+  onChange,
+  options,
+  placeholder,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  onChange: (value: string) => void;
+  options: string[][];
+  placeholder: string;
+  value: string;
+}) {
+  return (
+    <Flex direction="column" gap="2" style={{ flex: 1, minWidth: 220 }}>
+      <FieldLabel icon={icon} label={label} />
+      <Select.Root value={value} onValueChange={onChange}>
+        <Select.Trigger placeholder={placeholder} style={{ ...inputStyle, width: "100%" }} />
+        <Select.Content>
+          {options.map(([optionValue, optionLabel]) => (
+            <Select.Item key={optionValue} value={optionValue}>
+              {optionLabel}
+            </Select.Item>
+          ))}
+        </Select.Content>
+      </Select.Root>
+    </Flex>
+  );
+}
+
+function FieldLabel({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <Flex align="center" gap="2">
+      <Flex
+        align="center"
+        justify="center"
+        style={{
+          color: authTheme.cyan,
+          height: 18,
+          width: 18,
+        }}
+      >
+        {icon}
+      </Flex>
+      <Text size="2" weight="medium" style={{ color: authTheme.text }}>
+        {label}
+      </Text>
+    </Flex>
+  );
+}
+
+function normalizeCity(city?: string | null) {
+  if (!city) return "";
+  return cityAliases[city] || city;
+}
+
+const inputStyle = {
+  background: "rgba(255, 255, 255, 0.9)",
+  border: `1px solid ${authTheme.line}`,
+  borderRadius: 8,
+  color: authTheme.text,
+} as const;

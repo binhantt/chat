@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error fetching my reports:", error);
     return NextResponse.json(
-      { message: "Da xay ra loi khi lay lich su bao cao" },
+      { message: "An error occurred while fetching report history" },
       { status: 500 },
     );
   }

@@ -1,4 +1,4 @@
-import { ConductPage } from "@/features/admin/pages/ConductPage";
+﻿import { ConductPage } from "@/features/admin/page/ConductPage";
 
 export default function ConductRoutePage() {
   return <ConductPage />;

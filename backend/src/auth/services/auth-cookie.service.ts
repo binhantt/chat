@@ -25,6 +25,21 @@ export class AuthCookieService {
     this.setCsrfToken(response);
   }
 
+  clearAuthCookies(response: Response): void {
+    for (const name of [
+      ACCESS_TOKEN_COOKIE,
+      REFRESH_TOKEN_COOKIE,
+      USER_ID_COOKIE,
+      CSRF_TOKEN_COOKIE,
+    ]) {
+      response.clearCookie(name, {
+        path: '/',
+        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production',
+      });
+    }
+  }
+
   setAccessToken(response: Response, accessToken: string): void {
     response.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
       ...this.baseCookieOptions(true),
@@ -60,18 +75,31 @@ export class AuthCookieService {
   }
 
   resolveAuthenticatedUserId(request: AuthenticatedRequest): string | null {
+    return this.resolveAuthenticatedSession(request).userId;
+  }
+
+  resolveAuthenticatedSession(request: AuthenticatedRequest): {
+    userId: string | null;
+    refreshedAccessToken: string | null;
+  } {
     const authHeader = request.headers.authorization;
 
     if (authHeader?.startsWith('Bearer user:')) {
-      return this.authTokenService.verifyAccessToken(
-        authHeader.replace('Bearer ', '').trim(),
-      );
+      return {
+        userId: this.authTokenService.verifyAccessToken(
+          authHeader.replace('Bearer ', '').trim(),
+        ),
+        refreshedAccessToken: null,
+      };
     }
 
     const cookieToken = this.getAccessToken(request.headers.cookie);
 
     if (cookieToken?.startsWith('user:')) {
-      return this.authTokenService.verifyAccessToken(cookieToken);
+      const userId = this.authTokenService.verifyAccessToken(cookieToken);
+      if (userId) {
+        return { userId, refreshedAccessToken: null };
+      }
     }
 
     const refreshToken = this.getRefreshToken(request.headers.cookie);
@@ -80,11 +108,15 @@ export class AuthCookieService {
       const refreshUserId = this.tryVerifyRefreshToken(refreshToken);
 
       if (refreshUserId) {
-        return refreshUserId;
+        return {
+          userId: refreshUserId,
+          refreshedAccessToken:
+            this.authTokenService.createAccessToken(refreshUserId),
+        };
       }
     }
 
-    return null;
+    return { userId: null, refreshedAccessToken: null };
   }
 
   private setRefreshToken(response: Response, refreshToken: string): void {
@@ -94,7 +126,7 @@ export class AuthCookieService {
     });
   }
 
-  private setUserId(response: Response, userId: string): void {
+  setUserId(response: Response, userId: string): void {
     response.cookie(USER_ID_COOKIE, userId, {
       ...this.baseCookieOptions(false),
       maxAge: this.authTokenService.getRefreshTokenMaxAge(),

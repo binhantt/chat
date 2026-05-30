@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Controller,
   Delete,
@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -15,15 +16,22 @@ import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-requ
 import { UserRole } from '../users/entities/user.entity';
 import { ConductService } from './conduct.service';
 
-@Controller('v1/admin/conduct-rules')
+@Controller('v1/manager/conduct-rules')
 @UseGuards(DemoAuthGuard)
 export class ConductController {
   constructor(private readonly conductService: ConductService) {}
 
   @Get()
-  findAll(@Req() request: AuthenticatedRequest) {
+  findAll(
+    @Req() request: AuthenticatedRequest,
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
+  ) {
     this.assertAdmin(request);
-    return this.conductService.findAll();
+    return this.conductService.findAll({
+      cursor,
+      limit: limit ? parseInt(limit, 10) : undefined,
+    });
   }
 
   @Post()

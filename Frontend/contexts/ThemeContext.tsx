@@ -5,21 +5,23 @@ import { createContext, useContext, useState, useEffect } from "react";
 type Theme = "light" | "dark";
 
 interface ThemeContextType {
+  setThemeMode: (theme: Theme) => void;
   theme: Theme;
   toggleTheme: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType>({
+  setThemeMode: () => {},
   theme: "light",
   toggleTheme: () => {},
 });
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
-
-  useEffect(() => {
-    setTheme(window.localStorage.getItem("chatapp.theme") === "dark" ? "dark" : "light");
-  }, []);
+  const [theme, setTheme] = useState<Theme>(() =>
+    typeof window !== "undefined" && window.localStorage.getItem("chatapp.theme") === "dark"
+      ? "dark"
+      : "light",
+  );
 
   useEffect(() => {
     const html = document.documentElement;
@@ -40,7 +42,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ setThemeMode: setTheme, theme, toggleTheme }}>
       {children}
     </ThemeContext.Provider>
   );

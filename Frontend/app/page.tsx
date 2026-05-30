@@ -1,40 +1,20 @@
 "use client";
 
 import { Flex, Box } from "@radix-ui/themes";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense } from "react";
 import { Navbar } from "@/components/layouts/users/Navbar";
-import { Sidebar, TabId } from "@/components/layouts/users/Sidebar";
+import { Sidebar, UserMobileNav } from "@/components/layouts/users/Sidebar";
 import { AboutPage } from "@/features/introduction/page/AboutPage";
 import { WebsiteIntroPage } from "@/features/introduction/page/WebsiteIntroPage";
 import { SettingsPage } from "@/features/settings/page/SettingsPage";
 import { ChatPage } from "@/features/chat/page/ChatPage";
 import { ReportPage } from "@/features/report";
 import { VipPage } from "@/features/vip";
-
-const tabIds: TabId[] = ["chat", "website", "about", "vip", "settings", "report"];
-
-function isTabId(value: string | null): value is TabId {
-  return !!value && tabIds.includes(value as TabId);
-}
+import { authTheme } from "@/features/athu/styles/authTheme";
+import { useUserTabs } from "@/features/user-layout/hooks/useUserTabs";
 
 export default function HomePage() {
-  const [activeTab, setActiveTab] = useState<TabId>("chat");
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tab = params.get("tab");
-
-    if (isTabId(tab)) {
-      setActiveTab(tab);
-    }
-  }, []);
-
-  const handleTabChange = (tab: TabId) => {
-    setActiveTab(tab);
-
-    const url = tab === "chat" ? "/" : `/?tab=${tab}`;
-    window.history.replaceState(null, "", url);
-  };
+  const { activeTab, changeTab } = useUserTabs();
 
   const renderActiveTab = () => {
     if (activeTab === "website") return <WebsiteIntroPage />;
@@ -51,40 +31,50 @@ export default function HomePage() {
   };
 
   return (
-    <Box style={{ height: "100vh" }}>
+    <Box style={{ background: authTheme.background, height: "100dvh" }}>
       <Flex
         direction="column"
         style={{
           height: "100%",
+          minHeight: 0,
           overflow: "hidden",
         }}
       >
         <Navbar />
-        <Flex style={{ flex: 1, overflow: "hidden" }}>
-          <Sidebar activeTab={activeTab} onTabChange={handleTabChange} />
+        <Flex style={{ flex: 1, minHeight: 0, minWidth: 0, overflow: "hidden" }}>
+          <Sidebar activeTab={activeTab} onTabChange={changeTab} />
           <Flex
             style={{
               flex: 1,
+              minHeight: 0,
+              minWidth: 0,
               overflow: "hidden",
-              background: "var(--gray-2)",
-              padding: activeTab === "chat" ? 0 : 16,
+              background:
+                activeTab === "chat"
+                  ? "var(--chat-bg)"
+                  : `radial-gradient(circle at 82% 12%, rgba(34, 211, 238, 0.12), transparent 24%), ${authTheme.background}`,
+              padding: activeTab === "chat" ? 0 : 0,
             }}
           >
             <Box
               style={{
                 width: "100%",
                 height: "100%",
+                minHeight: 0,
+                minWidth: 0,
                 overflowX: "hidden",
                 overflowY: activeTab === "chat" ? "hidden" : "auto",
-                background: activeTab === "chat" ? "transparent" : "var(--gray-1)",
-                border: activeTab === "chat" ? "none" : "1px solid var(--gray-5)",
-                borderRadius: activeTab === "chat" ? 0 : 8,
+                paddingBottom: activeTab === "chat" ? 0 : 76,
+                background: "transparent",
+                border: "none",
+                borderRadius: 0,
               }}
             >
               {renderActiveTab()}
             </Box>
           </Flex>
         </Flex>
+        <UserMobileNav activeTab={activeTab} onTabChange={changeTab} />
       </Flex>
     </Box>
   );

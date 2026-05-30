@@ -28,6 +28,16 @@ export enum UserLockType {
 @Entity('users')
 @Index('idx_users_city_gender_active', ['city', 'gender', 'isActive'])
 @Index('idx_users_role_created', ['role', 'createdAt'])
+@Index('idx_users_role_created_id', ['role', 'createdAt', 'id'])
+@Index('idx_users_active_created_id', ['isActive', 'createdAt', 'id'])
+@Index('idx_users_active_lock_created_id', [
+  'isActive',
+  'lockType',
+  'createdAt',
+  'id',
+])
+@Index('idx_users_created_id', ['createdAt', 'id'])
+@Index('idx_users_lock_created_id', ['lockType', 'createdAt', 'id'])
 @Index('idx_users_lock_state', ['lockType', 'lockedUntil'])
 export class User {
   @PrimaryGeneratedColumn('uuid')

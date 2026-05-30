@@ -1,4 +1,4 @@
-import type { NextFunction, Request, Response } from 'express';
+﻿import type { NextFunction, Request, Response } from 'express';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -17,7 +17,7 @@ const CSRF_EXEMPT_PATHS = new Set([
   '/api/v1/auth/google-login',
   '/api/v1/auth/email-login',
   '/api/v1/auth/refresh',
-  '/api/v1/admin/login',
+  '/api/v1/manager/login',
 ]);
 
 export function getAllowedOrigins(): string[] {

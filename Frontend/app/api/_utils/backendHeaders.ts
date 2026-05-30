@@ -1,8 +1,8 @@
 import { randomBytes } from "node:crypto";
 
 const CSRF_TOKEN_COOKIE = "csrf_token";
-const CSRF_TOKEN_HEADER = "X-CSRF-Token";
-const INTERNAL_PROXY_HEADER = "X-Internal-Api-Proxy";
+const CSRF_TOKEN_HEADER = "x-csrf-token";
+const INTERNAL_PROXY_HEADER = "x-internal-api-proxy";
 
 export function getCookieHeader(request: Request): string {
   return request.headers.get("cookie") || "";
@@ -163,4 +163,57 @@ function removeCookie(cookieHeader: string, name: string): string {
 
 function getSingleHeaderValue(value: string | undefined): string | null {
   return value ?? null;
+}
+
+export function isCsrfError(data: unknown): boolean {
+  return (
+    typeof data === "object" &&
+    data !== null &&
+    "message" in data &&
+    String(data.message).toLowerCase().includes("csrf")
+  );
+}
+
+export function applyBackendSetCookies(
+  response: Response,
+  backendResponse: Response,
+): void {
+  const setCookies = backendResponse.headers.getSetCookie?.() ?? [];
+
+  for (const cookie of setCookies) {
+    response.headers.append("Set-Cookie", cookie);
+  }
+}
+
+export function isMissingAccessTokenError(data: unknown): boolean {
+  if (typeof data !== "object" || data === null || !("message" in data)) {
+    return false;
+  }
+
+  const message = String(data.message).toLowerCase();
+  return message.includes("access token") || message.includes("unauthorized");
+}
+
+export async function refreshBackendSessionCookie(
+  request: Request,
+  backendUrl: string,
+): Promise<string | null> {
+  const refreshRes = await fetch(`${backendUrl}/api/v1/auth/refresh`, {
+    method: "POST",
+    headers: buildBackendHeaders(request, {
+      "Content-Type": "application/json",
+    }),
+    credentials: "include",
+  });
+
+  if (!refreshRes.ok) {
+    return null;
+  }
+
+  const setCookies = refreshRes.headers.getSetCookie?.() ?? [];
+  if (setCookies.length === 0) {
+    return null;
+  }
+
+  return mergeSetCookiesIntoCookieHeader(getCookieHeader(request), setCookies);
 }

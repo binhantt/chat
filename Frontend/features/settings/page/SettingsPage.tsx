@@ -1,83 +1,204 @@
-"use client";
-
-import { Flex, Text, Box } from "@radix-ui/themes";
+import type { ReactNode } from "react";
+import { Badge, Box, Flex, Grid, Heading, Text } from "@radix-ui/themes";
+import {
+  BellIcon,
+  CheckCircledIcon,
+  GearIcon,
+  LockClosedIcon,
+  PersonIcon,
+  StarIcon,
+} from "@radix-ui/react-icons";
+import { authTheme } from "@/features/athu/styles/authTheme";
+import { UserPageShell, UserPanel } from "@/features/user-layout/components";
 import { SettingsForm, Avatar3D } from "../components";
-import { useTheme } from "@/contexts/ThemeContext";
-
-function DecorTopLeft() {
-  return (
-    <Box
-      display={{ initial: "none", md: "block" }}
-      position="absolute"
-      left="0"
-      top="0"
-      style={{
-        width: 160,
-        height: 160,
-        opacity: 0.07,
-        pointerEvents: "none",
-        background: "var(--indigo-9)",
-      }}
-    />
-  );
-}
-
-function DecorBottomRight() {
-  return (
-    <Box
-      display={{ initial: "none", md: "block" }}
-      position="absolute"
-      right="0"
-      bottom="0"
-      style={{
-        width: 120,
-        height: 120,
-        opacity: 0.07,
-        pointerEvents: "none",
-        background: "var(--violet-9)",
-      }}
-    />
-  );
-}
 
 export function SettingsPage() {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
+  return (
+    <UserPageShell>
+      <Flex
+        align={{ initial: "start", md: "end" }}
+        direction={{ initial: "column", md: "row" }}
+        gap="4"
+        justify="between"
+        style={{
+          borderBottom: `1px solid ${authTheme.line}`,
+          paddingBottom: 18,
+        }}
+      >
+        <Flex direction="column" gap="3" style={{ maxWidth: 620 }}>
+          <Badge
+            size="3"
+            style={{
+              alignSelf: "flex-start",
+              background: "rgba(59, 130, 246, 0.1)",
+              border: `1px solid ${authTheme.line}`,
+              color: authTheme.text,
+            }}
+          >
+            <Flex align="center" gap="2">
+              <GearIcon />
+              <Text size="2" weight="bold">
+                Cài đặt tài khoản
+              </Text>
+            </Flex>
+          </Badge>
+          <Box>
+            <Heading
+              as="h1"
+              size="7"
+              style={{ color: authTheme.text, letterSpacing: 0, lineHeight: 1.08 }}
+            >
+              Dieu chinh tai khoan gon gang hon.
+            </Heading>
+            <Text
+              as="p"
+              size="3"
+              style={{
+                color: authTheme.muted,
+                lineHeight: 1.65,
+                margin: "10px 0 0",
+              }}
+            >
+              Quản lý thông tin, tùy chọn nhanh và các thao tác bảo mật trong
+              mot bo cuc sach, de quet va khong long border ngoai.
+            </Text>
+          </Box>
+        </Flex>
 
+        <Grid columns="3" gap="2" style={{ minWidth: 300 }}>
+          <Metric icon={<PersonIcon />} label="Hồ sơ" value="Đồng bộ" />
+          <Metric icon={<BellIcon />} label="Thông báo" value="Bật" />
+          <Metric icon={<LockClosedIcon />} label="Bảo mật" value="Riêng" />
+        </Grid>
+      </Flex>
+
+      <Grid columns={{ initial: "1", lg: "2" }} gap="4" style={{ alignItems: "start" }}>
+        <UserPanel borderless maxWidth={720} padding="4">
+          <SettingsForm />
+        </UserPanel>
+
+        <UserPanel borderless maxWidth={520} padding="4">
+          <Flex direction="column" gap="4">
+            <Avatar3D />
+            <QuickPanel
+              icon={<CheckCircledIcon />}
+              items={[
+                "Thông tin hồ sơ đang được đồng bộ",
+                "Tùy chọn nhanh được lưu trên thiết bị",
+                "Khu vực nguy hiểm đã tách riêng",
+              ]}
+              title="Trạng thái cài đặt"
+            />
+            <QuickPanel
+              icon={<StarIcon />}
+              items={[
+                "VIP đang chuẩn bị mở khóa",
+                "Avatar chỉ là xem trước giao diện",
+                "Cập nhật hồ sơ tại tab Cá nhân",
+              ]}
+              title="Ghi chú nhanh"
+            />
+            <Box
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.86))",
+                border: `1px solid ${authTheme.line}`,
+                borderRadius: 8,
+                padding: 16,
+              }}
+            >
+              <Flex direction="column" gap="2">
+                <Text size="3" weight="bold" style={{ color: authTheme.text }}>
+                  Gợi ý
+                </Text>
+                <Text size="2" style={{ color: authTheme.muted, lineHeight: 1.6 }}>
+                  Muốn sửa tên, thành phố hoặc giới thiệu, hãy cập nhật trong
+                  tab Cá nhân để đồng bộ với hồ sơ trò chuyện.
+                </Text>
+              </Flex>
+            </Box>
+          </Flex>
+        </UserPanel>
+      </Grid>
+    </UserPageShell>
+  );
+}
+
+function Metric({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
     <Box
-      position="relative"
-      style={{ flex: 1, background: isDark ? "#0f172a" : "var(--gray-1)" }}
+      style={{
+        background: "rgba(255, 255, 255, 0.72)",
+        border: `1px solid ${authTheme.line}`,
+        borderRadius: 8,
+        padding: 10,
+      }}
     >
-      <DecorTopLeft />
-      <DecorBottomRight />
+      <Flex align="center" gap="2">
+        <Box style={{ color: authTheme.control }}>{icon}</Box>
+        <Box>
+          <Text as="div" size="1" style={{ color: authTheme.muted }}>
+            {label}
+          </Text>
+          <Text as="div" size="2" weight="bold" style={{ color: authTheme.text }}>
+            {value}
+          </Text>
+        </Box>
+      </Flex>
+    </Box>
+  );
+}
 
-      <Flex
-        direction="column"
-        align="center"
-        style={{ minHeight: "100%", padding: "24px 16px", overflowY: "auto" }}
-      >
-        <Flex direction="column" gap="6" style={{ maxWidth: 560, width: "100%" }}>
-          <Flex direction="column" gap="2" align="center">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--indigo-9)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-            <Text size="6" weight="bold" color="indigo">
-              Cài đặt
-            </Text>
-            <Text size="3" color="gray" align="center">
-              Quản lý tài khoản và tùy chọn
-            </Text>
-          </Flex>
-
-          <Box p="5">
-            <SettingsForm />
-          </Box>
-
-          <Box p="5">
-            <Avatar3D />
-          </Box>
+function QuickPanel({
+  icon,
+  items,
+  title,
+}: {
+  icon: ReactNode;
+  items: string[];
+  title: string;
+}) {
+  return (
+    <Box
+      style={{
+        background:
+          "linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,250,252,0.86))",
+        border: `1px solid ${authTheme.line}`,
+        borderRadius: 8,
+        padding: 16,
+      }}
+    >
+      <Flex direction="column" gap="3">
+        <Flex align="center" gap="2">
+          <Box style={{ color: authTheme.control }}>{icon}</Box>
+          <Text size="3" weight="bold" style={{ color: authTheme.text }}>
+            {title}
+          </Text>
+        </Flex>
+        <Flex direction="column" gap="2">
+          {items.map((item) => (
+            <Flex align="center" gap="2" key={item}>
+              <Box
+                style={{
+                  background: authTheme.control,
+                  borderRadius: 999,
+                  height: 6,
+                  width: 6,
+                }}
+              />
+              <Text size="2" style={{ color: authTheme.muted }}>
+                {item}
+              </Text>
+            </Flex>
+          ))}
         </Flex>
       </Flex>
     </Box>

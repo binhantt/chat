@@ -1,41 +1,29 @@
-import { Flex, Text, Card } from "@radix-ui/themes";
+"use client";
+
+import { AuthCopy } from "../components/AuthCopy";
+import { AuthError } from "../components/AuthError";
+import { AuthPanel } from "../components/AuthPanel";
+import { AuthShell } from "../components/AuthShell";
+import { AuthTerms } from "../components/AuthTerms";
+import { AuthVisual } from "../components/AuthVisual";
 import { GoogleButton } from "../components/GoogleButton";
-import { Logo } from "../components/Logo";
-import { LeftDecor, RightDecor } from "../components/PageDecorations";
+import { GoogleLoadingButton } from "../components/GoogleLoadingButton";
+import { useAuthUiStore } from "../store/useAuthUiStore";
 
 export function LoginPage() {
+  const error = useAuthUiStore((state) => state.error);
+  const isSubmitting = useAuthUiStore((state) => state.isSubmitting);
+
   return (
-    <Flex
-      justify="center"
-      align="center"
-      height="100vh"
-      style={{ overflow: "hidden", background: "linear-gradient(135deg, var(--indigo-1) 0%, var(--violet-1) 100%)" }}
-    >
-      <LeftDecor />
-      <RightDecor />
-
-      <Card size="3" style={{ width: "100%", maxWidth: 400, position: "relative", zIndex: 1 }}>
-        <Flex direction="column" gap="5">
-          <Flex direction="column" gap="3" align="center">
-            <Logo size={64} />
-            <Text size="7" weight="bold" color="indigo">
-              ChatApp
-            </Text>
-          </Flex>
-
-          <Flex direction="column" gap="3" align="center">
-            <Text size="3" color="gray" align="center">
-              Chào mừng bạn quay trở lại
-            </Text>
-          </Flex>
-
-          <GoogleButton />
-
-          <Text size="2" color="gray" align="center">
-            Tiếp tục có nghĩa là bạn đồng ý với Điều khoản dịch vụ và Chính sách bảo mật
-          </Text>
-        </Flex>
-      </Card>
-    </Flex>
+    <AuthShell>
+      <AuthVisual />
+      <AuthPanel>
+        <AuthCopy />
+        <AuthError message={error} />
+        <GoogleButton />
+        <GoogleLoadingButton isVisible={isSubmitting} />
+        <AuthTerms />
+      </AuthPanel>
+    </AuthShell>
   );
 }

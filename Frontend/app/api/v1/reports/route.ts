@@ -38,7 +38,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error creating report:", error);
     return NextResponse.json(
-      { message: "Da xay ra loi khi gui bao cao" },
+      { message: "An error occurred while submitting report" },
       { status: 500 },
     );
   }

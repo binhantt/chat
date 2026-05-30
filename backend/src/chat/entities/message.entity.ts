@@ -18,7 +18,15 @@ export enum MessageStatus {
 
 @Entity('messages')
 @Index('idx_messages_conversation_created', ['conversationId', 'createdAt'])
+@Index('idx_messages_conversation_created_id', [
+  'conversationId',
+  'createdAt',
+  'id',
+])
+@Index('idx_messages_sender_created', ['senderId', 'createdAt'])
 @Index('idx_messages_read_status', ['conversationId', 'senderId', 'status'])
+@Index('idx_messages_conversation', ['conversationId'])
+@Index('idx_messages_sender', ['senderId'])
 @Index('idx_messages_created', ['createdAt'])
 export class Message {
   @PrimaryGeneratedColumn('uuid')

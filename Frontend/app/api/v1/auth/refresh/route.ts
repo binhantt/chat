@@ -32,7 +32,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Refresh token error:", error);
     return NextResponse.json(
-      { message: "Khong the lam moi phien dang nhap" },
+      { message: "Cannot refresh session" },
       { status: 500 },
     );
   }

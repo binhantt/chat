@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     if (!res.ok) {
       const error = await res.json();
       return NextResponse.json(
-        { message: error.message || "Không thể tham gia hàng đợi tìm kiếm" },
+        { message: error.message || "Cannot join search queue" },
         { status: res.status },
       );
     }
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error joining match queue:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi tham gia hàng đợi tìm kiếm" },
+      { message: "An error occurred while joining search queue" },
       { status: 500 },
     );
   }

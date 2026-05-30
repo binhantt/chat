@@ -24,7 +24,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     const data = await res.json().catch(() => ({}));
 
-    if (res.status === 404 || data?.message === "Cuoc tro chuyen da ket thuc") {
+    if (res.status === 404 || data?.message === "Conversation has ended") {
       return NextResponse.json({ ok: true, stale: true });
     }
 
@@ -32,7 +32,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   } catch (error) {
     console.error("Error ending conversation:", error);
     return NextResponse.json(
-      { message: "Không thể thoát cuộc trò chuyện" },
+      { message: "Cannot leave conversation" },
       { status: 500 },
     );
   }

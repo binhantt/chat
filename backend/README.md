@@ -23,6 +23,42 @@ This is the backend API for a chat application built with NestJS. It provides us
 
 ### Authentication Endpoints
 
+#### Google Login
+```http
+POST /api/v1/auth/google-login
+```
+
+**Request Body:**
+```json
+{
+  "idToken": "google-identity-services-credential"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Đăng nhập Google thành công",
+  "accessToken": "signed-access-token",
+  "refreshToken": "signed-refresh-token",
+  "user": {
+    "id": "uuid",
+    "email": "user@example.com",
+    "fullName": "John Doe",
+    "avatarUrl": "https://..."
+  }
+}
+```
+
+Backend verifies the Google ID token signature, issuer, expiry, verified email, and audience against `GOOGLE_CLIENT_ID` or `NEXT_PUBLIC_GOOGLE_CLIENT_ID`. It also sets `access_token`, `refresh_token`, `user_id`, and `csrf_token` cookies for browser clients.
+
+#### Logout
+```http
+POST /api/v1/auth/logout
+```
+
+Revokes the current refresh session when a `refresh_token` cookie is present and clears auth cookies.
+
 #### Register User
 ```http
 POST /auth/register
@@ -339,6 +375,8 @@ DATABASE_URL=postgresql://username:password@localhost:5432/chat_db
 # JWT
 JWT_SECRET=your-secret-key
 JWT_EXPIRES_IN=1d
+AUTH_TOKEN_SECRET=replace-with-long-random-secret
+GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
 
 # Server
 PORT=3000

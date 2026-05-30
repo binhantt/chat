@@ -15,7 +15,7 @@ export async function GET(request: Request) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: "Không thể lấy trạng thái tìm kiếm" },
+        { message: "Cannot fetch search status" },
         { status: res.status },
       );
     }
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error fetching match status:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi lấy trạng thái tìm kiếm" },
+      { message: "An error occurred while fetching search status" },
       { status: 500 },
     );
   }

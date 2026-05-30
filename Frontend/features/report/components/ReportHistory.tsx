@@ -44,11 +44,7 @@ export function ReportHistory() {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchUserReports();
-  }, []);
-
-  const fetchUserReports = async () => {
+  async function fetchUserReports() {
     try {
       const response = await fetch("/api/v1/reports/my-reports");
       if (response.ok) {
@@ -60,7 +56,13 @@ export function ReportHistory() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void fetchUserReports();
+    });
+  }, []);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -68,9 +70,9 @@ export function ReportHistory() {
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays === 1) return "Hôm qua";
-    if (diffDays < 7) return `${diffDays} ngày trước`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuần trước`;
+    if (diffDays === 1) return "Hom qua";
+    if (diffDays < 7) return `${diffDays} ngay truoc`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} tuan truoc`;
     return `${Math.floor(diffDays / 30)} tháng trước`;
   };
 

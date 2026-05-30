@@ -1,4 +1,4 @@
-import {
+﻿import {
   Body,
   Controller,
   Delete,
@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -70,15 +71,23 @@ export class UserController {
   }
 }
 
-@Controller('v1/admin/users')
+@Controller('v1/manager/users')
 @UseGuards(DemoAuthGuard, AbacGuard)
 export class AdminUserController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get()
   @CheckPolicies(canListUsers)
-  findAll() {
-    return this.usersService.findAll();
+  findAll(
+    @Query('limit') limit?: string,
+    @Query('cursor') cursor?: string,
+    @Query('status') status?: 'active' | 'banned',
+  ) {
+    return this.usersService.findAll({
+      cursor,
+      limit: limit ? parseInt(limit, 10) : undefined,
+      status,
+    });
   }
 
   @Get(':id')

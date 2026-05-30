@@ -1,4 +1,5 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { performance } from 'node:perf_hooks';
 import { GoogleUserProfile } from '../users/interfaces/google-user-profile.interface';
 import { UserRole } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
@@ -7,6 +8,8 @@ import { GoogleAuthService } from './services/google-auth.service';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly authTokenService: AuthTokenService,
@@ -65,15 +68,42 @@ export class AuthService {
   }
 
   async adminEmailLogin(email: string, password: string) {
-    const result = await this.emailLogin(email, password);
+    const totalStart = performance.now();
+    const timing: { dbMs?: number; passwordMs?: number } = {};
 
-    if (result.user.role !== UserRole.Admin) {
+    const user = await this.usersService.validatePassword(
+      email,
+      password,
+      timing,
+    );
+
+    if (!user) {
+      this.logManagerLoginTiming(email, totalStart, timing);
+      throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+    }
+
+    if (this.usersService.isLoginLocked(user)) {
+      this.logManagerLoginTiming(email, totalStart, timing);
+      throw new UnauthorizedException(this.usersService.getLockMessage(user));
+    }
+
+    if (user.role !== UserRole.Admin) {
+      this.logManagerLoginTiming(email, totalStart, timing);
       throw new UnauthorizedException('Tài khoản không có quyền quản trị');
     }
 
+    const tokenStart = performance.now();
+    const accessToken = this.authTokenService.createAccessToken(user.id);
+    const refreshToken = this.authTokenService.createRefreshToken(user.id);
+    const tokenMs = performance.now() - tokenStart;
+
+    this.logManagerLoginTiming(email, totalStart, timing, tokenMs);
+
     return {
-      ...result,
       message: 'Đăng nhập quản trị thành công',
+      accessToken,
+      refreshToken,
+      user,
     };
   }
 
@@ -94,5 +124,26 @@ export class AuthService {
       accessToken: this.authTokenService.createAccessToken(user.id),
       user,
     };
+  }
+
+  logout() {
+    return {
+      message: 'Đăng xuất thành công',
+      success: true,
+    };
+  }
+
+  private logManagerLoginTiming(
+    email: string,
+    totalStart: number,
+    timing: { dbMs?: number; passwordMs?: number },
+    tokenMs = 0,
+  ): void {
+    const totalMs = performance.now() - totalStart;
+    const safeEmail = email.trim().toLowerCase();
+
+    this.logger.log(
+      `[manager-login] email=${safeEmail} total=${totalMs.toFixed(1)}ms db=${(timing.dbMs ?? 0).toFixed(1)}ms password=${(timing.passwordMs ?? 0).toFixed(1)}ms token=${tokenMs.toFixed(1)}ms`,
+    );
   }
 }

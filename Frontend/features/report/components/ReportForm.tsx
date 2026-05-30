@@ -15,11 +15,11 @@ interface ReportableUser {
 
 const reportReasons = [
   { value: "spam", label: "Spam" },
-  { value: "harassment", label: "Quay roi" },
-  { value: "inappropriate_content", label: "Noi dung khong phu hop" },
-  { value: "fake_profile", label: "Tai khoan gia" },
-  { value: "underage", label: "Chua du tuoi" },
-  { value: "other", label: "Khac" },
+  { value: "harassment", label: "Quấy rối" },
+  { value: "inappropriate_content", label: "Nội dung không phù hợp" },
+  { value: "fake_profile", label: "Tài khoản giả" },
+  { value: "underage", label: "Chưa đủ tuổi" },
+  { value: "other", label: "Khác" },
 ];
 
 export function ReportForm() {
@@ -42,11 +42,7 @@ export function ReportForm() {
   const [reportableUsers, setReportableUsers] = useState<ReportableUser[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
 
-  useEffect(() => {
-    fetchReportableUsers();
-  }, []);
-
-  const fetchReportableUsers = async () => {
+  async function fetchReportableUsers() {
     try {
       const response = await fetch("/api/v1/reports/reportable-users");
       if (response.ok) {
@@ -64,7 +60,13 @@ export function ReportForm() {
     } finally {
       setLoadingUsers(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void fetchReportableUsers();
+    });
+  }, []);
 
   const handleSubmit = async () => {
     if (!title.trim() || !content.trim() || !reason || !reportedUserId) return;
@@ -96,10 +98,10 @@ export function ReportForm() {
         }, 3000);
       } else {
         const errorData = await response.json();
-        setError(errorData.message || "Khong the gui bao cao. Vui long thu lai.");
+        setError(errorData.message || "Không thể gửi báo cáo. Vui lòng thử lại.");
       }
-    } catch (err) {
-      setError("Khong the ket noi den server. Vui long thu lai.");
+    } catch {
+      setError("Không thể kết nối đến server. Vui lòng thử lại.");
     } finally {
       setLoading(false);
     }
@@ -109,17 +111,17 @@ export function ReportForm() {
     <Box p="4">
       <Flex direction="column" gap="4">
         <Flex direction="column" gap="1">
-          <Text size="4" weight="bold">Gui bao cao moi</Text>
+          <Text size="4" weight="bold">Gửi báo cáo mới</Text>
           <Text size="2" color="gray">
-            Chi hien 10 nguoi ban da noi chuyen gan nhat de bao cao.
+            Chỉ hiện 10 người bạn đã nói chuyện gần nhất để báo cáo.
           </Text>
         </Flex>
 
         <Flex direction="column" gap="1">
-          <Text size="2" weight="medium" color="gray">Nguoi bi bao cao</Text>
+          <Text size="2" weight="medium" color="gray">Người bị báo cáo</Text>
           <Select.Root value={reportedUserId} onValueChange={setReportedUserId} size="3">
             <Select.Trigger
-              placeholder={loadingUsers ? "Dang tai danh sach..." : "Chon nguoi da noi chuyen"}
+              placeholder={loadingUsers ? "Đang tải danh sách..." : "Chọn người đã nói chuyện"}
               style={{ width: "100%", ...fieldStyle }}
             />
             <Select.Content>
@@ -132,16 +134,16 @@ export function ReportForm() {
           </Select.Root>
           {!loadingUsers && reportableUsers.length === 0 && (
             <Text size="1" color="gray">
-              Ban chua co cuoc tro chuyen nao de bao cao.
+              Bạn chưa có cuộc trò chuyện nào để báo cáo.
             </Text>
           )}
         </Flex>
 
         <Flex direction="column" gap="1">
-          <Text size="2" weight="medium" color="gray">Ly do bao cao</Text>
+          <Text size="2" weight="medium" color="gray">Lý do báo cáo</Text>
           <Select.Root value={reason} onValueChange={setReason} size="3">
             <Select.Trigger
-              placeholder="Chon ly do"
+              placeholder="Chọn lý do"
               style={{ width: "100%", ...fieldStyle }}
             />
             <Select.Content>
@@ -155,9 +157,9 @@ export function ReportForm() {
         </Flex>
 
         <Flex direction="column" gap="1">
-          <Text size="2" weight="medium" color="gray">Tieu de</Text>
+          <Text size="2" weight="medium" color="gray">Tiêu đề</Text>
           <TextField.Root
-            placeholder="Nhap tieu de bao cao"
+            placeholder="Nhập tiêu đề báo cáo"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             size="3"
@@ -166,9 +168,9 @@ export function ReportForm() {
         </Flex>
 
         <Flex direction="column" gap="1">
-          <Text size="2" weight="medium" color="gray">Noi dung</Text>
+          <Text size="2" weight="medium" color="gray">Nội dung</Text>
           <TextArea
-            placeholder="Mo ta chi tiet van de..."
+            placeholder="Mô tả chi tiết vấn đề..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={5}
@@ -181,7 +183,7 @@ export function ReportForm() {
 
         {currentUser && (
           <Text size="1" color="gray">
-            Dang nhap voi: {currentUser.fullName || currentUser.email}
+            Đăng nhập với: {currentUser.fullName || currentUser.email}
           </Text>
         )}
 
@@ -193,7 +195,7 @@ export function ReportForm() {
 
         {submitted && (
           <Badge color="green" variant="soft" style={{ width: "fit-content" }}>
-            Da gui bao cao cho admin
+            Đã gửi báo cáo cho quản trị
           </Badge>
         )}
 
@@ -211,7 +213,7 @@ export function ReportForm() {
           }
           loading={loading}
         >
-          {loading ? "Dang gui..." : "Gui bao cao"}
+          {loading ? "Đang gửi..." : "Gửi báo cáo"}
         </Button>
       </Flex>
     </Box>

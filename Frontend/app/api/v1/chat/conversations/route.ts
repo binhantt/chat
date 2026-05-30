@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: "Không thể lấy danh sách cuộc trò chuyện" },
+        { message: "Cannot fetch conversation list" },
         { status: res.status },
       );
     }
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error fetching conversations:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi lấy danh sách cuộc trò chuyện" },
+      { message: "An error occurred while fetching conversations" },
       { status: 500 },
     );
   }

@@ -4,6 +4,7 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { UsersService } from '../../users/users.service';
 import { AuthenticatedRequest } from '../interfaces/authenticated-request.interface';
 import { AuthCookieService } from '../services/auth-cookie.service';
@@ -17,15 +18,18 @@ export class DemoAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
-    const userId = this.authCookieService.resolveAuthenticatedUserId(request);
+    const response = context.switchToHttp().getResponse<Response>();
+    const { refreshedAccessToken, userId } =
+      this.authCookieService.resolveAuthenticatedSession(request);
 
     if (!userId) {
-      throw new UnauthorizedException('Thieu access token');
+      throw new UnauthorizedException('Phien dang nhap da het han');
     }
 
     const user = await this.usersService.findById(userId);
 
     if (!user || this.usersService.isLoginLocked(user)) {
+      this.authCookieService.clearAuthCookies(response);
       throw new UnauthorizedException(
         user
           ? this.usersService.getLockMessage(user)
@@ -34,6 +38,11 @@ export class DemoAuthGuard implements CanActivate {
     }
 
     request.user = user;
+    if (refreshedAccessToken) {
+      this.authCookieService.setAccessToken(response, refreshedAccessToken);
+      this.authCookieService.setUserId(response, user.id);
+      this.authCookieService.setCsrfToken(response);
+    }
 
     return true;
   }

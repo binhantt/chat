@@ -89,8 +89,8 @@ export const SearchPeople = memo(function SearchPeople({
           const chatReady =
             conv.user1Accepted === true && conv.user2Accepted === true;
           const name = chatReady
-            ? partner?.fullName || partner?.email || "Nguoi dung"
-            : "Nguoi an danh";
+            ? partner?.fullName || partner?.email || "Người dùng"
+            : "Người ẩn danh";
 
           return {
             conversationId: conv.id,
@@ -106,7 +106,7 @@ export const SearchPeople = memo(function SearchPeople({
               ? partner?.city
                 ? `Vi tri: ${partner.city}`
                 : "San sang tro chuyen"
-              : "An danh den khi ca hai cung thich",
+              : "Ẩn danh đến khi cả hai cùng thích",
             unreadCount: 0,
           };
         });
@@ -114,17 +114,19 @@ export const SearchPeople = memo(function SearchPeople({
       setConversations(formatted);
     } catch (err) {
       console.error("Error fetching conversations:", err);
-      setError("Khong tai duoc danh sach hoi thoai");
+      setError("Không tải được danh sách hội thoại");
     } finally {
       setLoading(false);
     }
   }, [user?.id]);
 
   useEffect(() => {
-    if (user) {
+    if (!user?.id) return;
+
+    queueMicrotask(() => {
       void fetchConversations();
-    }
-  }, [user, fetchConversations]);
+    });
+  }, [user?.id, fetchConversations]);
 
   useEffect(() => {
     if (!user) return;
@@ -186,10 +188,10 @@ export const SearchPeople = memo(function SearchPeople({
       {showSearchHeader && (
         <Flex direction="column" gap="1">
           <Text size="5" weight="bold">
-            Tim kiem cuoc tro chuyen
+            Tìm kiếm cuộc trò chuyện
           </Text>
           <Text size="2" className="chat-muted">
-            Loc theo ten, email hoac vi tri cua nguoi da chat.
+            Lọc theo tên, email hoặc vị trí của người đã trò chuyện.
           </Text>
         </Flex>
       )}
@@ -207,7 +209,7 @@ export const SearchPeople = memo(function SearchPeople({
         <input
           className="chat-search-input"
           type="text"
-          placeholder="Tim hoi thoai..."
+          placeholder="Tìm hội thoại..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -216,8 +218,8 @@ export const SearchPeople = memo(function SearchPeople({
             type="button"
             className="chat-icon-button"
             onClick={() => setQuery("")}
-            aria-label="Xoa tim kiem"
-            title="Xoa tim kiem"
+            aria-label="Xóa tìm kiếm"
+            title="Xóa tìm kiếm"
             style={{
               position: "absolute",
               right: 6,
@@ -242,16 +244,16 @@ export const SearchPeople = memo(function SearchPeople({
         }}
       >
         {loading ? (
-          <ListState title="Dang tai" detail="Dang lay danh sach hoi thoai..." />
+          <ListState title="Đang tải" detail="Đang lấy danh sách hội thoại..." />
         ) : error ? (
-          <ListState title="Loi mang" detail={error} danger />
+          <ListState title="Lỗi mạng" detail={error} danger />
         ) : filtered.length === 0 ? (
           <ListState
-            title={query ? "Khong co ket qua" : "Chua co hoi thoai"}
+            title={query ? "Không có kết quả" : "Chưa có hội thoại"}
             detail={
               query
-                ? "Thu tu khoa khac de tim lai nguoi da chat."
-                : "Bam Tim moi de ghep nguoi va bat dau chat."
+                ? "Thử từ khóa khác để tìm lại người đã trò chuyện."
+                : "Bấm Tìm mới để ghép người và bắt đầu trò chuyện."
             }
           />
         ) : (
@@ -288,7 +290,7 @@ export const SearchPeople = memo(function SearchPeople({
                     </Text>
                     {!chat.chatReady && (
                       <Badge color="gray" variant="soft">
-                        Cho thich
+                        Chờ thích
                       </Badge>
                     )}
                   </Flex>

@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from "react";
+import { usePathname, useRouter } from "next/navigation";
 
 export interface User {
   id: string;
@@ -12,7 +13,6 @@ export interface User {
   bio: string | null;
   gender: "male" | "female" | "other" | null;
   city: string | null;
-  role: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -35,9 +35,27 @@ const AuthContext = createContext<AuthContextType>({
   logout: () => {},
 });
 
-const USER_CACHE_TTL_MS = 3000;
+const USER_CACHE_TTL_MS = 5 * 60 * 1000;
+const USER_CACHE_STORAGE_KEY = "chatapp.currentUser";
+const USER_CACHE_EVENT = "chatapp.currentUser.changed";
+const FORCE_LOGOUT_EVENT = "chatapp.auth.forceLogout";
 let cachedUser: { user: User | null; expiresAt: number } | null = null;
 let pendingUserRequest: Promise<User | null> | null = null;
+
+export function primeAuthUserCache(user: User | null) {
+  pendingUserRequest = null;
+  cachedUser = {
+    user,
+    expiresAt: Date.now() + USER_CACHE_TTL_MS,
+  };
+
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  clearStoredUserCache();
+  window.dispatchEvent(new CustomEvent<User | null>(USER_CACHE_EVENT, { detail: user }));
+}
 
 async function requestCurrentUser(): Promise<User | null> {
   if (cachedUser && cachedUser.expiresAt > Date.now()) {
@@ -53,11 +71,17 @@ async function requestCurrentUser(): Promise<User | null> {
     credentials: "include",
   })
     .then(async (res) => {
-      const user = res.ok ? ((await res.json()) as User) : null;
-      cachedUser = {
-        user,
-        expiresAt: Date.now() + USER_CACHE_TTL_MS,
-      };
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        primeAuthUserCache(null);
+        if (isLockedSessionResponse(data)) {
+          dispatchForceLogout(getResponseMessage(data));
+        }
+        return null;
+      }
+
+      const user = data as User;
+      primeAuthUserCache(user);
       return user;
     })
     .finally(() => {
@@ -67,14 +91,33 @@ async function requestCurrentUser(): Promise<User | null> {
   return pendingUserRequest;
 }
 
+function clearStoredUserCache() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(USER_CACHE_STORAGE_KEY);
+  window.sessionStorage.removeItem(USER_CACHE_STORAGE_KEY);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   const fetchUser = useCallback(async () => {
+    const freshUser = getFreshCachedUser();
+    if (freshUser !== undefined) {
+      setUser(freshUser);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      setUser(await requestCurrentUser());
+      const currentUser = await requestCurrentUser();
+      setUser(getFreshCachedUser() ?? currentUser);
     } catch (error) {
       console.error("Error fetching user:", error);
       setUser(null);
@@ -97,10 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (res.ok) {
         const data = await res.json();
-        cachedUser = {
-          user: data,
-          expiresAt: Date.now() + USER_CACHE_TTL_MS,
-        };
+        primeAuthUserCache(data);
         setUser(data);
         return data;
       } else {
@@ -114,20 +154,109 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    cachedUser = null;
+    primeAuthUserCache(null);
     pendingUserRequest = null;
     setUser(null);
+    setLoading(false);
     void fetch("/api/v1/auth/logout", {
       method: "POST",
       credentials: "include",
-    }).finally(() => {
-      window.location.href = "/login";
-    });
+      keepalive: true,
+    }).catch(() => undefined);
+    router.replace("/login");
+  }, [router]);
+
+  const forceLogout = useCallback(
+    (message?: string) => {
+      primeAuthUserCache(null);
+      pendingUserRequest = null;
+      setUser(null);
+      setLoading(false);
+      void fetch("/api/v1/auth/logout", {
+        method: "POST",
+        credentials: "include",
+        keepalive: true,
+      }).catch(() => undefined);
+      if (message && typeof window !== "undefined") {
+        window.sessionStorage.setItem("chatapp.auth.message", message);
+      }
+      router.replace("/login");
+    },
+    [router],
+  );
+
+  useEffect(() => {
+    let isActive = true;
+    clearStoredUserCache();
+
+    if (pathname?.startsWith("/admin")) {
+      queueMicrotask(() => {
+        if (isActive) {
+          setUser(null);
+          setLoading(false);
+        }
+      });
+      return () => {
+        isActive = false;
+      };
+    }
+
+    const freshUser = getFreshCachedUser();
+    if (freshUser !== undefined) {
+      queueMicrotask(() => {
+        if (isActive) {
+          setUser(freshUser);
+          setLoading(false);
+        }
+      });
+      return () => {
+        isActive = false;
+      };
+    }
+
+    requestCurrentUser()
+      .then((currentUser) => {
+        if (isActive) {
+          setUser(getFreshCachedUser() ?? currentUser);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching user:", error);
+        if (isActive) {
+          setUser(null);
+        }
+      })
+      .finally(() => {
+        if (isActive) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [pathname]);
+
+  useEffect(() => {
+    const syncUser = (event: Event) => {
+      const nextUser = (event as CustomEvent<User | null>).detail ?? null;
+      setUser(nextUser);
+      setLoading(false);
+    };
+
+    window.addEventListener(USER_CACHE_EVENT, syncUser);
+    return () => window.removeEventListener(USER_CACHE_EVENT, syncUser);
   }, []);
 
   useEffect(() => {
-    fetchUser();
-  }, []);
+    const onForceLogout = (event: Event) => {
+      const message = (event as CustomEvent<string | undefined>).detail;
+      forceLogout(message);
+    };
+
+    window.addEventListener(FORCE_LOGOUT_EVENT, onForceLogout);
+    return () => window.removeEventListener(FORCE_LOGOUT_EVENT, onForceLogout);
+  }, [forceLogout]);
 
   const value: AuthContextType = useMemo(
     () => ({
@@ -145,3 +274,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 export const useAuth = () => useContext(AuthContext);
+
+function getFreshCachedUser(): User | null | undefined {
+  if (!cachedUser || cachedUser.expiresAt <= Date.now()) {
+    return undefined;
+  }
+
+  return cachedUser.user;
+}
+
+function dispatchForceLogout(message?: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent(FORCE_LOGOUT_EVENT, { detail: message }));
+}
+
+function getResponseMessage(data: unknown): string | undefined {
+  if (typeof data !== "object" || data === null || !("message" in data)) {
+    return undefined;
+  }
+
+  return String(data.message);
+}
+
+function isLockedSessionResponse(data: unknown): boolean {
+  const message = getResponseMessage(data)?.toLowerCase() ?? "";
+
+  return (
+    message.includes("khoa") ||
+    message.includes("vi pham") ||
+    message.includes("banned") ||
+    message.includes("locked")
+  );
+}

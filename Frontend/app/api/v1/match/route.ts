@@ -16,7 +16,7 @@ export async function POST(request: Request) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: "Không thể tham gia hàng đợi" },
+        { message: "Cannot join queue" },
         { status: res.status },
       );
     }
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Error joining queue:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi tham gia hàng đợi" },
+      { message: "An error occurred while joining queue" },
       { status: 500 },
     );
   }
@@ -45,7 +45,7 @@ export async function DELETE(request: Request) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: "Không thể rời hàng đợi" },
+        { message: "Cannot leave queue" },
         { status: res.status },
       );
     }
@@ -55,7 +55,7 @@ export async function DELETE(request: Request) {
   } catch (error) {
     console.error("Error leaving queue:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi rời hàng đợi" },
+      { message: "An error occurred while leaving queue" },
       { status: 500 },
     );
   }
@@ -74,7 +74,7 @@ export async function GET(request: Request) {
 
     if (!res.ok) {
       return NextResponse.json(
-        { message: "Không thể lấy trạng thái tìm kiếm" },
+        { message: "Cannot fetch search status" },
         { status: res.status },
       );
     }
@@ -84,7 +84,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Error fetching status:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi lấy trạng thái tìm kiếm" },
+      { message: "An error occurred while fetching search status" },
       { status: 500 },
     );
   }

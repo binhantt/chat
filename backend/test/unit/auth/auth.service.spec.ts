@@ -34,6 +34,7 @@ describe('AuthService', () => {
     createAccessToken: jest.Mock;
     createRefreshToken: jest.Mock;
     verifyRefreshToken: jest.Mock;
+    revokeRefreshToken: jest.Mock;
   };
   let googleAuthService: { verifyToken: jest.Mock };
   let service: AuthService;
@@ -50,6 +51,7 @@ describe('AuthService', () => {
       createAccessToken: jest.fn().mockReturnValue('access-token'),
       createRefreshToken: jest.fn().mockReturnValue('refresh-token'),
       verifyRefreshToken: jest.fn(),
+      revokeRefreshToken: jest.fn(),
     };
     googleAuthService = {
       verifyToken: jest.fn(),
@@ -139,6 +141,16 @@ describe('AuthService', () => {
 
     await expect(service.refreshAccessToken('refresh-token')).rejects.toThrow(
       UnauthorizedException,
+    );
+  });
+
+  it('revokes refresh token on logout', () => {
+    expect(service.logout('refresh-token')).toEqual({
+      message: expect.any(String),
+      success: true,
+    });
+    expect(authTokenService.revokeRefreshToken).toHaveBeenCalledWith(
+      'refresh-token',
     );
   });
 });

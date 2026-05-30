@@ -1,11 +1,20 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-loadEnvFile();
+loadEnvFiles();
 
-function loadEnvFile() {
-  const envFilePath = resolve(process.cwd(), '.env');
+function loadEnvFiles() {
+  const envFilePaths = [
+    resolve(process.cwd(), '.env'),
+    resolve(__dirname, '..', '.env'),
+  ];
 
+  for (const envFilePath of new Set(envFilePaths)) {
+    loadEnvFile(envFilePath);
+  }
+}
+
+function loadEnvFile(envFilePath: string) {
   if (!existsSync(envFilePath)) {
     return;
   }

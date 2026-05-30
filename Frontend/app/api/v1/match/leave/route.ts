@@ -16,7 +16,7 @@ export async function DELETE(request: Request) {
     if (!res.ok) {
       const error = await res.json();
       return NextResponse.json(
-        { message: error.message || "Không thể rời hàng đợi tìm kiếm" },
+        { message: error.message || "Cannot leave search queue" },
         { status: res.status },
       );
     }
@@ -26,7 +26,7 @@ export async function DELETE(request: Request) {
   } catch (error) {
     console.error("Error leaving match queue:", error);
     return NextResponse.json(
-      { message: "Đã xảy ra lỗi khi rời hàng đợi tìm kiếm" },
+      { message: "An error occurred while leaving search queue" },
       { status: 500 },
     );
   }

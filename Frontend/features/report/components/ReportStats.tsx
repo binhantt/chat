@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { Flex, Text, Card, Badge } from "@radix-ui/themes";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -35,13 +35,9 @@ export function ReportStats({ detailed = false }: ReportStatsProps) {
   });
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchReportStats();
-  }, []);
-
-  const fetchReportStats = async () => {
+  async function fetchReportStats() {
     try {
-      const response = await fetch('/api/v1/admin/reports/stats');
+      const response = await fetch('/api/v1/manager/reports/stats');
       if (response.ok) {
         const data = await response.json();
         setStats(data);
@@ -51,7 +47,13 @@ export function ReportStats({ detailed = false }: ReportStatsProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void fetchReportStats();
+    });
+  }, []);
 
   const statCards = [
     { 
@@ -119,7 +121,7 @@ export function ReportStats({ detailed = false }: ReportStatsProps) {
           >
             <Flex direction="column" gap="2" align="center">
               <Text size="6">{stat.icon}</Text>
-              <Text size="8" weight="bold" color={stat.color as any}>{stat.value}</Text>
+              <Text size="8" weight="bold" style={{ color: `var(--${stat.color}-9)` }}>{stat.value}</Text>
               <Text size="2" color="gray">{stat.label}</Text>
             </Flex>
           </Card>
