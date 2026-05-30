@@ -1,12 +1,14 @@
 import { Button, Flex, Text } from "@radix-ui/themes";
 import { ChevronLeftIcon, ChevronRightIcon, FileTextIcon } from "@radix-ui/react-icons";
-import type { AdminReport } from "./types";
+import type { AdminReport, ReportAiReview } from "./types";
 import { authTheme } from "@/features/athu/styles/authTheme";
 import { reportsPanelStyle } from "@/features/admin/styles/reportsTheme";
 import { ReportExpandedPanel } from "./ReportExpandedPanel";
 import { ReportRow } from "./ReportRow";
 
 export function ReportsListPanel({
+  aiReview,
+  aiReviewing,
   currentPage,
   expandedId,
   filteredCount,
@@ -15,6 +17,8 @@ export function ReportsListPanel({
   lockType,
   loadingPage,
   newStatus,
+  onAiReview,
+  onApplyAiSuggestion,
   onLockTypeChange,
   onNext,
   onOpen,
@@ -26,6 +30,8 @@ export function ReportsListPanel({
   reports,
   updating,
 }: {
+  aiReview: ReportAiReview | null;
+  aiReviewing: boolean;
   currentPage: number;
   expandedId: string | null;
   filteredCount: number;
@@ -34,6 +40,8 @@ export function ReportsListPanel({
   lockType: string;
   loadingPage: boolean;
   newStatus: string;
+  onAiReview: () => void;
+  onApplyAiSuggestion: () => void;
   onLockTypeChange: (value: string) => void;
   onNext: () => void;
   onOpen: (report: AdminReport) => void;
@@ -79,8 +87,12 @@ export function ReportsListPanel({
                 <ReportRow expanded={expanded} onOpen={onOpen} report={report} />
                 {expanded && (
                   <ReportExpandedPanel
+                    aiReview={aiReview}
+                    aiReviewing={aiReviewing}
                     lockType={lockType}
                     newStatus={newStatus}
+                    onAiReview={onAiReview}
+                    onApplyAiSuggestion={onApplyAiSuggestion}
                     onLockTypeChange={onLockTypeChange}
                     onStatusChange={onStatusChange}
                     onUpdate={onUpdate}

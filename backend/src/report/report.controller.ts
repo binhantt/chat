@@ -69,6 +69,12 @@ export class AdminReportController {
     return this.reportService.findOneForAdmin(id);
   }
 
+  @Post(':id/ai-review')
+  reviewWithAi(@Param('id') id: string, @Req() request: AuthenticatedRequest) {
+    this.assertAdmin(request);
+    return this.reportService.reviewWithAi(id);
+  }
+
   @Patch(':id/status')
   updateStatus(
     @Param('id') id: string,

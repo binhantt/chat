@@ -4,8 +4,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Conversation } from '../chat/entities/conversation.entity';
+import { Message } from '../chat/entities/message.entity';
+import { ConductService } from '../conduct/conduct.service';
 import { UserLockType } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
 import { CreateReportDto } from './dto/create-report.dto';
@@ -49,6 +51,24 @@ export interface AdminReportPage {
   nextCursor: string | null;
 }
 
+export interface ReportAiReview {
+  evidenceMessages: Array<{
+    content: string;
+    conversationId: string;
+    createdAt: Date;
+    id: string;
+    matchedRule: string;
+  }>;
+  matchedRules: string[];
+  recommendation: 'block' | 'review' | 'none';
+  reportId: string;
+  riskLevel: 'high' | 'medium' | 'low';
+  score: number;
+  summary: string;
+  suggestedLockType: UserLockType;
+  suggestedStatus: ReportStatus;
+}
+
 interface AdminReportRow {
   report_createdAt: Date;
   report_description: string | null;
@@ -85,6 +105,9 @@ export class ReportService {
     private readonly reportRepository: Repository<Report>,
     @InjectRepository(Conversation)
     private readonly conversationRepository: Repository<Conversation>,
+    @InjectRepository(Message)
+    private readonly messageRepository: Repository<Message>,
+    private readonly conductService: ConductService,
     private readonly usersService: UsersService,
   ) {}
 
@@ -289,11 +312,158 @@ export class ReportService {
     return this.toReportWithContext(savedReport);
   }
 
+  async reviewWithAi(id: string): Promise<ReportAiReview> {
+    const report = await this.reportRepository.findOne({
+      where: { id },
+      relations: ['reporter', 'reportedUser'],
+    });
+
+    if (!report) {
+      throw new NotFoundException('Khong tim thay bao cao');
+    }
+
+    const [relatedMessages, reportCount] = await Promise.all([
+      this.getReportedUserMessages(report),
+      this.reportRepository.count({
+        where: { reportedUserId: report.reportedUserId },
+      }),
+    ]);
+
+    const evidenceMessages: ReportAiReview['evidenceMessages'] = [];
+    const matchedRuleSet = new Set<string>();
+
+    for (const message of relatedMessages) {
+      const check = await this.conductService.checkMessage(message.content);
+      if (!check.violated || !check.rule) {
+        continue;
+      }
+
+      matchedRuleSet.add(check.rule.phrase);
+      evidenceMessages.push({
+        content: message.content,
+        conversationId: message.conversationId,
+        createdAt: message.createdAt,
+        id: message.id,
+        matchedRule: check.rule.phrase,
+      });
+    }
+
+    const descriptionCheck = report.description
+      ? await this.conductService.checkMessage(report.description)
+      : { violated: false };
+    if (descriptionCheck.violated && descriptionCheck.rule) {
+      matchedRuleSet.add(descriptionCheck.rule.phrase);
+    }
+
+    let score = Math.min(evidenceMessages.length * 35, 70);
+    if (descriptionCheck.violated) score += 15;
+    if (
+      report.reason === 'harassment' ||
+      report.reason === 'inappropriate_content'
+    ) {
+      score += 15;
+    }
+    if (reportCount >= 3) score += 10;
+    score = Math.min(score, 100);
+
+    const riskLevel =
+      score >= 70 ? 'high' : score >= 35 ? 'medium' : 'low';
+    const recommendation =
+      riskLevel === 'high' ? 'block' : riskLevel === 'medium' ? 'review' : 'none';
+    const suggestedLockType =
+      recommendation === 'block'
+        ? UserLockType.ThirtyDays
+        : UserLockType.None;
+    const suggestedStatus =
+      recommendation === 'block' ? ReportStatus.Resolved : ReportStatus.Reviewed;
+
+    return {
+      evidenceMessages: evidenceMessages.slice(0, 5),
+      matchedRules: Array.from(matchedRuleSet),
+      recommendation,
+      reportId: report.id,
+      riskLevel,
+      score,
+      summary: this.buildAiReviewSummary({
+        evidenceCount: evidenceMessages.length,
+        matchedRules: Array.from(matchedRuleSet),
+        recommendation,
+        reportCount,
+        riskLevel,
+      }),
+      suggestedLockType,
+      suggestedStatus,
+    };
+  }
+
   private async getRecentPartners(
     userId: string,
     limit = 10,
   ): Promise<ReportableUser[]> {
     return (await this.getRecentPartnersMap([userId], limit)).get(userId) ?? [];
+  }
+
+  private async getReportedUserMessages(report: Report): Promise<Message[]> {
+    const conversations = await this.conversationRepository.find({
+      order: { updatedAt: 'DESC' },
+      select: { id: true },
+      take: 5,
+      where: [
+        {
+          user1Id: report.reporterId,
+          user2Id: report.reportedUserId,
+        },
+        {
+          user1Id: report.reportedUserId,
+          user2Id: report.reporterId,
+        },
+      ],
+    });
+
+    const conversationIds = conversations.map((conversation) => conversation.id);
+    if (conversationIds.length === 0) {
+      return [];
+    }
+
+    return this.messageRepository.find({
+      order: { createdAt: 'DESC' },
+      select: {
+        content: true,
+        conversationId: true,
+        createdAt: true,
+        id: true,
+        senderId: true,
+      },
+      take: 50,
+      where: {
+        conversationId: In(conversationIds),
+        senderId: report.reportedUserId,
+      },
+    });
+  }
+
+  private buildAiReviewSummary({
+    evidenceCount,
+    matchedRules,
+    recommendation,
+    reportCount,
+    riskLevel,
+  }: {
+    evidenceCount: number;
+    matchedRules: string[];
+    recommendation: ReportAiReview['recommendation'];
+    reportCount: number;
+    riskLevel: ReportAiReview['riskLevel'];
+  }): string {
+    if (recommendation === 'block') {
+      return `Rui ro ${riskLevel}: phat hien ${evidenceCount} tin nhan trung luat ung xu (${matchedRules.join(', ') || 'khong ro'}). De xuat khoa tai khoan va xac nhan vi pham.`;
+    }
+
+    if (recommendation === 'review') {
+      return `Rui ro ${riskLevel}: can admin doi chieu them. Tai khoan nay co ${reportCount} bao cao va ${evidenceCount} tin nhan nghi van.`;
+    }
+
+    return `Rui ro ${riskLevel}: chua thay tin nhan trung luat ung xu trong cac cuoc tro chuyen gan day.`;
   }
 
   private async getRecentPartnersMap(

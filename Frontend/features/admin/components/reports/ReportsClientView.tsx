@@ -12,12 +12,16 @@ import { authTheme } from "@/features/athu/styles/authTheme";
 
 export function ReportsClientView() {
   const {
+    aiReview,
+    aiReviewing,
+    applyAiSuggestion,
     error,
     expandedId,
     fetchReports,
     filteredReports,
     goNextPage,
     goPreviousPage,
+    handleAiReview,
     handleUpdateStatus,
     hasNext,
     hasPrevious,
@@ -67,6 +71,8 @@ export function ReportsClientView() {
         totalCount={reports.length}
       />
       <ReportsListPanel
+        aiReview={aiReview}
+        aiReviewing={aiReviewing}
         currentPage={currentPage}
         expandedId={expandedId}
         filteredCount={filteredReports.length}
@@ -75,6 +81,8 @@ export function ReportsClientView() {
         lockType={lockType}
         loadingPage={pageChanging}
         newStatus={newStatus}
+        onAiReview={handleAiReview}
+        onApplyAiSuggestion={applyAiSuggestion}
         onLockTypeChange={setLockType}
         onNext={goNextPage}
         onOpen={openReport}

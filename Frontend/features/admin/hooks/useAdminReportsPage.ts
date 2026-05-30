@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
-import type { AdminReport } from "@/features/admin/components/reports";
+import type { AdminReport, ReportAiReview } from "@/features/admin/components/reports";
 import { useAdminReportsStore } from "../store/useAdminReportsStore";
 
 const REPORTS_FETCH_LIMIT = 20;
@@ -10,6 +10,8 @@ export function useAdminReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [pageChanging, setPageChanging] = useState(false);
+  const [aiReviewByReportId, setAiReviewByReportId] = useState<Record<string, ReportAiReview>>({});
+  const [aiReviewingId, setAiReviewingId] = useState<string | null>(null);
   const error = useAdminReportsStore((state) => state.error);
   const expandedId = useAdminReportsStore((state) => state.expandedId);
   const loading = useAdminReportsStore((state) => state.loading);
@@ -165,6 +167,43 @@ export function useAdminReportsPage() {
     }
   }, [expandedReport, lockType, newStatus, setExpandedId, setUpdating, updateReport]);
 
+  const handleAiReview = useCallback(async () => {
+    if (!expandedReport || aiReviewingId) return;
+
+    setAiReviewingId(expandedReport.id);
+    try {
+      const response = await fetch(`/api/v1/manager/reports/${expandedReport.id}/ai-review`, {
+        credentials: "include",
+        headers: { "Content-Type": "application/json", ...getCsrfHeaders() },
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || "AI review failed");
+      }
+
+      const review = (await response.json()) as ReportAiReview;
+      setAiReviewByReportId((current) => ({
+        ...current,
+        [expandedReport.id]: review,
+      }));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Cannot review report with AI");
+    } finally {
+      setAiReviewingId(null);
+    }
+  }, [aiReviewingId, expandedReport]);
+
+  const applyAiSuggestion = useCallback(() => {
+    if (!expandedReport) return;
+    const review = aiReviewByReportId[expandedReport.id];
+    if (!review) return;
+
+    setNewStatus(review.suggestedStatus);
+    setLockType(review.suggestedLockType && review.suggestedLockType !== "none" ? review.suggestedLockType : "");
+  }, [aiReviewByReportId, expandedReport, setLockType, setNewStatus]);
+
   return {
     error,
     expandedId,
@@ -172,6 +211,7 @@ export function useAdminReportsPage() {
     filteredReports,
     goNextPage,
     goPreviousPage,
+    handleAiReview,
     handleUpdateStatus,
     hasNext: Boolean(nextCursor),
     hasPrevious: cursorStack.length > 0,
@@ -179,6 +219,9 @@ export function useAdminReportsPage() {
     lockType,
     newStatus,
     openReport,
+    aiReview: expandedReport ? aiReviewByReportId[expandedReport.id] ?? null : null,
+    aiReviewing: Boolean(expandedReport && aiReviewingId === expandedReport.id),
+    applyAiSuggestion,
     pageEnd,
     pageStart,
     currentPage,

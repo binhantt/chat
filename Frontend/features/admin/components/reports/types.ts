@@ -34,3 +34,21 @@ export type ReportStatsValue = {
   resolved: number;
   total: number;
 };
+
+export type ReportAiReview = {
+  evidenceMessages: Array<{
+    content: string;
+    conversationId: string;
+    createdAt: string;
+    id: string;
+    matchedRule: string;
+  }>;
+  matchedRules: string[];
+  recommendation: "block" | "review" | "none";
+  reportId: string;
+  riskLevel: "high" | "medium" | "low";
+  score: number;
+  summary: string;
+  suggestedLockType: string;
+  suggestedStatus: string;
+};
