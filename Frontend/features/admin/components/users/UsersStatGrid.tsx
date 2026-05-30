@@ -1,11 +1,19 @@
 import { Box, Flex, Grid, Text } from "@radix-ui/themes";
 import { CheckCircledIcon, LockClosedIcon, PersonIcon } from "@radix-ui/react-icons";
 import { authTheme } from "@/features/athu/styles/authTheme";
-import { usersPanelStyle } from "@/features/admin/styles/usersTheme";
+import { usersInnerBorder } from "@/features/admin/styles/usersTheme";
 
-export function UsersStatGrid({ active, banned, total }: { active: number; banned: number; total: number }) {
+export function UsersStatGrid({
+  active,
+  banned,
+  total,
+}: {
+  active: number;
+  banned: number;
+  total: number;
+}) {
   return (
-    <Grid columns={{ initial: "1", sm: "3" }} gap="3">
+    <Grid columns={{ initial: "2", lg: "3" }} gap="3">
       <UsersStatCard icon={<PersonIcon />} label="Tổng tài khoản" value={total} />
       <UsersStatCard icon={<CheckCircledIcon />} label="Đang hoạt động" value={active} tone="green" />
       <UsersStatCard icon={<LockClosedIcon />} label="Đã khóa" value={banned} tone="red" />
@@ -24,16 +32,29 @@ function UsersStatCard({
   tone?: "blue" | "green" | "red";
   value: number;
 }) {
-  const color = tone === "green" ? "#16A34A" : tone === "red" ? "#DC2626" : authTheme.control;
+  const color =
+    tone === "green" ? "#22C55E" : tone === "red" ? "#EF4444" : authTheme.control;
 
   return (
-    <Box style={{ ...usersPanelStyle, padding: 14 }}>
-      <Flex align="center" justify="between" gap="3">
+    <Box
+      style={{
+        background: authTheme.panel,
+        border: usersInnerBorder,
+        borderRadius: 8,
+        padding: 14,
+      }}
+    >
+      <Flex align="center" gap="3" justify="between">
         <Box>
-          <Text as="div" size="2" style={{ color: authTheme.muted }}>
+          <Text as="div" size="1" style={{ color: authTheme.muted }}>
             {label}
           </Text>
-          <Text as="div" size="7" weight="bold" style={{ color: authTheme.text, lineHeight: 1.1 }}>
+          <Text
+            as="div"
+            size="6"
+            weight="bold"
+            style={{ color: authTheme.text, lineHeight: 1.15 }}
+          >
             {value}
           </Text>
         </Box>
@@ -41,12 +62,11 @@ function UsersStatCard({
           align="center"
           justify="center"
           style={{
-            background: `${color}16`,
-            border: `1px solid ${color}22`,
+            background: `${color}18`,
             borderRadius: 8,
             color,
-            height: 44,
-            width: 44,
+            height: 42,
+            width: 42,
           }}
         >
           {icon}

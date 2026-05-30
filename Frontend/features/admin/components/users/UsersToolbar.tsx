@@ -1,7 +1,7 @@
 import { Button, Flex, TextField } from "@radix-ui/themes";
 import { MagnifyingGlassIcon, PlusIcon } from "@radix-ui/react-icons";
 import { authTheme } from "@/features/athu/styles/authTheme";
-import { usersPanelStyle } from "@/features/admin/styles/usersTheme";
+import { usersInnerBorder } from "@/features/admin/styles/usersTheme";
 
 export type UserStatusFilter = "all" | "active" | "banned";
 
@@ -21,7 +21,12 @@ export function UsersToolbar({
       align={{ initial: "stretch", md: "center" }}
       direction={{ initial: "column", md: "row" }}
       gap="3"
-      style={usersPanelStyle}
+      style={{
+        background: authTheme.panel,
+        border: usersInnerBorder,
+        borderRadius: 8,
+        padding: 10,
+      }}
     >
       <TextField.Root
         onChange={(event) => onSearchChange(event.target.value)}
@@ -35,7 +40,7 @@ export function UsersToolbar({
         </TextField.Slot>
       </TextField.Root>
 
-      <Flex gap="2" wrap="wrap">
+      <Flex gap="1" wrap="wrap">
         <FilterButton active={status === "all"} label="Tất cả" onClick={() => onStatusChange("all")} />
         <FilterButton active={status === "active"} color="green" label="Hoạt động" onClick={() => onStatusChange("active")} />
         <FilterButton active={status === "banned"} color="red" label="Đã khóa" onClick={() => onStatusChange("banned")} />
@@ -64,12 +69,9 @@ function FilterButton({
     <Button
       color={color}
       onClick={onClick}
-      size="3"
+      size="2"
       variant={active ? "solid" : "soft"}
-      style={{
-        border: active ? "1px solid transparent" : `1px solid ${authTheme.line}`,
-        borderRadius: 8,
-      }}
+      style={{ borderRadius: 8 }}
     >
       {label}
     </Button>

@@ -1,6 +1,7 @@
 import { Avatar, Box, Flex, Grid, Text } from "@radix-ui/themes";
 import type { AdminUser } from "@/features/athu";
 import { authTheme } from "@/features/athu/styles/authTheme";
+import { usersInnerBorder } from "@/features/admin/styles/usersTheme";
 import { formatAdminDate, getUserInitials } from "./userUtils";
 import { UserActions } from "./UserActions";
 import { UserStatusBadge } from "./UserStatusBadge";
@@ -15,14 +16,20 @@ export function UserListRow({
   user: AdminUser;
 }) {
   return (
-    <Box style={{ borderBottom: `1px solid ${authTheme.line}` }}>
+    <Box
+      style={{
+        background: "#FFFFFF",
+        border: usersInnerBorder,
+        borderRadius: 8,
+      }}
+    >
       <Grid
         display={{ initial: "none", lg: "grid" }}
         columns="minmax(240px, 1.35fr) minmax(220px, 1fr) 140px 160px 54px"
         style={{
           alignItems: "center",
           gap: 12,
-          padding: "16px 18px",
+          padding: "14px 16px",
         }}
       >
         <UserIdentity user={user} />

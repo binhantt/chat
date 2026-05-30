@@ -33,16 +33,24 @@ export function UserListPanel({
   users: AdminUser[];
 }) {
   return (
-    <Flex direction="column" gap="3" style={{ ...usersPanelStyle, padding: 0, overflow: "hidden" }}>
-      <Flex align="center" justify="between" p="4" pb="2">
-        <Box>
-          <Text as="div" size="4" weight="bold" style={{ color: authTheme.text }}>
-            Danh sách người dùng
-          </Text>
-          <Text as="div" size="2" style={{ color: authTheme.muted, marginTop: 4 }}>
-            Quản lý trạng thái và xem nhanh thông tin tài khoản.
-          </Text>
-        </Box>
+    <Flex direction="column" gap="3" style={usersPanelStyle}>
+      <Flex
+        align={{ initial: "start", sm: "center" }}
+        direction={{ initial: "column", sm: "row" }}
+        gap="2"
+        justify="between"
+      >
+        <Flex align="center" gap="2">
+          <PersonIcon color={authTheme.control} />
+          <Box>
+            <Text as="div" size="4" weight="bold" style={{ color: authTheme.text }}>
+              Danh sách người dùng
+            </Text>
+            <Text as="div" size="2" style={{ color: authTheme.muted, marginTop: 4 }}>
+              Quản lý trạng thái và xem nhanh thông tin tài khoản.
+            </Text>
+          </Box>
+        </Flex>
         <Text size="2" style={{ color: authTheme.muted }}>
           {filteredCount > 0 ? `Hiển thị ${pageStart + 1}-${pageEnd}` : "Chưa có dữ liệu"}
         </Text>
@@ -54,8 +62,7 @@ export function UserListPanel({
             align="center"
             justify="center"
             style={{
-              background: "var(--auth-soft-control)",
-              border: `1px solid ${authTheme.line}`,
+              background: "rgba(59,130,246,0.08)",
               borderRadius: 8,
               color: authTheme.control,
               height: 68,
@@ -65,23 +72,21 @@ export function UserListPanel({
             <PersonIcon height={34} width={34} />
           </Flex>
           <Text size="3" weight="bold" style={{ color: authTheme.text }}>
-            Không tìm thấy người dùng nào
+            Không tìm thấy người dùng
           </Text>
           <Text size="2" style={{ color: authTheme.muted }}>
             Thử thay đổi từ khóa hoặc bộ lọc trạng thái.
           </Text>
         </Flex>
       ) : (
-        <Flex direction="column">
+        <Flex direction="column" gap="3">
           <Grid
             display={{ initial: "none", lg: "grid" }}
             columns="minmax(240px, 1.35fr) minmax(220px, 1fr) 140px 160px 54px"
             style={{
-              borderBottom: `1px solid ${authTheme.line}`,
-              borderTop: `1px solid ${authTheme.line}`,
               color: authTheme.muted,
               gap: 12,
-              padding: "10px 18px",
+              padding: "0 10px",
             }}
           >
             <HeaderCell>Tài khoản</HeaderCell>
@@ -98,15 +103,7 @@ export function UserListPanel({
       )}
 
       {filteredCount > 0 && (
-        <Flex
-          align="center"
-          gap="3"
-          justify="between"
-          p="4"
-          pt="2"
-          style={{ borderTop: `1px solid ${authTheme.line}` }}
-          wrap="wrap"
-        >
+        <Flex align="center" gap="3" justify="between" pt="1" wrap="wrap">
           <Text size="2" style={{ color: authTheme.muted }}>
             Trang {currentPage}
           </Text>
