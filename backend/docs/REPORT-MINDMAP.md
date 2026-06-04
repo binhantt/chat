@@ -1,73 +1,73 @@
-# 🧠 Mind Map - Hệ Thống Báo Cáo (Report System)
+#  Mind Map - He Thong Bao Cao (Report System)
 
-## 📌 Tổng Quan
+##  Tong Quan
 
 ```
 REPORT SYSTEM
-├── Backend (NestJS + PostgreSQL)
-│   ├── Controller → Xử lý HTTP Request
-│   ├── Service → Business Logic
-│   ├── Entity → Cấu trúc Database
-│   ├── DTO → Data Transfer Object
-│   └── Module → Dependency Injection
-├── Frontend (Next.js + Radix UI)
-│   ├── ReportForm → Gửi báo cáo mới
-│   ├── ReportStats → Thống kê
-│   ├── ReportHistory → Lịch sử báo cáo
-│   └── AdminReportManagement → Quản lý (Admin)
-└── API Routes (Next.js App Router)
-    ├── POST /api/reports → Tạo báo cáo
-    ├── GET /api/reports → Lấy tất cả (Admin)
-    ├── GET /api/reports/:id → Lấy theo ID (Admin)
-    ├── PATCH /api/reports/:id/status → Cập nhật trạng thái
-    ├── GET /api/reports/stats → Thống kê
-    └── GET /api/reports/my-reports → Báo cáo của tôi
+|--- Backend (NestJS + PostgreSQL)
+|   |--- Controller -> Xu ly HTTP Request
+|   |--- Service -> Business Logic
+|   |--- Entity -> Cau truc Database
+|   |--- DTO -> Data Transfer Object
+|   `--- Module -> Dependency Injection
+|--- Frontend (Next.js + Radix UI)
+|   |--- ReportForm -> Gui bao cao moi
+|   |--- ReportStats -> Thong ke
+|   |--- ReportHistory -> Lich su bao cao
+|   `--- AdminReportManagement -> Quan ly (Admin)
+`--- API Routes (Next.js App Router)
+    |--- POST /api/reports -> Tao bao cao
+    |--- GET /api/reports -> Lay tat ca (Admin)
+    |--- GET /api/reports/:id -> Lay theo ID (Admin)
+    |--- PATCH /api/reports/:id/status -> Cap nhat trang thai
+    |--- GET /api/reports/stats -> Thong ke
+    `--- GET /api/reports/my-reports -> Bao cao cua toi
 ```
 
 ---
 
-## 🏗️ Kiến Trúc Backend
+##  Kien Truc Backend
 
-### 📁 Cấu trúc thư mục
+###  Cau truc thu muc
 
 ```
 backend/src/report/
-├── report.controller.ts     # HTTP Controller
-├── report.service.ts        # Business Logic
-├── report.module.ts         # NestJS Module
-├── entities/
-│   └── report.entity.ts     # TypeORM Entity
-├── dto/
-│   └── create-report.dto.ts # Validation DTO
-└── interfaces/
-    └── (mở rộng nếu cần)
+|--- report.controller.ts     # HTTP Controller
+|--- report.service.ts        # Business Logic
+|--- report.module.ts         # NestJS Module
+|--- entities/
+|   `--- report.entity.ts     # TypeORM Entity
+|--- dto/
+|   `--- create-report.dto.ts # Validation DTO
+`--- interfaces/
+    `--- (mo rong neu can)
 ```
 
-### 🔗 Mối quan hệ Database
+###  Moi quan he Database
 
 ```
-users ──────< reports >──────── users
-  │                              │
-  │ (reporter_id)                │ (reported_user_id)
-  │                              │
-  └─── Báo cáo bởi ─────────────┘
-       Bị báo cáo
+users ------< reports >-------- users
+  |                              |
+  | (reporter_id)                | (reported_user_id)
+  |                              |
+  `---- Bao cao boi --------------+
+       Bi bao cao
 
-reports ──────< conversations >────── conversations
-  │                                    │
-  │ (reported_user_id)                 │
-  │                                    │
-  └─── Đối tác gần đây của người bị báo cáo
+reports ------< conversations >------ conversations
+  |                                    |
+  | (reported_user_id)                 |
+  |                                    |
+  `---- Doi tac gan day cua nguoi bi bao cao
 ```
 
-### 📊 Entity: Report
+###  Entity: Report
 
 ```typescript
 @Entity('reports')
 class Report {
   id: UUID (Primary Key)
-  reporterId: UUID (FK → users.id)
-  reportedUserId: UUID (FK → users.id)
+  reporterId: UUID (FK -> users.id)
+  reportedUserId: UUID (FK -> users.id)
   reason: Enum (spam | harassment | inappropriate_content | fake_profile | underage | other)
   description: Text (nullable)
   status: Enum (pending | reviewed | resolved | rejected)
@@ -76,7 +76,7 @@ class Report {
 }
 ```
 
-### 📊 DTO: CreateReportDto
+###  DTO: CreateReportDto
 
 ```typescript
 class CreateReportDto {
@@ -91,7 +91,7 @@ class CreateReportDto {
 }
 ```
 
-### 📊 Response: ReportWithContext
+###  Response: ReportWithContext
 
 ```typescript
 interface ReportWithContext {
@@ -120,135 +120,135 @@ interface ReportWithContext {
 
 ---
 
-## 🔌 API Endpoints
+##  API Endpoints
 
-### 1️⃣ POST /api/reports — Tạo báo cáo mới
-
-```
-📤 Request:
-├── Headers
-│   ├── Authorization: Bearer <token>
-│   └── Content-Type: application/json
-└── Body
-    ├── reportedUserId (required, UUID)
-    ├── reason (required, enum)
-    └── description (optional, string)
-
-📥 Response (201):
-├── id: UUID
-├── reporterId: UUID
-├── reportedUserId: UUID
-├── reason: string
-├── description: string | null
-├── status: "pending"
-└── createdAt: ISO Date
-
-❌ Errors:
-├── 400 → Validation failed
-├── 401 → Unauthorized
-└── 403 → Forbidden
-```
-
-### 2️⃣ GET /api/reports — Lấy tất cả (Admin)
+### 1 POST /api/reports - Tao bao cao moi
 
 ```
-📤 Request:
-└── Headers
-    └── Authorization: Bearer <token> (Admin only)
+ Request:
+|--- Headers
+|   |--- Authorization: Bearer <token>
+|   `--- Content-Type: application/json
+`--- Body
+    |--- reportedUserId (required, UUID)
+    |--- reason (required, enum)
+    `--- description (optional, string)
 
-📥 Response (200):
-└── Array of ReportWithContext
+ Response (201):
+|--- id: UUID
+|--- reporterId: UUID
+|--- reportedUserId: UUID
+|--- reason: string
+|--- description: string | null
+|--- status: "pending"
+`--- createdAt: ISO Date
 
-❌ Errors:
-├── 401 → Unauthorized
-└── 403 → Forbidden (non-admin)
+ Errors:
+|--- 400 -> Validation failed
+|--- 401 -> Unauthorized
+`--- 403 -> Forbidden
 ```
 
-### 3️⃣ GET /api/reports/:id — Lấy theo ID (Admin)
+### 2 GET /api/reports - Lay tat ca (Admin)
 
 ```
-📤 Request:
-├── Params: { id: UUID }
-└── Headers: Authorization: Bearer <token> (Admin only)
+ Request:
+`--- Headers
+    `--- Authorization: Bearer <token> (Admin only)
 
-📥 Response (200):
-└── ReportWithContext
+ Response (200):
+`--- Array of ReportWithContext
 
-❌ Errors:
-├── 401 → Unauthorized
-├── 403 → Forbidden
-└── 404 → Report not found
+ Errors:
+|--- 401 -> Unauthorized
+`--- 403 -> Forbidden (non-admin)
 ```
 
-### 4️⃣ PATCH /api/reports/:id/status — Cập nhật trạng thái
+### 3 GET /api/reports/:id - Lay theo ID (Admin)
 
 ```
-📤 Request:
-├── Params: { id: UUID }
-├── Headers: Authorization: Bearer <token> (Admin only)
-└── Body:
-    └── status (required, enum: pending | reviewed | resolved | rejected)
+ Request:
+|--- Params: { id: UUID }
+`--- Headers: Authorization: Bearer <token> (Admin only)
 
-📥 Response (200):
-└── ReportWithContext (with updatedAt)
+ Response (200):
+`--- ReportWithContext
 
-❌ Errors:
-├── 400 → Invalid status value
-├── 401 → Unauthorized
-├── 403 → Forbidden
-└── 404 → Report not found
+ Errors:
+|--- 401 -> Unauthorized
+|--- 403 -> Forbidden
+`--- 404 -> Report not found
 ```
 
-### 5️⃣ GET /api/reports/stats — Thống kê
+### 4 PATCH /api/reports/:id/status - Cap nhat trang thai
 
 ```
-📤 Request:
-└── Headers: Authorization: Bearer <token> (Admin only)
+ Request:
+|--- Params: { id: UUID }
+|--- Headers: Authorization: Bearer <token> (Admin only)
+`--- Body:
+    `--- status (required, enum: pending | reviewed | resolved | rejected)
 
-📥 Response (200):
-├── totalReports: number
-├── pendingReports: number
-├── reviewedReports: number
-├── resolvedReports: number
-└── rejectedReports: number
+ Response (200):
+`--- ReportWithContext (with updatedAt)
+
+ Errors:
+|--- 400 -> Invalid status value
+|--- 401 -> Unauthorized
+|--- 403 -> Forbidden
+`--- 404 -> Report not found
 ```
 
-### 6️⃣ GET /api/reports/my-reports — Báo cáo của tôi
+### 5 GET /api/reports/stats - Thong ke
 
 ```
-📤 Request:
-└── Headers: Authorization: Bearer <token>
+ Request:
+`--- Headers: Authorization: Bearer <token> (Admin only)
 
-📥 Response (200):
-└── Array of Report (filtered by reporterId = current user)
+ Response (200):
+|--- totalReports: number
+|--- pendingReports: number
+|--- reviewedReports: number
+|--- resolvedReports: number
+`--- rejectedReports: number
+```
+
+### 6 GET /api/reports/my-reports - Bao cao cua toi
+
+```
+ Request:
+`--- Headers: Authorization: Bearer <token>
+
+ Response (200):
+`--- Array of Report (filtered by reporterId = current user)
 ```
 
 ---
 
-## 🎨 Kiến Trúc Frontend
+##  Kien Truc Frontend
 
-### 📁 Cấu trúc thư mục
+###  Cau truc thu muc
 
 ```
 frontend/features/report/
-├── page/
-│   └── ReportPage.tsx           # Trang chính với Tabs
-├── components/
-│   ├── ReportForm.tsx           # Form gửi báo cáo
-│   ├── ReportStats.tsx          # Thống kê
-│   ├── ReportHistory.tsx        # Lịch sử báo cáo
-│   └── AdminReportManagement.tsx # Quản lý admin
-└── index.ts                     # Barrel export
+|--- page/
+|   `--- ReportPage.tsx           # Trang chinh voi Tabs
+|--- components/
+|   |--- ReportForm.tsx           # Form gui bao cao
+|   |--- ReportStats.tsx          # Thong ke
+|   |--- ReportHistory.tsx        # Lich su bao cao
+|   `--- AdminReportManagement.tsx # Quan ly admin
+`--- index.ts                     # Barrel export
 ```
 
-### 📊 ReportPage (Tabs Navigation)
+###  ReportPage (Tabs Navigation)
 
 ```typescript
 <Tabs.Root defaultValue="user-reports">
   <Tabs.List>
-    <Tabs.Trigger value="user-reports">Báo cáo của tôi</Tabs.Trigger>
-    <Tabs.Trigger value="admin-management">Quản lý báo cáo</Tabs.Trigger>
-    <Tabs.Trigger value="statistics">Thống kê</Tabs.Trigger>
+    <Tabs.Trigger value="user-reports">Bao cao cua toi</Tabs.Trigger>
+    <Tabs.Trigger value="admin-management">Quan ly bao cao</Tabs.Trigger>
+    <Tabs.Trigger value="statistics">Thong ke</Tabs.Trigger>
   </Tabs.List>
 
   <Tabs.Content value="user-reports">
@@ -267,7 +267,7 @@ frontend/features/report/
 </Tabs.Root>
 ```
 
-### 📊 ReportForm Component
+###  ReportForm Component
 
 ```typescript
 interface ReportFormProps {
@@ -280,11 +280,11 @@ interface ReportFormProps {
   loading: boolean
 
   // API mapping
-  category → reason: {
-    'bug' → 'spam'
-    'suggest' → 'other'
-    'abuse' → 'harassment'
-    'other' → 'other'
+  category -> reason: {
+    'bug' -> 'spam'
+    'suggest' -> 'other'
+    'abuse' -> 'harassment'
+    'other' -> 'other'
   }
 
   // API call
@@ -292,7 +292,7 @@ interface ReportFormProps {
 }
 ```
 
-### 📊 ReportStats Component
+###  ReportStats Component
 
 ```typescript
 interface ReportStatsProps {
@@ -300,19 +300,19 @@ interface ReportStatsProps {
 }
 
 // Displays:
-// - Tổng báo cáo (📊)
-// - Chờ xử lý (⏳)
-// - Đã xem xét (👀)
-// - Đã giải quyết (✅)
+// - Tong bao cao ()
+// - Cho xu ly ()
+// - Da xem xet ()
+// - Da giai quyet ()
 
 // When detailed=true, shows:
-// - Thống kê chi tiết card
+// - Thong ke chi tiet card
 // - Badge breakdowns
 // - Reports by category
 // - Reports by user (top 5)
 ```
 
-### 📊 ReportHistory Component
+###  ReportHistory Component
 
 ```typescript
 interface Report {
@@ -326,25 +326,25 @@ interface Report {
 }
 
 // Status colors:
-// - pending → yellow
-// - reviewed → violet
-// - resolved → green
-// - rejected → red
+// - pending -> yellow
+// - reviewed -> violet
+// - resolved -> green
+// - rejected -> red
 
 // Date formatting:
-// - 1 day → "Hôm qua"
-// - <7 days → "X ngày trước"
-// - <30 days → "X tuần trước"
-// - >30 days → "X tháng trước"
+// - 1 day -> "Hom qua"
+// - <7 days -> "X ngay truoc"
+// - <30 days -> "X tuan truoc"
+// - >30 days -> "X thang truoc"
 ```
 
-### 📊 AdminReportManagement Component
+###  AdminReportManagement Component
 
 ```typescript
 // Features:
 // - Summary stats badges
 // - Full reports table with columns:
-//   | ID | Lý do | Người báo cáo | Người bị báo cáo | Trạng thái | Ngày tạo | Thao tác |
+//   | ID | Ly do | Nguoi bao cao | Nguoi bi bao cao | Trang thai | Ngay tao | Thao tac |
 // - Detail modal with:
 //   - Report details
 //   - Status update dropdown
@@ -354,234 +354,234 @@ interface Report {
 
 ---
 
-## 🔄 Data Flow
+##  Data Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        DATA FLOW                                │
-│                                                                 │
-│  [User Clicks "Báo cáo"]                                        │
-│         │                                                       │
-│         ▼                                                       │
-│  [ReportForm.tsx]                                               │
-│         │                                                       │
-│         ▼                                                       │
-│  POST /api/reports ──────────────────────────────────┐          │
-│         │                                            │          │
-│         ▼                                            ▼          │
-│  [Next.js API Route]                          [NestJS Controller]│
-│         │                                            │          │
-│         ▼                                            ▼          │
-│  Forward to Backend              [ReportService.create()]       │
-│         │                                            │          │
-│         ▼                                            ▼          │
-│  Response                        [TypeORM → PostgreSQL]         │
-│         │                                            │          │
-│         ▼                                            │          │
-│  [ReportForm shows success]                    │              │
-│         │                                        │              │
-│         ▼                                        ▼              │
-│  [ReportHistory re-fetches]              [Report saved in DB]   │
-│                                                                 │
-│  [Admin views reports]                                          │
-│         │                                                       │
-│         ▼                                                       │
-│  GET /api/reports ──────────────────────────────────┐           │
-│         │                                            │           │
-│         ▼                                            ▼           │
-│  [NestJS Controller]                    [ReportService]          │
-│         │                                            │           │
-│         ▼                                            ▼           │
-│  [ReportWithContext]              [Joins: reporter,              │
-│         │                         reportedUser,                 │
-│         ▼                         recentPartners]                │
-│  [AdminReportManagement.tsx]                                   │
-│         │                                                       │
-│         ▼                                                       │
-│  PATCH /api/reports/:id/status                                 │
-│         │                                                       │
-│         ▼                                                       │
-│  [ReportService.updateStatus()]                                 │
-│         │                                                       │
-│         ▼                                                       │
-│  [Status updated in DB]                                        │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🔐 Security & Authorization
-
-```
-┌─────────────────────────────────────────────────────────┐
-│                  SECURITY MODEL                         │
-│                                                         │
-│  ┌──────────────────────────────────────────────┐       │
-│  │           Authentication Layer                │       │
-│  │  ┌─────────────────────────────────────────┐  │       │
-│  │  │  DemoAuthGuard                          │  │       │
-│  │  │  ├── Verifies JWT token                 │  │       │
-│  │  │  ├── Extracts user from request         │  │       │
-│  │  │  └── Attaches user to request object    │  │       │
-│  │  └─────────────────────────────────────────┘  │       │
-│  └──────────────────────────────────────────────┘       │
-│                                                         │
-│  ┌──────────────────────────────────────────────┐       │
-│  │           Authorization Layer               │       │
-│  │  ┌─────────────────────────────────────────┐  │       │
-│  │  │  POST /reports                          │  │       │
-│  │  │  → Any authenticated user               │  │       │
-│  │  ├─────────────────────────────────────────┤  │       │
-│  │  │  GET /reports                           │  │       │
-│  │  │  → Admin only                           │  │       │
-│  │  ├─────────────────────────────────────────┤  │       │
-│  │  │  GET /reports/:id                       │  │       │
-│  │  │  → Admin only                           │  │       │
-│  │  ├─────────────────────────────────────────┤  │       │
-│  │  │  PATCH /reports/:id/status              │  │       │
-│  │  │  → Admin only                           │  │       │
-│  │  └─────────────────────────────────────────┘  │       │
-│  └──────────────────────────────────────────────┘       │
-│                                                         │
-│  ┌──────────────────────────────────────────────┐       │
-│  │           Validation Layer                   │       │
-│  │  ┌─────────────────────────────────────────┐  │       │
-│  │  │  class-validator                        │  │       │
-│  │  │  ├── @IsNotEmpty()                      │  │       │
-│  │  │  ├── @IsUUID()                          │  │       │
-│  │  │  └── @IsEnum(ReportReason)              │  │       │
-│  │  └─────────────────────────────────────────┘  │       │
-│  └──────────────────────────────────────────────┘       │
-└─────────────────────────────────────────────────────────┘
++-------------------------------------------------------------------+
+|                        DATA FLOW                                |
+|                                                                 |
+|  [User Clicks "Bao cao"]                                        |
+|         |                                                       |
+|         v                                                       |
+|  [ReportForm.tsx]                                               |
+|         |                                                       |
+|         v                                                       |
+|  POST /api/reports -----------------------------------+          |
+|         |                                            |          |
+|         v                                            v          |
+|  [Next.js API Route]                          [NestJS Controller]|
+|         |                                            |          |
+|         v                                            v          |
+|  Forward to Backend              [ReportService.create()]       |
+|         |                                            |          |
+|         v                                            v          |
+|  Response                        [TypeORM -> PostgreSQL]         |
+|         |                                            |          |
+|         v                                            |          |
+|  [ReportForm shows success]                    |              |
+|         |                                        |              |
+|         v                                        v              |
+|  [ReportHistory re-fetches]              [Report saved in DB]   |
+|                                                                 |
+|  [Admin views reports]                                          |
+|         |                                                       |
+|         v                                                       |
+|  GET /api/reports -----------------------------------+           |
+|         |                                            |           |
+|         v                                            v           |
+|  [NestJS Controller]                    [ReportService]          |
+|         |                                            |           |
+|         v                                            v           |
+|  [ReportWithContext]              [Joins: reporter,              |
+|         |                         reportedUser,                 |
+|         v                         recentPartners]                |
+|  [AdminReportManagement.tsx]                                   |
+|         |                                                       |
+|         v                                                       |
+|  PATCH /api/reports/:id/status                                 |
+|         |                                                       |
+|         v                                                       |
+|  [ReportService.updateStatus()]                                 |
+|         |                                                       |
+|         v                                                       |
+|  [Status updated in DB]                                        |
+`-------------------------------------------------------------------+
 ```
 
 ---
 
-## 📋 Enum Values
+##  Security & Authorization
+
+```
++-----------------------------------------------------------+
+|                  SECURITY MODEL                         |
+|                                                         |
+|  +------------------------------------------------+       |
+|  |           Authentication Layer                |       |
+|  |  +-------------------------------------------+  |       |
+|  |  |  DemoAuthGuard                          |  |       |
+|  |  |  |--- Verifies JWT token                 |  |       |
+|  |  |  |--- Extracts user from request         |  |       |
+|  |  |  `--- Attaches user to request object    |  |       |
+|  |  `-------------------------------------------+  |       |
+|  `------------------------------------------------+       |
+|                                                         |
+|  +------------------------------------------------+       |
+|  |           Authorization Layer               |       |
+|  |  +-------------------------------------------+  |       |
+|  |  |  POST /reports                          |  |       |
+|  |  |  -> Any authenticated user               |  |       |
+|  |  |------------------------------------------  |       |
+|  |  |  GET /reports                           |  |       |
+|  |  |  -> Admin only                           |  |       |
+|  |  |------------------------------------------  |       |
+|  |  |  GET /reports/:id                       |  |       |
+|  |  |  -> Admin only                           |  |       |
+|  |  |------------------------------------------  |       |
+|  |  |  PATCH /reports/:id/status              |  |       |
+|  |  |  -> Admin only                           |  |       |
+|  |  `-------------------------------------------+  |       |
+|  `------------------------------------------------+       |
+|                                                         |
+|  +------------------------------------------------+       |
+|  |           Validation Layer                   |       |
+|  |  +-------------------------------------------+  |       |
+|  |  |  class-validator                        |  |       |
+|  |  |  |--- @IsNotEmpty()                      |  |       |
+|  |  |  |--- @IsUUID()                          |  |       |
+|  |  |  `--- @IsEnum(ReportReason)              |  |       |
+|  |  `-------------------------------------------+  |       |
+|  `------------------------------------------------+       |
+`-----------------------------------------------------------+
+```
+
+---
+
+##  Enum Values
 
 ### ReportReason
 
 ```
-┌─────────────────────────┬──────────────────────────────────┐
-│     Enum Value          │         Description              │
-├─────────────────────────┼──────────────────────────────────┤
-│ spam                    │ Nội dung spam                    │
-│ harassment              │ Quấy rối, bắt nạt               │
-│ inappropriate_content   │ Nội dung không phù hợp          │
-│ fake_profile            │ Tài khoản giả mạo               │
-│ underage                │ Người dùng chưa đủ tuổi         │
-│ other                   │ Lý do khác                      │
-└─────────────────────────┴──────────────────────────────────┘
++--------------------------------------------------------------+
+|     Enum Value          |         Description              |
+|--------------------------+----------------------------------
+| spam                    | Noi dung spam                    |
+| harassment              | Quay roi, bat nat               |
+| inappropriate_content   | Noi dung khong phu hop          |
+| fake_profile            | Tai khoan gia mao               |
+| underage                | Nguoi dung chua du tuoi         |
+| other                   | Ly do khac                      |
+`--------------------------------------------------------------+
 ```
 
 ### ReportStatus
 
 ```
-┌─────────────────────────┬──────────────────────────────────┐
-│     Enum Value          │         Description              │
-├─────────────────────────┼──────────────────────────────────┤
-│ pending                 │ ⏳ Chờ xử lý                    │
-│ reviewed                │ 👀 Đã xem xét                   │
-│ resolved                │ ✅ Đã giải quyết                │
-│ rejected                │ ❌ Từ chối                       │
-└─────────────────────────┴──────────────────────────────────┘
++--------------------------------------------------------------+
+|     Enum Value          |         Description              |
+|--------------------------+----------------------------------
+| pending                 |  Cho xu ly                    |
+| reviewed                |  Da xem xet                   |
+| resolved                |  Da giai quyet                |
+| rejected                |  Tu choi                       |
+`--------------------------------------------------------------+
 ```
 
 ---
 
-## 📦 Dependencies
+##  Dependencies
 
 ```
 Backend:
-├── @nestjs/common         → Controller decorators, Guards
-├── @nestjs/typeorm        → TypeORM integration
-├── typeorm                → ORM for PostgreSQL
-├── class-validator        → DTO validation
-├── @nestjs/jwt            → JWT authentication
-└── pg                     → PostgreSQL driver
+|--- @nestjs/common         -> Controller decorators, Guards
+|--- @nestjs/typeorm        -> TypeORM integration
+|--- typeorm                -> ORM for PostgreSQL
+|--- class-validator        -> DTO validation
+|--- @nestjs/jwt            -> JWT authentication
+`--- pg                     -> PostgreSQL driver
 
 Frontend:
-├── @radix-ui/themes       → UI components (Card, Flex, Text, etc.)
-├── next                   → React framework
-├── react                  → UI library
-└── @/contexts/ThemeContext → Theme state management
+|--- @radix-ui/themes       -> UI components (Card, Flex, Text, etc.)
+|--- next                   -> React framework
+|--- react                  -> UI library
+`--- @/contexts/ThemeContext -> Theme state management
 ```
 
 ---
 
-## 🧪 Testing Strategy
+##  Testing Strategy
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                  TESTING                                 │
-│                                                         │
-│  Unit Tests                                             │
-│  ├── ReportService.spec.ts                              │
-│  │   ├── create() - success                             │
-│  │   ├── create() - invalid DTO                         │
-│  │   ├── findAllForAdmin() - success                    │
-│  │   ├── findOneForAdmin() - not found                  │
-│  │   ├── updateStatus() - success                       │
-│  │   └── updateStatus() - unauthorized                  │
-│  └── ReportController.spec.ts                           │
-│      ├── POST / - validation                            │
-│      ├── GET / - admin only                             │
-│      ├── GET /:id - admin only                          │
-│      └── PATCH /:id/status - admin only                 │
-│                                                         │
-│  E2E Tests                                              │
-│  ├── Create report flow                                │
-│  ├── Admin review flow                                  │
-│  └── Status update flow                                 │
-│                                                         │
-│  Frontend Tests                                         │
-│  ├── ReportForm.test.tsx                                │
-│  ├── ReportStats.test.tsx                               │
-│  └── ReportHistory.test.tsx                             │
-└─────────────────────────────────────────────────────────┘
-```
-
----
-
-## 📈 Future Improvements
-
-```
-┌─────────────────────────────────────────────────────────┐
-│              FUTURE ENHANCEMENTS                        │
-│                                                         │
-│  1. Real-time notifications                             │
-│     └── WebSocket for new reports                       │
-│                                                         │
-│  2. Email notifications                                 │
-│     └── Notify admin on new report                      │
-│     └── Notify reporter on status change                │
-│                                                         │
-│  3. Report categories                                   │
-│     └── Configurable from admin panel                   │
-│                                                         │
-│  4. Attachments support                                 │
-│     └── Screenshots, chat logs                          │
-│                                                         │
-│  5. Analytics dashboard                                 │
-│     └── Charts and graphs                               │
-│     └── Export to CSV/PDF                               │
-│                                                         │
-│  6. Rate limiting                                       │
-│     └── Max 5 reports/minute per user                   │
-│     └── Max 50 reports/day per user                     │
-│                                                         │
-│  7. Appeal system                                       │
-│     └── Users can appeal resolved reports               │
-│                                                         │
-│  8. AI-powered triage                                   │
-│     └── Auto-categorize reports                         │
-│     └── Priority scoring                                │
-└─────────────────────────────────────────────────────────┘
++-----------------------------------------------------------+
+|                  TESTING                                 |
+|                                                         |
+|  Unit Tests                                             |
+|  |--- ReportService.spec.ts                              |
+|  |   |--- create() - success                             |
+|  |   |--- create() - invalid DTO                         |
+|  |   |--- findAllForAdmin() - success                    |
+|  |   |--- findOneForAdmin() - not found                  |
+|  |   |--- updateStatus() - success                       |
+|  |   `--- updateStatus() - unauthorized                  |
+|  `--- ReportController.spec.ts                           |
+|      |--- POST / - validation                            |
+|      |--- GET / - admin only                             |
+|      |--- GET /:id - admin only                          |
+|      `--- PATCH /:id/status - admin only                 |
+|                                                         |
+|  E2E Tests                                              |
+|  |--- Create report flow                                |
+|  |--- Admin review flow                                  |
+|  `--- Status update flow                                 |
+|                                                         |
+|  Frontend Tests                                         |
+|  |--- ReportForm.test.tsx                                |
+|  |--- ReportStats.test.tsx                               |
+|  `--- ReportHistory.test.tsx                             |
+`-----------------------------------------------------------+
 ```
 
 ---
 
-## 📝 Quick Reference
+##  Future Improvements
+
+```
++-----------------------------------------------------------+
+|              FUTURE ENHANCEMENTS                        |
+|                                                         |
+|  1. Real-time notifications                             |
+|     `--- WebSocket for new reports                       |
+|                                                         |
+|  2. Email notifications                                 |
+|     `--- Notify admin on new report                      |
+|     `--- Notify reporter on status change                |
+|                                                         |
+|  3. Report categories                                   |
+|     `--- Configurable from admin panel                   |
+|                                                         |
+|  4. Attachments support                                 |
+|     `--- Screenshots, chat logs                          |
+|                                                         |
+|  5. Analytics dashboard                                 |
+|     `--- Charts and graphs                               |
+|     `--- Export to CSV/PDF                               |
+|                                                         |
+|  6. Rate limiting                                       |
+|     `--- Max 5 reports/minute per user                   |
+|     `--- Max 50 reports/day per user                     |
+|                                                         |
+|  7. Appeal system                                       |
+|     `--- Users can appeal resolved reports               |
+|                                                         |
+|  8. AI-powered triage                                   |
+|     `--- Auto-categorize reports                         |
+|     `--- Priority scoring                                |
+`-----------------------------------------------------------+
+```
+
+---
+
+##  Quick Reference
 
 ### Environment Variables
 
@@ -626,4 +626,4 @@ git push origin feature/report-system
 
 ---
 
-*Tài liệu được tạo ngày 10/05/2026*
+*Tai lieu duoc tao ngay 10/05/2026*

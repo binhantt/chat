@@ -38,7 +38,7 @@ POST /api/v1/auth/google-login
 **Response:**
 ```json
 {
-  "message": "Đăng nhập Google thành công",
+  "message": "Dang nhap Google thanh cong",
   "accessToken": "signed-access-token",
   "refreshToken": "signed-refresh-token",
   "user": {
@@ -368,19 +368,7 @@ CREATE TABLE reports (
 
 ## Environment Variables
 
-```env
-# Database
-DATABASE_URL=postgresql://username:password@localhost:5432/chat_db
-
-# JWT
-JWT_SECRET=your-secret-key
-JWT_EXPIRES_IN=1d
-AUTH_TOKEN_SECRET=replace-with-long-random-secret
-GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
-
-# Server
-PORT=3000
-```
+Use `backend/.env.example` as the source template. Full environment documentation is in [`../DOC_07_ENV.md`](../DOC_07_ENV.md).
 
 ## Error Handling
 

@@ -13,11 +13,15 @@ Mac dinh frontend chay o `http://localhost:3000`.
 
 ## Bien moi truong
 
-Tao `.env.local`:
+Tao `.env` hoac `.env.local` tu file mau:
 
 ```env
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
 ```
+
+Chi tiet bien moi truong: [`../DOC_07_ENV.md`](../DOC_07_ENV.md).
 
 ## Vai tro frontend
 

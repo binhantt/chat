@@ -1,63 +1,63 @@
-# 📋 Báo Cáo Hệ Thống - Tài Liệu Kỹ Thuật
+#  Bao Cao He Thong - Tai Lieu Ky Thuat
 
-## Tổng Quan
+## Tong Quan
 
-Hệ thống báo cáo cho phép người dùng gửi báo cáo về các vấn đề (spam, quấy rối, nội dung không phù hợp...) và cho phép admin quản lý, xem xét các báo cáo này.
+He thong bao cao cho phep nguoi dung gui bao cao ve cac van de (spam, quay roi, noi dung khong phu hop...) va cho phep admin quan ly, xem xet cac bao cao nay.
 
-## Kiến Trúc Hệ Thống
+## Kien Truc He Thong
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    FRONTEND (Next.js)                    │
-│  ┌──────────┐  ┌───────────┐  ┌──────────────────────┐  │
-│  │ ReportForm│  │ReportStats│  │ ReportHistory        │  │
-│  │ Gửi báo  │  │ Thống kê │  │ Lịch sử báo cáo     │  │
-│  │ cáo      │  │           │  │                      │  │
-│  └────┬─────┘  └─────┬─────┘  └──────────┬───────────┘  │
-│       │              │                    │              │
-│       └──────────────┼────────────────────┘              │
-│                      │ REST API                         │
-├──────────────────────┼───────────────────────────────────┤
-│                    BACKEND (NestJS)                      │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  ReportController  (Xử lý HTTP request)           │  │
-│  │  ├── POST /reports        - Tạo báo cáo mới       │  │
-│  │  ├── GET  /reports        - Lấy tất cả (admin)     │  │
-│  │  ├── GET  /reports/:id    - Lấy theo ID (admin)    │  │
-│  │  └── PATCH /reports/:id   - Cập nhật trạng thái   │  │
-│  └────────────────────────────────────────────────────┘  │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  ReportService  (Business Logic)                   │  │
-│  │  ├── create()         - Tạo báo cáo                │  │
-│  │  ├── findAllForAdmin()- Lấy tất cả cho admin       │  │
-│  │  ├── findOneForAdmin()- Lấy 1 báo cáo cho admin    │  │
-│  │  └── updateStatus()   - Cập nhật trạng thái        │  │
-│  └────────────────────────────────────────────────────┘  │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  Database (PostgreSQL + TypeORM)                   │  │
-│  │  └── Table: reports                                 │  │
-│  └────────────────────────────────────────────────────┘  │
-└─────────────────────────────────────────────────────────┘
++-----------------------------------------------------------+
+|                    FRONTEND (Next.js)                    |
+|  +------------+  +-------------+  +------------------------+  |
+|  | ReportForm|  |ReportStats|  | ReportHistory        |  |
+|  | Gui bao  |  | Thong ke |  | Lich su bao cao     |  |
+|  | cao      |  |           |  |                      |  |
+|  `------------+  `-------------+  `------------------------+  |
+|       |              |                    |              |
+|       `---------------+---------------------+              |
+|                      | REST API                         |
+|-----------------------+-----------------------------------
+|                    BACKEND (NestJS)                      |
+|  +------------------------------------------------------+  |
+|  |  ReportController  (Xu ly HTTP request)           |  |
+|  |  |--- POST /reports        - Tao bao cao moi       |  |
+|  |  |--- GET  /reports        - Lay tat ca (admin)     |  |
+|  |  |--- GET  /reports/:id    - Lay theo ID (admin)    |  |
+|  |  `--- PATCH /reports/:id   - Cap nhat trang thai   |  |
+|  `------------------------------------------------------+  |
+|  +------------------------------------------------------+  |
+|  |  ReportService  (Business Logic)                   |  |
+|  |  |--- create()         - Tao bao cao                |  |
+|  |  |--- findAllForAdmin()- Lay tat ca cho admin       |  |
+|  |  |--- findOneForAdmin()- Lay 1 bao cao cho admin    |  |
+|  |  `--- updateStatus()   - Cap nhat trang thai        |  |
+|  `------------------------------------------------------+  |
+|  +------------------------------------------------------+  |
+|  |  Database (PostgreSQL + TypeORM)                   |  |
+|  |  `--- Table: reports                                 |  |
+|  `------------------------------------------------------+  |
+`-----------------------------------------------------------+
 ```
 
-## Cấu Trúc Thư Mục
+## Cau Truc Thu Muc
 
 ```
 backend/src/report/
-├── report.controller.ts    # Controller - Xử lý HTTP request
-├── report.service.ts       # Service - Business logic
-├── report.module.ts        # Module - Đăng ký dependencies
-├── entities/
-│   └── report.entity.ts    # Entity - Cấu trúc bảng database
-├── dto/
-│   └── create-report.dto.ts # DTO - Data Transfer Object
-└── interfaces/
-    └── (nếu có)
+|--- report.controller.ts    # Controller - Xu ly HTTP request
+|--- report.service.ts       # Service - Business logic
+|--- report.module.ts        # Module - Dang ky dependencies
+|--- entities/
+|   `--- report.entity.ts    # Entity - Cau truc bang database
+|--- dto/
+|   `--- create-report.dto.ts # DTO - Data Transfer Object
+`--- interfaces/
+    `--- (neu co)
 ```
 
 ## API Endpoints
 
-### 1. Tạo Báo Cáo Mới
+### 1. Tao Bao Cao Moi
 
 ```
 POST /api/reports
@@ -72,34 +72,34 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "reportedUserId": "uuid-của-người-bị-báo-cáo",
+  "reportedUserId": "uuid-cua-nguoi-bi-bao-cao",
   "reason": "spam | harassment | inappropriate_content | fake_profile | underage | other",
-  "description": "Mô tả chi tiết (tuỳ chọn)"
+  "description": "Mo ta chi tiet (tuy chon)"
 }
 ```
 
 **Response (201 - Created):**
 ```json
 {
-  "id": "uuid-báo-cáo",
-  "reporterId": "uuid-người-gửi",
-  "reportedUserId": "uuid-người-bị-báo-cáo",
+  "id": "uuid-bao-cao",
+  "reporterId": "uuid-nguoi-gui",
+  "reportedUserId": "uuid-nguoi-bi-bao-cao",
   "reason": "spam",
-  "description": "Mô tả chi tiết",
+  "description": "Mo ta chi tiet",
   "status": "pending",
   "createdAt": "2026-05-10T10:00:00.000Z"
 }
 ```
 
-**Lỗi có thể xảy ra:**
+**Loi co the xay ra:**
 ```json
-// 400 - Dữ liệu không hợp lệ
+// 400 - Du lieu khong hop le
 {
   "message": "Validation failed",
   "errors": ["reportedUserId must be a UUID"]
 }
 
-// 401 - Chưa đăng nhập
+// 401 - Chua dang nhap
 {
   "message": "Unauthorized"
 }
@@ -107,7 +107,7 @@ Content-Type: application/json
 
 ---
 
-### 2. Lấy Tất Cả Báo Cáo (Chỉ Admin)
+### 2. Lay Tat Ca Bao Cao (Chi Admin)
 
 ```
 GET /api/reports
@@ -122,25 +122,25 @@ Authorization: Bearer <token>
 ```json
 [
   {
-    "id": "uuid-báo-cáo",
+    "id": "uuid-bao-cao",
     "reason": "spam",
-    "description": "Mô tả",
+    "description": "Mo ta",
     "status": "pending",
     "createdAt": "2026-05-10T10:00:00.000Z",
     "reporter": {
       "id": "uuid",
-      "fullName": "Người gửi",
+      "fullName": "Nguoi gui",
       "email": "sender@example.com"
     },
     "reportedUser": {
       "id": "uuid",
-      "fullName": "Người bị báo cáo",
+      "fullName": "Nguoi bi bao cao",
       "email": "reported@example.com"
     },
     "recentPartners": [
       {
         "id": "uuid",
-        "fullName": "Đối tác gần đây",
+        "fullName": "Doi tac gan day",
         "avatarUrl": "https://..."
       }
     ]
@@ -148,17 +148,17 @@ Authorization: Bearer <token>
 ]
 ```
 
-**Lỗi:**
+**Loi:**
 ```json
-// 403 - Không phải admin
+// 403 - Khong phai admin
 {
-  "message": "Chỉ admin mới có quyền xem báo cáo"
+  "message": "Chi admin moi co quyen xem bao cao"
 }
 ```
 
 ---
 
-### 3. Lấy Báo Cáo Theo ID (Chỉ Admin)
+### 3. Lay Bao Cao Theo ID (Chi Admin)
 
 ```
 GET /api/reports/:id
@@ -167,28 +167,28 @@ GET /api/reports/:id
 **Response (200 - Success):**
 ```json
 {
-  "id": "uuid-báo-cáo",
+  "id": "uuid-bao-cao",
   "reason": "harassment",
-  "description": "Mô tả chi tiết",
+  "description": "Mo ta chi tiet",
   "status": "reviewed",
   "createdAt": "2026-05-10T10:00:00.000Z",
   "reporter": {
     "id": "uuid",
-    "fullName": "Người gửi",
+    "fullName": "Nguoi gui",
     "email": "sender@example.com"
   },
   "reportedUser": {
     "id": "uuid",
-    "fullName": "Người bị báo cáo",
+    "fullName": "Nguoi bi bao cao",
     "email": "reported@example.com"
   },
   "recentPartners": []
 }
 ```
 
-**Lỗi:**
+**Loi:**
 ```json
-// 404 - Không tìm thấy
+// 404 - Khong tim thay
 {
   "message": "Report not found"
 }
@@ -196,7 +196,7 @@ GET /api/reports/:id
 
 ---
 
-### 4. Cập Nhật Trạng Thái Báo Cáo (Chỉ Admin)
+### 4. Cap Nhat Trang Thai Bao Cao (Chi Admin)
 
 ```
 PATCH /api/reports/:id/status
@@ -209,18 +209,18 @@ PATCH /api/reports/:id/status
 }
 ```
 
-**Giá trị status hợp lệ:**
-- `pending` - Chờ xử lý
-- `reviewed` - Đã xem xét
-- `resolved` - Đã giải quyết
-- `rejected` - Bị từ chối
+**Gia tri status hop le:**
+- `pending` - Cho xu ly
+- `reviewed` - Da xem xet
+- `resolved` - Da giai quyet
+- `rejected` - Bi tu choi
 
 **Response (200 - Success):**
 ```json
 {
-  "id": "uuid-báo-cáo",
+  "id": "uuid-bao-cao",
   "reason": "spam",
-  "description": "Mô tả",
+  "description": "Mo ta",
   "status": "reviewed",
   "createdAt": "2026-05-10T10:00:00.000Z",
   "updatedAt": "2026-05-10T11:00:00.000Z"
@@ -229,27 +229,27 @@ PATCH /api/reports/:id/status
 
 ---
 
-## Các Giá Trị Enum
+## Cac Gia Tri Enum
 
-### ReportReason (Lý do báo cáo)
+### ReportReason (Ly do bao cao)
 
-| Giá trị | Mô tả |
+| Gia tri | Mo ta |
 |---------|-------|
-| `spam` | Nội dung spam |
-| `harassment` | Quấy rối |
-| `inappropriate_content` | Nội dung không phù hợp |
-| `fake_profile` | Tài khoản giả mạo |
-| `underage` | Người dùng chưa đủ tuổi |
-| `other` | Khác |
+| `spam` | Noi dung spam |
+| `harassment` | Quay roi |
+| `inappropriate_content` | Noi dung khong phu hop |
+| `fake_profile` | Tai khoan gia mao |
+| `underage` | Nguoi dung chua du tuoi |
+| `other` | Khac |
 
-### ReportStatus (Trạng thái báo cáo)
+### ReportStatus (Trang thai bao cao)
 
-| Giá trị | Mô tả |
+| Gia tri | Mo ta |
 |---------|-------|
-| `pending` | Chờ xử lý |
-| `reviewed` | Đã xem xét |
-| `resolved` | Đã giải quyết |
-| `rejected` | Bị từ chối |
+| `pending` | Cho xu ly |
+| `reviewed` | Da xem xet |
+| `resolved` | Da giai quyet |
+| `rejected` | Bi tu choi |
 
 ---
 
@@ -260,15 +260,15 @@ PATCH /api/reports/:id/status
 export class CreateReportDto {
   @IsNotEmpty()
   @IsUUID()
-  reportedUserId!: string;  // UUID của người bị báo cáo
+  reportedUserId!: string;  // UUID cua nguoi bi bao cao
 
   @IsNotEmpty()
   @IsEnum(ReportReason)
-  reason!: ReportReason;    // Lý do báo cáo
+  reason!: ReportReason;    // Ly do bao cao
 
   @IsOptional()
   @IsString()
-  description?: string;     // Mô tả chi tiết (tuỳ chọn)
+  description?: string;     // Mo ta chi tiet (tuy chon)
 }
 ```
 
@@ -276,14 +276,14 @@ export class CreateReportDto {
 ```typescript
 @Entity('reports')
 export class Report {
-  id: string;              // UUID - Khóa chính
-  reporterId: string;      // UUID người gửi báo cáo
-  reportedUserId: string;  // UUID người bị báo cáo
-  reason: ReportReason;    // Lý do báo cáo
-  description: string;     // Mô tả chi tiết
-  status: ReportStatus;    // Trạng thái
-  createdAt: Date;         // Thời gian tạo
-  updatedAt: Date;         // Thời gian cập nhật
+  id: string;              // UUID - Khoa chinh
+  reporterId: string;      // UUID nguoi gui bao cao
+  reportedUserId: string;  // UUID nguoi bi bao cao
+  reason: ReportReason;    // Ly do bao cao
+  description: string;     // Mo ta chi tiet
+  status: ReportStatus;    // Trang thai
+  createdAt: Date;         // Thoi gian tao
+  updatedAt: Date;         // Thoi gian cap nhat
 }
 ```
 
@@ -315,47 +315,47 @@ export interface ReportWithContext {
 
 ---
 
-## Quy Trình Xử Lý
+## Quy Trinh Xu Ly
 
-### Người Dùng Gửi Báo Cáo
+### Nguoi Dung Gui Bao Cao
 ```
-1. Người dùng chọn "Báo cáo" trên giao diện
-2. Chọn lý do (spam, quấy rò, lỗi...)
-3. Nhập mô tả chi tiết
-4. Nhấn "Gửi báo cáo"
-5. Frontend gọi POST /api/reports
-6. Backend lưu vào database với status = "pending"
-7. Hiển thị thông báo gửi thành công
+1. Nguoi dung chon "Bao cao" tren giao dien
+2. Chon ly do (spam, quay ro, loi...)
+3. Nhap mo ta chi tiet
+4. Nhan "Gui bao cao"
+5. Frontend goi POST /api/reports
+6. Backend luu vao database voi status = "pending"
+7. Hien thi thong bao gui thanh cong
 ```
 
-### Admin Xem Và Xử Lý Báo Cáo
+### Admin Xem Va Xu Ly Bao Cao
 ```
-1. Admin đăng nhập vào dashboard
-2. Gọi GET /api/reports để xem danh sách báo cáo
-3. Xem chi tiết từng báo cáo bằng GET /api/reports/:id
-4. Cập nhật trạng thái:
-   - "reviewed" → Đã xem xét
-   - "resolved" → Đã giải quyết
-   - "rejected" → Từ chối (không hợp lệ)
-5. Gọi PATCH /api/reports/:id/status
+1. Admin dang nhap vao dashboard
+2. Goi GET /api/reports de xem danh sach bao cao
+3. Xem chi tiet tung bao cao bang GET /api/reports/:id
+4. Cap nhat trang thai:
+   - "reviewed" -> Da xem xet
+   - "resolved" -> Da giai quyet
+   - "rejected" -> Tu choi (khong hop le)
+5. Goi PATCH /api/reports/:id/status
 ```
 
 ---
 
-## Bảo Mật
+## Bao Mat
 
-### Xác Thực
-- Tất cả endpoint yêu cầu authentication (JWT token)
-- Sử dụng `DemoAuthGuard` để xác thực
+### Xac Thuc
+- Tat ca endpoint yeu cau authentication (JWT token)
+- Su dung `DemoAuthGuard` de xac thuc
 
-### Phân Quyền
-- **Người dùng thường**: Chỉ có thể tạo báo cáo mới
-- **Admin**: Có thể xem tất cả báo cáo và cập nhật trạng thái
+### Phan Quyen
+- **Nguoi dung thuong**: Chi co the tao bao cao moi
+- **Admin**: Co the xem tat ca bao cao va cap nhat trang thai
 
 ### Validation
-- Sử dụng `class-validator` để validate input
-- `reportedUserId` phải là UUID hợp lệ
-- `reason` phải là một trong các giá trị enum
+- Su dung `class-validator` de validate input
+- `reportedUserId` phai la UUID hop le
+- `reason` phai la mot trong cac gia tri enum
 
 ---
 
@@ -387,52 +387,52 @@ CREATE INDEX idx_reports_reported_user ON reports(reported_user_id);
 ## Frontend Components
 
 ### ReportForm.tsx
-- Form gửi báo cáo mới
-- Chọn loại báo cáo (bug, suggest, abuse, other)
-- Nhập tiêu đề và nội dung
-- Gọi API POST /api/reports
+- Form gui bao cao moi
+- Chon loai bao cao (bug, suggest, abuse, other)
+- Nhap tieu de va noi dung
+- Goi API POST /api/reports
 
 ### ReportStats.tsx
-- Hiển thị thống kê báo cáo
-- Tổng báo cáo, chờ xử lý, đã xem xét, đã giải quyết
-- Gọi API GET /api/reports/stats
+- Hien thi thong ke bao cao
+- Tong bao cao, cho xu ly, da xem xet, da giai quyet
+- Goi API GET /api/reports/stats
 
 ### ReportHistory.tsx
-- Hiển thị lịch sử báo cáo của người dùng
-- Gọi API GET /api/reports/my-reports
-- Hiển thị trạng thái với Badge màu
+- Hien thi lich su bao cao cua nguoi dung
+- Goi API GET /api/reports/my-reports
+- Hien thi trang thai voi Badge mau
 
 ### AdminReportManagement.tsx
-- Dashboard quản lý báo cáo cho admin
-- Xem danh sách tất cả báo cáo
-- Cập nhật trạng thái báo cáo
-- Gọi API GET/PUT/PATCH /api/reports
+- Dashboard quan ly bao cao cho admin
+- Xem danh sach tat ca bao cao
+- Cap nhat trang thai bao cao
+- Goi API GET/PUT/PATCH /api/reports
 
 ---
 
 ## Rate Limiting
 
-Để ngăn chặn lạm dụng:
-- **Người dùng thường**: Tối đa 5 báo cáo/phút, 50 báo cáo/ngày
-- **Admin**: Không giới hạn
+De ngan chan lam dung:
+- **Nguoi dung thuong**: Toi da 5 bao cao/phut, 50 bao cao/ngay
+- **Admin**: Khong gioi han
 
 ---
 
 ## Error Codes
 
-| Code | Mô tả |
+| Code | Mo ta |
 |------|-------|
-| 400 | Dữ liệu không hợp lệ (validation failed) |
-| 401 | Chưa đăng nhập (Unauthorized) |
-| 403 | Không có quyền (Forbidden - chỉ admin) |
-| 404 | Báo cáo không tồn tại |
-| 500 | Lỗi server nội bộ |
+| 400 | Du lieu khong hop le (validation failed) |
+| 401 | Chua dang nhap (Unauthorized) |
+| 403 | Khong co quyen (Forbidden - chi admin) |
+| 404 | Bao cao khong ton tai |
+| 500 | Loi server noi bo |
 
 ---
 
-## Ví Dụ Sử Dụng
+## Vi Du Su Dung
 
-### Tạo Báo Cáo (JavaScript)
+### Tao Bao Cao (JavaScript)
 ```javascript
 const createReport = async (reportedUserId, reason, description) => {
   const response = await fetch('/api/reports', {
@@ -457,7 +457,7 @@ const createReport = async (reportedUserId, reason, description) => {
 };
 ```
 
-### Lấy Danh Sách Báo Cáo Admin (JavaScript)
+### Lay Danh Sach Bao Cao Admin (JavaScript)
 ```javascript
 const getAllReports = async () => {
   const response = await fetch('/api/reports', {
@@ -470,7 +470,7 @@ const getAllReports = async () => {
 };
 ```
 
-### Cập Nhật Trạng Thái (JavaScript)
+### Cap Nhat Trang Thai (JavaScript)
 ```javascript
 const updateReportStatus = async (reportId, status) => {
   const response = await fetch(`/api/reports/${reportId}/status`, {
@@ -488,17 +488,17 @@ const updateReportStatus = async (reportId, status) => {
 
 ---
 
-## Lịch Sử Phát Triển
+## Lich Su Phat Trien
 
-| Ngày | Mô tả |
+| Ngay | Mo ta |
 |------|-------|
-| 2026-05-10 | Tạo tài liệu documentation đầu tiên |
-| 2026-05-10 | Thêm API endpoints cho frontend |
-| 2026-05-10 | Tạo mock API routes cho development |
+| 2026-05-10 | Tao tai lieu documentation dau tien |
+| 2026-05-10 | Them API endpoints cho frontend |
+| 2026-05-10 | Tao mock API routes cho development |
 
 ---
 
-## Liên Kết
+## Lien Ket
 
 - [NestJS Documentation](https://docs.nestjs.com)
 - [TypeORM Documentation](https://typeorm.io)
@@ -506,4 +506,4 @@ const updateReportStatus = async (reportId, status) => {
 
 ---
 
-*Tài liệu được tạo ngày 10/05/2026*
+*Tai lieu duoc tao ngay 10/05/2026*

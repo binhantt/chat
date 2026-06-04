@@ -223,7 +223,7 @@ Update the status of a specific report.
 #### 403 Forbidden
 ```json
 {
-  "message": "Chỉ admin mới có quyền xem báo cáo"
+  "message": "Chi admin moi co quyen xem bao cao"
 }
 ```
 
