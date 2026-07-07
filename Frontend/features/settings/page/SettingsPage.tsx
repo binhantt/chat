@@ -349,7 +349,7 @@ function SupportCard() {
         </Flex>
 
         <a
-          href="https://cv-binh-an.vercel.app/"
+          href="https://zalo.me/0329104253"
           target="_blank"
           rel="noopener noreferrer"
           style={{ textDecoration: "none" }}
@@ -463,12 +463,12 @@ export function SettingsPage() {
             {/* Account info */}
             <Section icon={<IdCardIcon width={16} height={16} />} title="Thông tin tài khoản">
               <Grid columns={{ initial: "1", sm: "2" }} gap="3">
-                <ReadonlyField label="Tên hiển thị" value={user?.fullName} />
-                <ReadonlyField label="Email" value={user?.email} />
-                <ReadonlyField label="Số điện thoại" value={user?.phoneNumber} />
-                <ReadonlyField label="Thành phố" value={fmtCity(user?.city)} />
-                <ReadonlyField label="Giới tính" value={fmtGender(user?.gender)} />
-                <ReadonlyField label="Giới thiệu" value={user?.bio} />
+                {user?.fullName && <ReadonlyField label="Tên hiển thị" value={user?.fullName} />}
+                {user?.email && <ReadonlyField label="Email" value={user?.email} />}
+                {user?.phoneNumber && <ReadonlyField label="Số điện thoại" value={user?.phoneNumber} />}
+                {user?.city && <ReadonlyField label="Thành phố" value={fmtCity(user?.city)} />}
+                {user?.gender && <ReadonlyField label="Giới tính" value={fmtGender(user?.gender)} />}
+                {user?.bio && <ReadonlyField label="Giới thiệu" value={user?.bio} />}
               </Grid>
               <Button disabled size="3" style={{ background: "linear-gradient(135deg, var(--chat-accent), var(--secondary))", borderRadius: 10, color: "#FFFFFF", width: "100%", cursor: "not-allowed", opacity: 0.7 }}>
                 <EnterIcon /> Lưu cài đặt
