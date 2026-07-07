@@ -10,11 +10,9 @@ import {
   TextField,
 } from "@radix-ui/themes";
 import {
-  CalendarIcon,
   EnterIcon,
   FaceIcon,
   IdCardIcon,
-  MobileIcon,
   PersonIcon,
   SewingPinIcon,
 } from "@radix-ui/react-icons";
@@ -134,23 +132,6 @@ function EditableProfileForm({
           placeholder="Nhập tên hiển thị"
           value={formData.fullName}
         />
-
-        <Flex gap="4" wrap="wrap">
-          <ProfileTextInput
-            icon={<CalendarIcon />}
-            label="Ngày sinh"
-            onChange={(value) => handleInputChange("dateOfBirth", value)}
-            type="date"
-            value={formData.dateOfBirth}
-          />
-          <ProfileTextInput
-            icon={<MobileIcon />}
-            label="Số điện thoại"
-            onChange={(value) => handleInputChange("phoneNumber", value)}
-            placeholder="Nhập số điện thoại"
-            value={formData.phoneNumber}
-          />
-        </Flex>
 
         <Flex gap="4" wrap="wrap">
           <ProfileSelect
