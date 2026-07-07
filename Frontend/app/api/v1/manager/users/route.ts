@@ -1,7 +1,7 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { buildBackendHeaders } from "@/app/api/_utils/backendHeaders";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { BACKEND_URL } from "@/lib/env";
 const USERS_CACHE_TTL_MS = 3000;
 const usersCache = new Map<string, { data: unknown; status: number; expiresAt: number }>();
 const usersInflight = new Map<string, Promise<{ data: unknown; status: number }>>();

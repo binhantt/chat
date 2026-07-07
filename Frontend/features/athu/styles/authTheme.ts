@@ -10,4 +10,5 @@ export const authTheme = {
   line: "var(--auth-line)",
   cyan: "var(--auth-cyan)",
   gold: "var(--auth-gold)",
+  shadow: "var(--auth-shadow)",
 } as const;

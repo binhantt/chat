@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { getCsrfHeaders } from "@/lib/csrf";
 
 export function PageVisitTracker() {
   const pathname = usePathname();
@@ -20,7 +21,7 @@ export function PageVisitTracker() {
       void fetch("/api/v1/analytics/visit", {
         body: JSON.stringify({ path }),
         credentials: "include",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getCsrfHeaders() },
         keepalive: true,
         method: "POST",
         signal: controller.signal,

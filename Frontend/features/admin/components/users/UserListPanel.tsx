@@ -1,9 +1,8 @@
 import { Box, Button, Flex, Grid, Text } from "@radix-ui/themes";
 import { ChevronLeftIcon, ChevronRightIcon, PersonIcon } from "@radix-ui/react-icons";
 import type { AdminUser } from "@/features/athu";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { usersPanelStyle } from "@/features/admin/styles/usersTheme";
 import { UserListRow } from "./UserListRow";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function UserListPanel({
   currentPage,
@@ -32,8 +31,9 @@ export function UserListPanel({
   pageStart: number;
   users: AdminUser[];
 }) {
+  const s = useAdminStyles();
   return (
-    <Flex direction="column" gap="3" style={usersPanelStyle}>
+    <Flex direction="column" gap="3" className={s.users.userListPanel}>
       <Flex
         align={{ initial: "start", sm: "center" }}
         direction={{ initial: "column", sm: "row" }}
@@ -41,40 +41,30 @@ export function UserListPanel({
         justify="between"
       >
         <Flex align="center" gap="2">
-          <PersonIcon color={authTheme.control} />
+          <PersonIcon color="var(--primary)" />
           <Box>
-            <Text as="div" size="4" weight="bold" style={{ color: authTheme.text }}>
+            <Text as="div" size="4" weight="bold" className={s.users.listTitle}>
               Danh sách người dùng
             </Text>
-            <Text as="div" size="2" style={{ color: authTheme.muted, marginTop: 4 }}>
+            <Text as="div" size="2" className={s.users.listDesc}>
               Quản lý trạng thái và xem nhanh thông tin tài khoản.
             </Text>
           </Box>
         </Flex>
-        <Text size="2" style={{ color: authTheme.muted }}>
+        <Text size="2" className={s.users.listInfo}>
           {filteredCount > 0 ? `Hiển thị ${pageStart + 1}-${pageEnd}` : "Chưa có dữ liệu"}
         </Text>
       </Flex>
 
       {users.length === 0 ? (
-        <Flex align="center" direction="column" gap="2" justify="center" style={{ minHeight: 260, padding: 24 }}>
-          <Flex
-            align="center"
-            justify="center"
-            style={{
-              background: "rgba(59,130,246,0.08)",
-              borderRadius: 8,
-              color: authTheme.control,
-              height: 68,
-              width: 68,
-            }}
-          >
+        <Flex align="center" direction="column" gap="2" justify="center" className={s.users.emptyState}>
+          <Flex align="center" justify="center" className={s.users.emptyIcon}>
             <PersonIcon height={34} width={34} />
           </Flex>
-          <Text size="3" weight="bold" style={{ color: authTheme.text }}>
+          <Text size="3" weight="bold" className={s.users.emptyTitle}>
             Không tìm thấy người dùng
           </Text>
-          <Text size="2" style={{ color: authTheme.muted }}>
+          <Text size="2" className={s.users.emptyDesc}>
             Thử thay đổi từ khóa hoặc bộ lọc trạng thái.
           </Text>
         </Flex>
@@ -83,11 +73,7 @@ export function UserListPanel({
           <Grid
             display={{ initial: "none", lg: "grid" }}
             columns="minmax(240px, 1.35fr) minmax(220px, 1fr) 140px 160px 54px"
-            style={{
-              color: authTheme.muted,
-              gap: 12,
-              padding: "0 10px",
-            }}
+            className={s.users.gridHeader}
           >
             <HeaderCell>Tài khoản</HeaderCell>
             <HeaderCell>Email</HeaderCell>
@@ -104,15 +90,15 @@ export function UserListPanel({
 
       {filteredCount > 0 && (
         <Flex align="center" gap="3" justify="between" pt="1" wrap="wrap">
-          <Text size="2" style={{ color: authTheme.muted }}>
+          <Text size="2" className={s.users.listInfo}>
             Trang {currentPage}
           </Text>
           <Flex align="center" gap="2">
-            <Button disabled={!hasPrevious || loadingPage} onClick={onPrevious} size="2" variant="soft" style={{ borderRadius: 8 }}>
+            <Button disabled={!hasPrevious || loadingPage} onClick={onPrevious} size="2" variant="soft" className={s.users.headerBtn}>
               <ChevronLeftIcon />
               Trước
             </Button>
-            <Button disabled={!hasNext || loadingPage} onClick={onNext} size="2" variant="soft" style={{ borderRadius: 8 }}>
+            <Button disabled={!hasNext || loadingPage} onClick={onNext} size="2" variant="soft" className={s.users.headerBtn}>
               {loadingPage ? "Đang tải..." : "Sau"}
               <ChevronRightIcon />
             </Button>
@@ -124,8 +110,9 @@ export function UserListPanel({
 }
 
 function HeaderCell({ children }: { children?: React.ReactNode }) {
+  const s = useAdminStyles();
   return (
-    <Text size="1" weight="bold" style={{ textTransform: "uppercase" }}>
+    <Text size="1" weight="bold" className={s.users.gridHeaderText}>
       {children}
     </Text>
   );

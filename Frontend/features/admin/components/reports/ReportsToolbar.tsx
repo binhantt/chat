@@ -1,7 +1,6 @@
 ﻿import { Button, Flex, Text } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { reportsInnerBorder } from "@/features/admin/styles/reportsTheme";
 import type { ReportStatusFilter } from "./types";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 const filters: { label: string; value: ReportStatusFilter }[] = [
   { label: "Tất cả", value: "all" },
@@ -22,18 +21,14 @@ export function ReportsToolbar({
   status: ReportStatusFilter;
   totalCount: number;
 }) {
+  const s = useAdminStyles();
   return (
     <Flex
       align="center"
       gap="3"
       justify="between"
       wrap="wrap"
-      style={{
-        background: authTheme.panel,
-        border: reportsInnerBorder,
-        borderRadius: 8,
-        padding: 10,
-      }}
+      className={s.reports.toolbar}
     >
       <Flex gap="1" wrap="wrap">
         {filters.map((item) => (
@@ -42,13 +37,13 @@ export function ReportsToolbar({
             onClick={() => onStatusChange(item.value)}
             size="2"
             variant={status === item.value ? "solid" : "soft"}
-            style={{ borderRadius: 8 }}
+            className={s.reports.roundedBtn}
           >
             {item.label}
           </Button>
         ))}
       </Flex>
-      <Text size="2" style={{ color: authTheme.muted }}>
+      <Text size="2" className={s.reports.toolbarCount}>
         Hiển thị {filteredCount} / {totalCount}
       </Text>
     </Flex>

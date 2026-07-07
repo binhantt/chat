@@ -3,13 +3,12 @@
 import { Avatar, Box, Flex, Text } from "@radix-ui/themes";
 import { PersonIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
-import { authTheme } from "@/features/athu/styles/authTheme";
 import { SettingsSection } from "./SettingsSection";
 
 const avatars = [
-  { id: "a1", color: authTheme.control, label: "A" },
-  { id: "a2", color: authTheme.cyan, label: "B" },
-  { id: "a3", color: authTheme.gold, label: "C" },
+  { id: "a1", color: "var(--primary)", label: "A" },
+  { id: "a2", color: "#22d3ee", label: "B" },
+  { id: "a3", color: "#f59e0b", label: "C" },
   { id: "a4", color: "#14B8A6", label: "D" },
   { id: "a5", color: "#8B5CF6", label: "E" },
   { id: "a6", color: "#EF4444", label: "F" },
@@ -34,7 +33,7 @@ export function Avatar3D() {
             color: "#FFFFFF",
           }}
         />
-        <Text size="2" style={{ color: authTheme.muted }}>
+        <Text size="2" style={{ color: "var(--text-secondary)" }}>
           Mau dang chon: {selected.label}
         </Text>
       </Flex>
@@ -51,8 +50,8 @@ export function Avatar3D() {
               background: avatar.color,
               border:
                 selected.id === avatar.id
-                  ? `3px solid ${authTheme.text}`
-                  : `3px solid ${authTheme.line}`,
+                  ? "3px solid var(--text-primary)"
+                  : "3px solid var(--chat-border)",
               borderRadius: 8,
               color: "#FFFFFF",
               cursor: "pointer",

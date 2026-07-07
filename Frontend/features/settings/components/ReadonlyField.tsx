@@ -1,5 +1,4 @@
 import { Flex, Text, TextField } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
 
 type ReadonlyFieldProps = {
   label: string;
@@ -10,7 +9,7 @@ type ReadonlyFieldProps = {
 export function ReadonlyField({ label, placeholder = "Chưa cập nhật", value }: ReadonlyFieldProps) {
   return (
     <Flex direction="column" gap="1" style={{ flex: 1, minWidth: 210 }}>
-      <Text size="1" weight="medium" style={{ color: authTheme.muted }}>
+      <Text size="1" weight="medium" style={{ color: "var(--text-secondary)" }}>
         {label}
       </Text>
       <TextField.Root
@@ -19,9 +18,9 @@ export function ReadonlyField({ label, placeholder = "Chưa cập nhật", value
         value={value ?? ""}
         style={{
           background: "#FFFFFF",
-          border: `1px solid ${authTheme.line}`,
+          border: "1px solid var(--chat-border)",
           borderRadius: 8,
-          color: authTheme.text,
+          color: "var(--text-primary)",
           cursor: "not-allowed",
         }}
       />

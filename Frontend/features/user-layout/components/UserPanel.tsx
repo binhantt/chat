@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Box } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
 
 type UserPanelProps = {
   borderless?: boolean;
@@ -18,12 +17,10 @@ export function UserPanel({
   return (
     <Box
       style={{
-        background: borderless
-          ? "transparent"
-          : `linear-gradient(180deg, ${authTheme.panelLift}, ${authTheme.panel})`,
-        border: borderless ? "none" : `1px solid ${authTheme.line}`,
-        borderRadius: 8,
-        boxShadow: "none",
+        background: borderless ? "transparent" : "#FFFFFF",
+        border: borderless ? "none" : "1px solid rgba(165, 139, 217, 0.15)",
+        borderRadius: 12,
+        boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
         maxWidth,
         overflow: "hidden",
         position: "relative",
@@ -33,7 +30,7 @@ export function UserPanel({
       {!borderless && (
         <Box
           style={{
-            background: `linear-gradient(90deg, ${authTheme.control}, ${authTheme.cyan}, ${authTheme.gold})`,
+            background: "linear-gradient(90deg, #4B2E83, #A58BD9, #C4B1E8)",
             height: 3,
             left: 0,
             position: "absolute",

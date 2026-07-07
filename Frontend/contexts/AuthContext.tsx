@@ -2,12 +2,15 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import { getCsrfHeaders } from "@/lib/csrf";
 
 export interface User {
   id: string;
   email: string;
+  googleId: string | null;
   fullName: string | null;
   avatarUrl: string | null;
+  badge: string | null;
   dateOfBirth: string | null;
   phoneNumber: string | null;
   bio: string | null;
@@ -21,7 +24,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
-  fetchUser: () => Promise<void>;
+  fetchUser: (force?: boolean) => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
   logout: () => void;
 }
@@ -30,7 +33,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   isAuthenticated: false,
-  fetchUser: async () => {},
+  fetchUser: async (_force?: boolean) => {},
   updateUser: async () => {},
   logout: () => {},
 });
@@ -76,6 +79,9 @@ async function requestCurrentUser(): Promise<User | null> {
         primeAuthUserCache(null);
         if (isLockedSessionResponse(data)) {
           dispatchForceLogout(getResponseMessage(data));
+        } else {
+          // Token expired and refresh failed → go to login immediately
+          dispatchForceLogout();
         }
         return null;
       }
@@ -106,7 +112,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUser = useCallback(async () => {
+  const fetchUser = useCallback(async (force?: boolean) => {
+    if (force) {
+      // Bypass cache: force re-fetch from API
+      cachedUser = null;
+      pendingUserRequest = null;
+    }
+
     const freshUser = getFreshCachedUser();
     if (freshUser !== undefined) {
       setUser(freshUser);
@@ -134,6 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: "include",
         headers: {
           "Content-Type": "application/json",
+          ...getCsrfHeaders(),
         },
         body: JSON.stringify(userData),
       });
@@ -161,6 +174,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void fetch("/api/v1/auth/logout", {
       method: "POST",
       credentials: "include",
+      headers: { ...getCsrfHeaders() },
       keepalive: true,
     }).catch(() => undefined);
     router.replace("/login");
@@ -175,6 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       void fetch("/api/v1/auth/logout", {
         method: "POST",
         credentials: "include",
+        headers: { ...getCsrfHeaders() },
         keepalive: true,
       }).catch(() => undefined);
       if (message && typeof window !== "undefined") {

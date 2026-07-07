@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Badge, Box, Button, Callout, Flex, Grid, Heading, Select, Separator, Switch, Text, TextField } from "@radix-ui/themes";
 import { BellIcon, CheckIcon, GearIcon, LockClosedIcon, ReloadIcon, SunIcon } from "@radix-ui/react-icons";
 import { useTheme } from "@/contexts/ThemeContext";
-import { authTheme } from "@/features/athu/styles/authTheme";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 type SettingSectionProps = {
   children: ReactNode;
@@ -15,37 +15,26 @@ type SettingSectionProps = {
 };
 
 function SettingSection({ children, description, icon, title }: SettingSectionProps) {
+  const s = useAdminStyles();
   return (
     <Flex
       direction="column"
       gap="4"
-      style={{
-        background: authTheme.panel,
-        border: `1px solid ${authTheme.line}`,
-        borderRadius: 8,
-        boxShadow: "var(--auth-shadow)",
-        padding: 18,
-      }}
+      className={s.settings.settingSection}
     >
       <Flex align="center" gap="3">
         <Flex
           align="center"
           justify="center"
-          style={{
-            background: "var(--auth-soft-control)",
-            borderRadius: 8,
-            color: authTheme.control,
-            height: 46,
-            width: 46,
-          }}
+          className={s.settings.sectionIconBox}
         >
           {icon}
         </Flex>
         <Box>
-          <Heading size="4" style={{ color: authTheme.text, letterSpacing: 0 }}>
+          <Heading size="4" className={s.settings.sectionTitle}>
             {title}
           </Heading>
-          <Text as="p" size="2" style={{ color: authTheme.muted, lineHeight: 1.5, margin: "4px 0 0" }}>
+          <Text as="p" size="2" className={s.settings.sectionDescription}>
             {description}
           </Text>
         </Box>
@@ -68,13 +57,14 @@ function ToggleRow({
   label: string;
   onCheckedChange: (checked: boolean) => void;
 }) {
+  const s = useAdminStyles();
   return (
     <Flex align="center" justify="between" py="2" gap="3">
       <Box>
-        <Text as="div" size="2" weight="medium" style={{ color: authTheme.text }}>
+        <Text as="div" size="2" weight="medium" className={s.settings.toggleLabel}>
           {label}
         </Text>
-        <Text as="div" size="1" style={{ color: authTheme.muted, marginTop: 3 }}>
+        <Text as="div" size="1" className={s.settings.toggleDescription}>
           {description}
         </Text>
       </Box>
@@ -98,13 +88,14 @@ function InputRow({
   type?: "text" | "email" | "number" | "password" | "search" | "tel" | "url" | "date";
   value: string;
 }) {
+  const s = useAdminStyles();
   return (
     <Flex direction="column" gap="2">
       <Box>
-        <Text as="div" size="2" weight="medium" style={{ color: authTheme.text }}>
+        <Text as="div" size="2" weight="medium" className={s.settings.inputLabel}>
           {label}
         </Text>
-        <Text as="div" size="1" style={{ color: authTheme.muted, marginTop: 3 }}>
+        <Text as="div" size="1" className={s.settings.inputDescription}>
           {description}
         </Text>
       </Box>
@@ -113,7 +104,7 @@ function InputRow({
         placeholder={placeholder}
         type={type}
         value={value}
-        style={{ borderRadius: 8 }}
+        className={s.settings.inputField}
       />
     </Flex>
   );
@@ -132,18 +123,19 @@ function SelectRow({
   options: { label: string; value: string }[];
   value: string;
 }) {
+  const s = useAdminStyles();
   return (
     <Flex direction="column" gap="2">
       <Box>
-        <Text as="div" size="2" weight="medium" style={{ color: authTheme.text }}>
+        <Text as="div" size="2" weight="medium" className={s.settings.selectLabel}>
           {label}
         </Text>
-        <Text as="div" size="1" style={{ color: authTheme.muted, marginTop: 3 }}>
+        <Text as="div" size="1" className={s.settings.selectDescription}>
           {description}
         </Text>
       </Box>
       <Select.Root value={value} onValueChange={onValueChange}>
-        <Select.Trigger style={{ borderRadius: 8, maxWidth: 320 }} />
+        <Select.Trigger className={s.settings.selectTrigger} />
         <Select.Content>
           {options.map((option) => (
             <Select.Item key={option.value} value={option.value}>
@@ -157,6 +149,7 @@ function SelectRow({
 }
 
 export function SettingsClientView() {
+  const s = useAdminStyles();
   const { setThemeMode, theme } = useTheme();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -191,10 +184,10 @@ export function SettingsClientView() {
     <Flex direction="column" gap="5">
       <Flex align={{ initial: "start", sm: "center" }} direction={{ initial: "column", sm: "row" }} gap="3" justify="between">
         <Box>
-          <Heading size={{ initial: "5", md: "6" }} style={{ color: authTheme.text, letterSpacing: 0 }}>
+          <Heading size={{ initial: "5", md: "6" }} className={s.settings.pageHeading}>
             Cài đặt quản trị
           </Heading>
-          <Text as="p" size="2" style={{ color: authTheme.muted, margin: "6px 0 0" }}>
+          <Text as="p" size="2" className={s.settings.descriptionText}>
             Điều chỉnh giao diện, bảo mật, thông báo và giới hạn vận hành.
           </Text>
         </Box>
@@ -205,7 +198,7 @@ export function SettingsClientView() {
               Đã lưu
             </Badge>
           )}
-          <Button disabled={saving} onClick={handleSave} style={{ borderRadius: 8 }}>
+          <Button disabled={saving} onClick={handleSave} className={s.settings.actionButton}>
             {saving ? <ReloadIcon /> : <CheckIcon />}
             {saving ? "Đang lưu..." : "Lưu thay đổi"}
           </Button>
@@ -390,14 +383,15 @@ export function SettingsClientView() {
 }
 
 function StatusMetric({ label, tone, value }: { label: string; tone?: "green"; value: string }) {
+  const s = useAdminStyles();
   return (
-    <Box style={{ background: authTheme.panelSoft, border: `1px solid ${authTheme.line}`, borderRadius: 8, padding: 12 }}>
-      <Text as="div" size="1" style={{ color: authTheme.muted }}>
+    <Box className={s.settings.metricCard}>
+      <Text as="div" size="1" className={s.settings.metricLabel}>
         {label}
       </Text>
       <Flex align="center" gap="2" mt="1">
-        {tone === "green" && <Box style={{ background: "#22C55E", borderRadius: "50%", height: 8, width: 8 }} />}
-        <Text as="div" size="3" weight="bold" style={{ color: tone === "green" ? "#16A34A" : authTheme.text }}>
+        {tone === "green" && <Box className={s.settings.metricDot} />}
+        <Text as="div" size="3" weight="bold" className={tone === "green" ? s.settings.metricValueGreen : s.settings.metricValue}>
           {value}
         </Text>
       </Flex>

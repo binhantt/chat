@@ -12,6 +12,7 @@ Day la muc luc tai lieu chinh cua du an chat. Tat ca tai lieu ben duoi nam o roo
 - [Bang mau giao dien](DOC_05_BANG_MAU.md)
 - [Bao mat](DOC_06_BAO_MAT.md)
 - [Bien moi truong](DOC_07_ENV.md)
+- [Event-Driven Architecture](DOC_08_EVENT_DRIVEN.md)
 
 ## Tai lieu theo nhom
 
@@ -20,6 +21,7 @@ Day la muc luc tai lieu chinh cua du an chat. Tat ca tai lieu ben duoi nam o roo
 - [ARCHITECTURE.md](ARCHITECTURE.md): kien truc tong quan cua he thong.
 - [DOC_01_CAU_TRUC.md](DOC_01_CAU_TRUC.md): cau truc frontend, backend va phan chia module.
 - [DOC_02_Y_TUONG.md](DOC_02_Y_TUONG.md): y tuong san pham va huong phat trien.
+- [DOC_08_EVENT_DRIVEN.md](DOC_08_EVENT_DRIVEN.md): kien truc huong su kien (Event-Driven).
 
 ### Ky thuat
 

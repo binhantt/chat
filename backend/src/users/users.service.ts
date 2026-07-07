@@ -9,11 +9,15 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { performance } from 'node:perf_hooks';
 import { DataSource, Repository } from 'typeorm';
+import { EventBusService } from '../common/events/event-bus.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ProfileSetupDto } from './dto/profile-setup.dto';
 import { UpdateUserAccessDto } from './dto/update-user-access.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserLockType, UserRole } from './entities/user.entity';
+import { createUserCreatedEvent } from './events/user-created.event';
+import { createUserBannedEvent } from './events/user-banned.event';
+import { createUserUnlockedEvent } from './events/user-unlocked.event';
 import { GoogleUserProfile } from './interfaces/google-user-profile.interface';
 import { PasswordService } from './services/password.service';
 import { UserFactoryService } from './services/user-factory.service';
@@ -46,6 +50,7 @@ export class UsersService implements OnModuleInit {
     private readonly dataSource: DataSource,
     private readonly passwordService: PasswordService,
     private readonly userFactoryService: UserFactoryService,
+    private readonly eventBus: EventBusService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -187,11 +192,13 @@ export class UsersService implements OnModuleInit {
       );
     }
 
-    return this.saveSafeUser(
-      await this.usersRepository.save(
-        this.userFactoryService.createGoogleUser(profile),
-      ),
+    const newUser = await this.usersRepository.save(
+      this.userFactoryService.createGoogleUser(profile),
     );
+
+    this.eventBus.emit(createUserCreatedEvent(newUser.id, newUser.email, 'google'));
+
+    return this.saveSafeUser(newUser);
   }
 
   async createByAdmin(createUserDto: CreateUserDto): Promise<User> {
@@ -201,11 +208,13 @@ export class UsersService implements OnModuleInit {
       throw new ConflictException('Email đã tồn tại');
     }
 
-    return this.saveSafeUser(
-      await this.usersRepository.save(
-        this.userFactoryService.createEmailUser(createUserDto),
-      ),
+    const newUser = await this.usersRepository.save(
+      this.userFactoryService.createEmailUser(createUserDto),
     );
+
+    this.eventBus.emit(createUserCreatedEvent(newUser.id, newUser.email, 'admin'));
+
+    return this.saveSafeUser(newUser);
   }
 
   async validatePassword(
@@ -347,8 +356,12 @@ export class UsersService implements OnModuleInit {
       );
     }
 
+    const wasLocked =
+      user.lockType !== UserLockType.None || !user.isActive;
+
     user.role = updateUserAccessDto.role ?? user.role;
     user.isActive = updateUserAccessDto.isActive ?? user.isActive;
+
     if (user.isActive && user.lockType !== UserLockType.None) {
       user.lockType = UserLockType.None;
       user.lockedUntil = null;
@@ -357,7 +370,19 @@ export class UsersService implements OnModuleInit {
     }
     user.updatedAt = new Date();
 
-    return this.saveSafeUser(await this.usersRepository.save(user));
+    const savedUser = await this.usersRepository.save(user);
+
+    const nowLocked = !user.isActive || user.lockType !== UserLockType.None;
+
+    if (wasLocked && !nowLocked) {
+      this.eventBus.emit(createUserUnlockedEvent(id, 'admin'));
+    } else if (!wasLocked && nowLocked) {
+      this.eventBus.emit(
+        createUserBannedEvent(id, UserLockType.Permanent, 'Admin action', 'admin'),
+      );
+    }
+
+    return this.saveSafeUser(savedUser);
   }
 
   async unlockFromReport(userId: string, reportId: string): Promise<User> {
@@ -374,7 +399,11 @@ export class UsersService implements OnModuleInit {
     user.lockedByReportId = null;
     user.updatedAt = new Date();
 
-    return this.saveSafeUser(await this.usersRepository.save(user));
+    const unlockedUser = await this.usersRepository.save(user);
+
+    this.eventBus.emit(createUserUnlockedEvent(userId, 'report'));
+
+    return this.saveSafeUser(unlockedUser);
   }
 
   async lockFromReport(
@@ -407,7 +436,13 @@ export class UsersService implements OnModuleInit {
       user.isActive = true;
     }
 
-    return this.saveSafeUser(await this.usersRepository.save(user));
+    const savedUser = await this.usersRepository.save(user);
+
+    this.eventBus.emit(
+      createUserBannedEvent(userId, lockType, reason, 'report'),
+    );
+
+    return this.saveSafeUser(savedUser);
   }
 
   isLoginLocked(user: User): boolean {
@@ -429,6 +464,34 @@ export class UsersService implements OnModuleInit {
     }
 
     return 'Tai khoan dang hoat dong';
+  }
+
+  async unlinkGoogle(userId: string): Promise<User> {
+    const user = await this.usersRepository
+      .createQueryBuilder('user')
+      .addSelect('user.passwordHash')
+      .where('user.id = :id', { id: userId })
+      .getOne();
+
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy user');
+    }
+
+    if (!user.googleId) {
+      throw new BadRequestException('Tài khoản chưa liên kết với Google');
+    }
+
+    if (!user.passwordHash) {
+      throw new BadRequestException(
+        'Không thể hủy liên kết Google khi chưa có mật khẩu. Vui lòng đặt mật khẩu trước.',
+      );
+    }
+
+    user.googleId = null;
+    user.updatedAt = new Date();
+
+    const savedUser = await this.usersRepository.save(user);
+    return this.saveSafeUser(savedUser);
   }
 
   async setupProfile(
@@ -574,6 +637,9 @@ export class UsersService implements OnModuleInit {
     }
     if ('city' in data) {
       patch.city = data.city ?? null;
+    }
+    if ('badge' in data) {
+      patch.badge = data.badge ?? null;
     }
 
     return patch;

@@ -13,7 +13,12 @@ export function middleware(request: NextRequest) {
 
   if (!hasAuth) {
     const loginPath = pathname.startsWith("/admin") ? "/admin/login" : "/login";
-    return NextResponse.redirect(new URL(loginPath, request.url));
+    const baseUrl = request.headers.get("x-forwarded-host")
+      ? `${request.headers.get("x-forwarded-proto") || "https"}://${request.headers.get("x-forwarded-host")}`
+      : request.nextUrl.origin;
+    const loginUrl = new URL(loginPath, baseUrl);
+    loginUrl.searchParams.set("returnTo", request.nextUrl.pathname + request.nextUrl.search);
+    return NextResponse.redirect(loginUrl);
   }
 
   const requestHeaders = new Headers(request.headers);
@@ -27,5 +32,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/admin/:path*"],
+  matcher: ["/", "/vip", "/admin/:path*"],
 };

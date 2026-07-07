@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { buildBackendHeaders } from "@/app/api/_utils/backendHeaders";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { BACKEND_URL } from "@/lib/env";
 const VISITOR_ID_COOKIE = "visitor_id";
 
 export async function POST(request: Request) {

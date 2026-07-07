@@ -1,7 +1,6 @@
 import { Box, Flex, Grid, Text } from "@radix-ui/themes";
 import { CheckCircledIcon, LockClosedIcon, PersonIcon } from "@radix-ui/react-icons";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { usersInnerBorder } from "@/features/admin/styles/usersTheme";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function UsersStatGrid({
   active,
@@ -12,6 +11,7 @@ export function UsersStatGrid({
   banned: number;
   total: number;
 }) {
+  const s = useAdminStyles();
   return (
     <Grid columns={{ initial: "2", lg: "3" }} gap="3">
       <UsersStatCard icon={<PersonIcon />} label="Tổng tài khoản" value={total} />
@@ -32,43 +32,22 @@ function UsersStatCard({
   tone?: "blue" | "green" | "red";
   value: number;
 }) {
+  const s = useAdminStyles();
   const color =
-    tone === "green" ? "#22C55E" : tone === "red" ? "#EF4444" : authTheme.control;
+    tone === "green" ? "#22C55E" : tone === "red" ? "#EF4444" : "var(--primary)";
 
   return (
-    <Box
-      style={{
-        background: authTheme.panel,
-        border: usersInnerBorder,
-        borderRadius: 8,
-        padding: 14,
-      }}
-    >
+    <Box className={s.users.statCard}>
       <Flex align="center" gap="3" justify="between">
         <Box>
-          <Text as="div" size="1" style={{ color: authTheme.muted }}>
+          <Text as="div" size="1" className={s.users.statLabel}>
             {label}
           </Text>
-          <Text
-            as="div"
-            size="6"
-            weight="bold"
-            style={{ color: authTheme.text, lineHeight: 1.15 }}
-          >
+          <Text as="div" size="6" weight="bold" className={s.users.statValue}>
             {value}
           </Text>
         </Box>
-        <Flex
-          align="center"
-          justify="center"
-          style={{
-            background: `${color}18`,
-            borderRadius: 8,
-            color,
-            height: 42,
-            width: 42,
-          }}
-        >
+        <Flex align="center" justify="center" className={s.users.statIconBox} style={{ background: `${color}18`, color }}>
           {icon}
         </Flex>
       </Flex>

@@ -2,11 +2,12 @@
 
 import { Button, Callout, Flex, Text, TextField } from "@radix-ui/themes";
 import { EnvelopeClosedIcon, ExclamationTriangleIcon, LockClosedIcon } from "@radix-ui/react-icons";
-import { authTheme } from "@/features/athu/styles/authTheme";
 import { useAdminLogin } from "../hooks/useAdminLogin";
 import { useAdminLoginStore } from "../store/useAdminLoginStore";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function AdminLoginForm() {
+  const s = useAdminStyles();
   const email = useAdminLoginStore((state) => state.email);
   const error = useAdminLoginStore((state) => state.error);
   const isSubmitting = useAdminLoginStore((state) => state.isSubmitting);
@@ -19,14 +20,14 @@ export function AdminLoginForm() {
     <form onSubmit={login}>
       <Flex direction="column" gap="3">
         <Flex direction="column" gap="2">
-          <Text size="2" weight="medium" style={{ color: authTheme.text }}>
+          <Text size="2" weight="medium" className={s.loginForm.fieldLabel}>
             Email quản trị
           </Text>
           <TextField.Root
             onChange={(event) => setEmail(event.target.value)}
             placeholder="admin@example.com"
             required
-            style={inputStyle}
+            className={s.loginForm.inputField}
             type="email"
             value={email}
           >
@@ -37,14 +38,14 @@ export function AdminLoginForm() {
         </Flex>
 
         <Flex direction="column" gap="2">
-          <Text size="2" weight="medium" style={{ color: authTheme.text }}>
+          <Text size="2" weight="medium" className={s.loginForm.fieldLabel}>
             Mật khẩu
           </Text>
           <TextField.Root
             onChange={(event) => setPassword(event.target.value)}
             placeholder="Nhập mật khẩu"
             required
-            style={inputStyle}
+            className={s.loginForm.inputField}
             type="password"
             value={password}
           >
@@ -67,13 +68,7 @@ export function AdminLoginForm() {
           disabled={isSubmitting}
           size="3"
           type="submit"
-          style={{
-            background: authTheme.control,
-            borderRadius: 8,
-            color: "#FFFFFF",
-            minHeight: 44,
-            width: "100%",
-          }}
+          className={s.loginForm.submitButton}
         >
           {isSubmitting ? "Đang xác thực..." : "Đăng nhập quản trị"}
         </Button>
@@ -81,10 +76,3 @@ export function AdminLoginForm() {
     </form>
   );
 }
-
-const inputStyle = {
-  background: "#FFFFFF",
-  border: `1px solid ${authTheme.line}`,
-  borderRadius: 8,
-  color: authTheme.text,
-} as const;

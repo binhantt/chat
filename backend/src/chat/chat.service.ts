@@ -6,7 +6,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { In, LessThan, Repository } from 'typeorm';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   Conversation,
@@ -52,6 +52,8 @@ export class ChatService implements OnModuleInit {
     );
   }
 
+  private readonly endedConversationRetentionDays = 30;
+
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async deleteExpiredMessages(): Promise<number> {
     const cutoffDate = new Date();
@@ -69,6 +71,43 @@ export class ChatService implements OnModuleInit {
     }
 
     return deletedCount;
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async deleteExpiredConversations(): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - this.endedConversationRetentionDays);
+
+    // Find ended conversations that have been inactive for the retention period
+    const expiredConversations = await this.conversationRepository.find({
+      where: {
+        status: ConversationStatus.Ended,
+        updatedAt: LessThan(cutoffDate),
+      },
+      select: ['id'],
+    });
+
+    if (expiredConversations.length === 0) {
+      return 0;
+    }
+
+    const ids = expiredConversations.map((c) => c.id);
+
+    // Delete associated messages first
+    const messageResult = await this.messageRepository.delete({
+      conversationId: In(ids),
+    });
+    const deletedMessages = messageResult.affected ?? 0;
+
+    // Then delete the conversations
+    const conversationResult = await this.conversationRepository.delete(ids);
+    const deletedConversations = conversationResult.affected ?? 0;
+
+    this.logger.log(
+      `Deleted ${deletedConversations} ended conversations and ${deletedMessages} messages (idle >${this.endedConversationRetentionDays} days)`,
+    );
+
+    return deletedConversations;
   }
 
   async findConversationById(

@@ -8,11 +8,17 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/login"],
-        disallow: ["/admin", "/api"],
+        allow: ["/", "/login", "/faq", "/about", "/terms", "/privacy"],
+        disallow: ["/admin", "/api", "/_next/"],
+        crawlDelay: 2,
+      },
+      {
+        userAgent: "Googlebot",
+        allow: ["/", "/login", "/faq", "/about", "/terms", "/privacy"],
+        disallow: ["/admin", "/api", "/_next/"],
+        crawlDelay: 1,
       },
     ],
     sitemap: `${siteUrl}/sitemap.xml`,
-    host: siteUrl,
   };
 }

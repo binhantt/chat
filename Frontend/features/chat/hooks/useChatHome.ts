@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { getCsrfHeaders } from "@/lib/csrf";
 import { useChatHomeStore } from "../store/useChatHomeStore";
 import type { ChatSessionState, MatchedUser } from "../types";
 
@@ -30,12 +31,14 @@ export function useChatHome() {
     clearedConversationRef.current = conversationId;
     resetChatSession();
     clearChatRoute();
+    window.sessionStorage.removeItem(CHAT_SESSION_KEY);
   }, [clearChatRoute, conversationId, resetChatSession]);
 
   const leaveCurrentMatch = useCallback(async () => {
     await fetch("/api/v1/match/leave", {
       credentials: "include",
       method: "DELETE",
+      headers: { ...getCsrfHeaders() },
     }).catch(() => undefined);
   }, []);
 
@@ -53,6 +56,7 @@ export function useChatHome() {
           conversationId: convParam,
           matchedUser: {
             avatarUrl: null,
+            badge: null,
             city: null,
             email: "",
             fullName: null,
@@ -69,8 +73,9 @@ export function useChatHome() {
       const raw = window.sessionStorage.getItem(CHAT_SESSION_KEY);
       if (!raw) return;
 
+      // Don't restore if we just cleared this conversation
       const saved = JSON.parse(raw) as Partial<ChatSessionState>;
-      if (saved.conversationId && saved.selectedUser) {
+      if (saved.conversationId && saved.selectedUser && saved.conversationId !== clearedConversationRef.current) {
         queueMicrotask(() => {
           setChatSession({
             conversationId: saved.conversationId!,

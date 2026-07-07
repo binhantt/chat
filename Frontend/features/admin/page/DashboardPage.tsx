@@ -1,8 +1,8 @@
-﻿import { cookies } from "next/headers";
+import { cookies } from "next/headers";
 import type { AdminUser } from "@/features/athu";
 import { AdminDashboardView, type AdminDashboardStats } from "@/features/admin/components/dashboard";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import { BACKEND_URL } from "@/lib/env";
 
 export async function DashboardPage() {
   const { error, users } = await getDashboardUsers();

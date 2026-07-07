@@ -1,6 +1,6 @@
-import { Avatar, Badge, Box, Flex, Text } from "@radix-ui/themes";
+import { Badge, Box, Flex, Text } from "@radix-ui/themes";
 import { MixerHorizontalIcon, PersonIcon } from "@radix-ui/react-icons";
-import { authTheme } from "@/features/athu/styles/authTheme";
+import { AvatarWithVipBadge } from "@/components/shared/AvatarWithVipBadge";
 import { ChatPanelFrame } from "./ChatPanelFrame";
 import type { CenterMode, MatchedUser } from "../types";
 
@@ -29,17 +29,27 @@ export function ChatInfoPanel({ conversationId, mode, user }: ChatInfoPanelProps
       ) : (
         <Flex direction="column" gap="4">
           <Flex direction="column" align="center" gap="3">
-            <Avatar
+            <AvatarWithVipBadge
               size="6"
               radius="full"
               src={user?.avatarUrl || undefined}
               fallback={(user?.fullName || user?.email || "??").slice(0, 2)}
+              badge={user?.badge}
               style={{ background: "var(--chat-accent)", color: "white" }}
             />
             <Flex direction="column" align="center" gap="1">
-              <Text size="4" weight="bold" align="center">
-                {user?.fullName || user?.email || "Người ẩn danh"}
-              </Text>
+              <Flex align="center" gap="2">
+                <Text size="4" weight="bold" align="center">
+                  {user?.fullName || user?.email || "Người dùng"}
+                </Text>
+                {user?.badge && (
+                  typeof user.badge === 'string' && user.badge.startsWith('http') ? (
+                    <img src={user.badge} alt="Huy hiệu" style={{ width: 24, height: 24, borderRadius: 4 }} />
+                  ) : (
+                    <Text size="3">{user.badge}</Text>
+                  )
+                )}
+              </Flex>
               <Badge color="indigo" variant="soft">
                 Đang trong trò chuyện
               </Badge>
@@ -47,8 +57,8 @@ export function ChatInfoPanel({ conversationId, mode, user }: ChatInfoPanelProps
           </Flex>
 
           <InfoRow label="Mã hội thoại" value={conversationId.slice(0, 8)} />
-          <InfoRow label="Vị trí" value={user?.city || "Chỉ hiện khi cả hai thích"} />
-          <InfoRow label="Email" value={user?.email || "Ẩn danh"} />
+          <InfoRow label="Vị trí" value={user?.city || "Chưa cập nhật"} />
+          <InfoRow label="Email" value={user?.email || "Chưa cập nhật"} />
         </Flex>
       )}
     </ChatPanelFrame>
@@ -68,13 +78,13 @@ function EmptyInfoState() {
       <Box
         className="chat-empty-icon"
         style={{
-          background: "rgba(59, 130, 246, 0.12)",
-          color: authTheme.control,
+          background: "rgba(168, 85, 247, 0.1)",
+          color: "var(--primary)",
         }}
       >
         <PersonIcon width="24" height="24" />
       </Box>
-      <Text size="3" weight="bold" style={{ color: authTheme.text }}>
+      <Text size="3" weight="bold" style={{ color: "var(--text-primary)" }}>
         Chưa chọn hội thoại
       </Text>
       <Text size="2" className="chat-muted">

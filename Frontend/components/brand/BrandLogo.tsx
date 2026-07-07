@@ -1,6 +1,5 @@
 import Image from "next/image";
 import { Box, Flex, Text } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
 
 type BrandLogoProps = {
   compact?: boolean;
@@ -25,15 +24,15 @@ export function BrandLogo({ compact = false, subtitle }: BrandLogoProps) {
           fill
           sizes={compact ? "54px" : "68px"}
           src="/nguoi-la-logo.svg"
-          style={{ objectFit: "cover" }}
+          style={{ objectFit: "contain", padding: 4 }}
         />
       </Box>
       <Box>
-        <Text as="div" size={compact ? "3" : "4"} weight="bold" style={{ color: authTheme.text, lineHeight: 1.1 }}>
+        <Text as="div" size={compact ? "3" : "4"} weight="bold" style={{ color: "var(--chat-text)", lineHeight: 1.1 }}>
           Người Lạ
         </Text>
         {subtitle && (
-          <Text as="div" size="1" style={{ color: authTheme.muted, lineHeight: 1.3 }}>
+          <Text as="div" size="1" style={{ color: "var(--chat-muted)", lineHeight: 1.3 }}>
             {subtitle}
           </Text>
         )}

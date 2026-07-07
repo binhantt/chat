@@ -34,7 +34,9 @@ export function useGoogleLogin() {
           user?: User;
         } | null;
         primeAuthUserCache(data?.user ?? null);
-        router.replace("/");
+        // Restore ?returnTo after login so query params like ?tab=about survive
+        const returnTo = new URLSearchParams(window.location.search).get("returnTo");
+        router.replace(returnTo || "/");
       } catch (error) {
         setError(
           error instanceof Error ? error.message : "Đăng nhập Google thất bại",

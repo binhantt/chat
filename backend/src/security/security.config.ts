@@ -13,12 +13,18 @@ const UNSAFE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 const CSRF_TOKEN_COOKIE = 'csrf_token';
 const CSRF_TOKEN_HEADER = 'x-csrf-token';
 const INTERNAL_PROXY_HEADER = 'x-internal-api-proxy';
-const CSRF_EXEMPT_PATHS = new Set([
+const CSRF_EXEMPT_PATHS = [
   '/api/v1/auth/google-login',
   '/api/v1/auth/email-login',
   '/api/v1/auth/refresh',
   '/api/v1/manager/login',
-]);
+  '/api/v1/subscription/',
+  '/api/v1/payment/',
+  '/api/v1/ad/',
+  '/api/v1/manager/subscription/',
+  '/api/v1/manager/payment/',
+  '/api/v1/manager/ad/',
+];
 
 export function getAllowedOrigins(): string[] {
   const configuredOrigins = [
@@ -61,7 +67,10 @@ export function securityHeadersMiddleware(
 ): void {
   response.setHeader('X-Content-Type-Options', 'nosniff');
   response.setHeader('X-Frame-Options', 'DENY');
-  response.setHeader('Referrer-Policy', 'no-referrer');
+  response.setHeader(
+    'Referrer-Policy',
+    process.env.REFERRER_POLICY || 'no-referrer',
+  );
   response.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   response.setHeader(
     'Permissions-Policy',
@@ -84,6 +93,12 @@ export function securityHeadersMiddleware(
 
 export function createOriginGuard(allowedOrigins = getAllowedOrigins()) {
   return (request: Request, response: Response, next: NextFunction): void => {
+    // Bypass CSRF for subscription/payment/ad routes (proxied via Next.js)
+    if (isInternalProxyRoute(request)) {
+      next();
+      return;
+    }
+
     if (!UNSAFE_METHODS.has(request.method.toUpperCase())) {
       next();
       return;
@@ -103,6 +118,19 @@ export function createOriginGuard(allowedOrigins = getAllowedOrigins()) {
 
     response.status(403).json({ message: 'Cross-origin request blocked' });
   };
+}
+
+function isInternalProxyRoute(request: Request): boolean {
+  const path = request.path;
+  const proxyPrefixes = [
+    '/api/v1/subscription/',
+    '/api/v1/payment/',
+    '/api/v1/ad/',
+    '/api/v1/manager/subscription/',
+    '/api/v1/manager/payment/',
+    '/api/v1/manager/ad/',
+  ];
+  return proxyPrefixes.some((prefix) => path.startsWith(prefix));
 }
 
 function getRequestOrigin(request: Request): string | null {
@@ -134,7 +162,7 @@ function normalizeOrigin(value: string | undefined): string | null {
 }
 
 function hasValidCsrfToken(request: Request): boolean {
-  if (CSRF_EXEMPT_PATHS.has(request.path)) {
+  if (isCsrfExemptPath(request.path)) {
     return true;
   }
 
@@ -154,6 +182,10 @@ function hasValidCsrfToken(request: Request): boolean {
   const headerToken = getSingleHeaderValue(request.headers[CSRF_TOKEN_HEADER]);
 
   return Boolean(headerToken && headerToken === cookieToken);
+}
+
+function isCsrfExemptPath(path: string): boolean {
+  return CSRF_EXEMPT_PATHS.some((exempt) => path.startsWith(exempt));
 }
 
 function parseCookieHeader(

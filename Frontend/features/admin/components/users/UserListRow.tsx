@@ -1,10 +1,10 @@
-import { Avatar, Box, Flex, Grid, Text } from "@radix-ui/themes";
+import { Box, Flex, Grid, Text } from "@radix-ui/themes";
+import { AvatarWithVipBadge } from "@/components/shared/AvatarWithVipBadge";
 import type { AdminUser } from "@/features/athu";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { usersInnerBorder } from "@/features/admin/styles/usersTheme";
 import { formatAdminDate, getUserInitials } from "./userUtils";
 import { UserActions } from "./UserActions";
 import { UserStatusBadge } from "./UserStatusBadge";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function UserListRow({
   onUpdate,
@@ -15,29 +15,20 @@ export function UserListRow({
   onView: (user: AdminUser) => void;
   user: AdminUser;
 }) {
+  const s = useAdminStyles();
   return (
-    <Box
-      style={{
-        background: "#FFFFFF",
-        border: usersInnerBorder,
-        borderRadius: 8,
-      }}
-    >
+    <Box className={s.users.userRow}>
       <Grid
         display={{ initial: "none", lg: "grid" }}
         columns="minmax(240px, 1.35fr) minmax(220px, 1fr) 140px 160px 54px"
-        style={{
-          alignItems: "center",
-          gap: 12,
-          padding: "14px 16px",
-        }}
+        className={s.users.userRowGrid}
       >
         <UserIdentity user={user} />
-        <Text size="2" style={{ color: authTheme.text, overflowWrap: "anywhere" }}>
+        <Text size="2" className={s.users.userEmail}>
           {user.email}
         </Text>
         <UserStatusBadge user={user} />
-        <Text size="2" style={{ color: authTheme.text }}>
+        <Text size="2" className={s.users.userDate}>
           {formatAdminDate(user.createdAt)}
         </Text>
         <Flex justify="end">
@@ -45,7 +36,7 @@ export function UserListRow({
         </Flex>
       </Grid>
 
-      <Flex display={{ initial: "flex", lg: "none" }} direction="column" gap="3" style={{ padding: 16 }}>
+      <Flex display={{ initial: "flex", lg: "none" }} direction="column" gap="3" className={s.users.userRowMobile}>
         <Flex align="start" justify="between" gap="3">
           <UserIdentity user={user} />
           <UserActions onUpdate={onUpdate} onView={onView} user={user} />
@@ -57,7 +48,7 @@ export function UserListRow({
         </Flex>
 
         <Flex align="center" justify="between" gap="2">
-          <Text size="1" style={{ color: authTheme.muted }}>
+          <Text size="1" className={s.users.listInfo}>
             Trạng thái
           </Text>
           <UserStatusBadge user={user} />
@@ -68,14 +59,15 @@ export function UserListRow({
 }
 
 function UserIdentity({ user }: { user: AdminUser }) {
+  const s = useAdminStyles();
   return (
-    <Flex align="center" gap="3" style={{ minWidth: 0 }}>
-      <Avatar fallback={getUserInitials(user.fullName, user.email)} radius="full" size="3" src={user.avatarUrl || undefined} />
-      <Box style={{ minWidth: 0 }}>
-        <Text as="div" size="3" weight="bold" style={{ color: authTheme.text, overflowWrap: "anywhere" }}>
+    <Flex align="center" gap="3" className={s.users.userIdentity}>
+      <AvatarWithVipBadge fallback={getUserInitials(user.fullName, user.email)} radius="full" size="3" src={user.avatarUrl || undefined} badge={user.badge} />
+      <Box className={s.users.userIdentity}>
+        <Text as="div" size="3" weight="bold" className={s.users.userName}>
           {user.fullName || "Chưa đặt tên"}
         </Text>
-        <Text as="div" size="1" style={{ color: authTheme.muted }}>
+        <Text as="div" size="1" className={s.users.userId}>
           ID: {user.id.slice(0, 8)}
         </Text>
       </Box>
@@ -84,12 +76,13 @@ function UserIdentity({ user }: { user: AdminUser }) {
 }
 
 function InfoBlock({ label, value }: { label: string; value: string }) {
+  const s = useAdminStyles();
   return (
     <Box>
-      <Text as="div" size="1" style={{ color: authTheme.muted }}>
+      <Text as="div" size="1" className={s.users.detailField}>
         {label}
       </Text>
-      <Text as="div" size="2" style={{ color: authTheme.text, overflowWrap: "anywhere" }}>
+      <Text as="div" size="2" className={s.users.detailValue}>
         {value}
       </Text>
     </Box>

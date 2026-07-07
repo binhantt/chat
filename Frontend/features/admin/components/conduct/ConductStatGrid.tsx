@@ -1,7 +1,6 @@
 import { Box, Flex, Grid, Text } from "@radix-ui/themes";
 import { CheckCircledIcon, LockClosedIcon, StopIcon } from "@radix-ui/react-icons";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { conductInnerBorder } from "@/features/admin/styles/conductTheme";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function ConductStatGrid({
   active,
@@ -32,36 +31,25 @@ function ConductStatCard({
   tone?: "blue" | "gray" | "green";
   value: number;
 }) {
-  const color = tone === "green" ? "#22C55E" : tone === "gray" ? "#64748B" : authTheme.control;
+  const s = useAdminStyles();
+  const color = tone === "green" ? "#22C55E" : tone === "gray" ? "#64748B" : "var(--primary)";
 
   return (
-    <Box
-      style={{
-        background: authTheme.panel,
-        border: conductInnerBorder,
-        borderRadius: 8,
-        padding: 14,
-      }}
-    >
+    <Box className={s.conduct.statCard}>
       <Flex align="center" gap="3" justify="between">
         <Box>
-          <Text as="div" size="1" style={{ color: authTheme.muted }}>
+          <Text as="div" size="1" className={s.conduct.statLabel}>
             {label}
           </Text>
-          <Text as="div" size="6" weight="bold" style={{ color: authTheme.text, lineHeight: 1.15 }}>
+          <Text as="div" size="6" weight="bold" className={s.conduct.statValue}>
             {value}
           </Text>
         </Box>
         <Flex
           align="center"
           justify="center"
-          style={{
-            background: `${color}18`,
-            borderRadius: 8,
-            color,
-            height: 42,
-            width: 42,
-          }}
+          className={s.conduct.statIcon}
+          style={{ background: `${color}18`, color }}
         >
           {icon}
         </Flex>

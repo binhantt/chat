@@ -58,6 +58,18 @@ export class MatchQueue {
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt!: Date;
 
+  @Column({ type: 'varchar', nullable: true })
+  preferredGender!: string | null;
+
+  @Column({ type: 'int', nullable: true })
+  ageMin!: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  ageMax!: number | null;
+
+  @Column({ type: 'int', default: 0 })
+  priorityScore!: number;
+
   @Column({ type: 'timestamp with time zone', nullable: true })
   expiresAt!: Date | null;
 }

@@ -7,11 +7,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Conversation } from '../chat/entities/conversation.entity';
 import { Message } from '../chat/entities/message.entity';
+import { EventBusService } from '../common/events/event-bus.service';
 import { ConductService } from '../conduct/conduct.service';
 import { UserLockType } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
 import { CreateReportDto } from './dto/create-report.dto';
 import { Report, ReportStatus } from './entities/report.entity';
+import { createReportCreatedEvent } from './events/report-created.event';
+import { createReportStatusChangedEvent } from './events/report-status-changed.event';
+import { createReportResolvedEvent } from './events/report-resolved.event';
 
 export interface ReportableUser {
   id: string;
@@ -109,6 +113,7 @@ export class ReportService {
     private readonly messageRepository: Repository<Message>,
     private readonly conductService: ConductService,
     private readonly usersService: UsersService,
+    private readonly eventBus: EventBusService,
   ) {}
 
   async create(reporterId: string, dto: CreateReportDto): Promise<Report> {
@@ -132,7 +137,18 @@ export class ReportService {
       lockType: UserLockType.None,
     });
 
-    return this.reportRepository.save(report);
+    const savedReport = await this.reportRepository.save(report);
+
+    this.eventBus.emit(
+      createReportCreatedEvent(
+        savedReport.id,
+        reporterId,
+        dto.reportedUserId,
+        dto.reason,
+      ),
+    );
+
+    return savedReport;
   }
 
   async getReportableUsers(userId: string): Promise<ReportableUser[]> {
@@ -283,6 +299,8 @@ export class ReportService {
       throw new NotFoundException('Khong tim thay bao cao');
     }
 
+    const oldStatus = report.status;
+
     report.status = input.status;
     report.reviewedByAdminId = adminId;
 
@@ -309,6 +327,22 @@ export class ReportService {
     const savedReport = await this.reportRepository.save(report);
     savedReport.reporter = report.reporter;
     savedReport.reportedUser = report.reportedUser;
+
+    this.eventBus.emit(
+      createReportStatusChangedEvent(id, oldStatus, input.status, adminId),
+    );
+
+    if (input.status === ReportStatus.Resolved && input.lockType) {
+      this.eventBus.emit(
+        createReportResolvedEvent(
+          id,
+          report.reportedUserId,
+          adminId,
+          input.lockType,
+        ),
+      );
+    }
+
     return this.toReportWithContext(savedReport);
   }
 
@@ -490,10 +524,10 @@ export class ReportService {
           SELECT DISTINCT ON (target_users.target_user_id, partner.id)
             target_users.target_user_id AS "targetUserId",
             partner.id AS id,
-            partner."fullName" AS "fullName",
+            partner.full_name AS "fullName",
             partner.email AS email,
-            partner."avatarUrl" AS "avatarUrl",
-            conversation."updatedAt" AS "lastConversationAt"
+            partner.avatar_url AS "avatarUrl",
+            conversation.updated_at AS "lastConversationAt"
           FROM target_users
           JOIN conversations conversation
             ON conversation.user1_id = target_users.target_user_id
@@ -504,7 +538,7 @@ export class ReportService {
                 THEN conversation.user2_id
               ELSE conversation.user1_id
             END
-          ORDER BY target_users.target_user_id, partner.id, conversation."updatedAt" DESC
+          ORDER BY target_users.target_user_id, partner.id, conversation.updated_at DESC
         ),
         ranked_partners AS (
           SELECT

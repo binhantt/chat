@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Badge, Flex, Heading, Text } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
 
 type UserHeroProps = {
   badge: string;
@@ -24,7 +23,7 @@ export function UserHero({
       gap="5"
       justify="between"
       style={{
-        borderBottom: `1px solid ${authTheme.line}`,
+        borderBottom: "1px solid var(--chat-border)",
         paddingBottom: 18,
       }}
     >
@@ -33,9 +32,9 @@ export function UserHero({
           size="3"
           style={{
             alignSelf: "flex-start",
-            background: "rgba(59, 130, 246, 0.12)",
-            border: `1px solid ${authTheme.line}`,
-            color: authTheme.text,
+            background: "var(--chat-accent-soft)",
+            border: "1px solid var(--chat-border)",
+            color: "var(--chat-accent)",
           }}
         >
           <Flex align="center" gap="2">
@@ -48,14 +47,24 @@ export function UserHero({
         <Heading
           as="h1"
           size="7"
-          style={{ color: authTheme.text, letterSpacing: 0, lineHeight: 1.08 }}
+          style={{
+            color: "var(--chat-text)",
+            fontFamily: "var(--font-heading)",
+            letterSpacing: 0,
+            lineHeight: 1.15,
+          }}
         >
           {title}
         </Heading>
         <Text
           as="p"
           size="3"
-          style={{ color: authTheme.muted, lineHeight: 1.7, margin: 0 }}
+          style={{
+            color: "var(--chat-muted)",
+            fontFamily: "var(--font-body)",
+            lineHeight: 1.7,
+            margin: 0,
+          }}
         >
           {description}
         </Text>

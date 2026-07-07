@@ -7,9 +7,9 @@ import {
   IdCardIcon,
 } from "@radix-ui/react-icons";
 import { useState } from "react";
+import { getCsrfHeaders } from "@/lib/csrf";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
-import { authTheme } from "@/features/athu/styles/authTheme";
 import { DangerZone } from "./DangerZone";
 import { ReadonlyField } from "./ReadonlyField";
 import { SettingsSection } from "./SettingsSection";
@@ -36,6 +36,7 @@ export function SettingsForm() {
       const response = await fetch("/api/v1/users/me", {
         credentials: "include",
         method: "DELETE",
+        headers: { ...getCsrfHeaders() },
       });
 
       if (!response.ok) {
@@ -71,7 +72,7 @@ export function SettingsForm() {
           disabled
           size="3"
           style={{
-            background: authTheme.control,
+            background: "var(--primary)",
             borderRadius: 8,
             color: "#FFFFFF",
             width: "100%",

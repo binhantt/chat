@@ -1,7 +1,6 @@
 "use client";
 
 import { Flex, Switch, Text } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
 
 type ToggleRowProps = {
   checked?: boolean;
@@ -26,15 +25,15 @@ export function ToggleRow({
       justify="between"
       gap="4"
       style={{
-        borderBottom: `1px solid ${authTheme.line}`,
+        borderBottom: "1px solid var(--chat-border)",
         paddingBottom: 12,
       }}
     >
       <Flex direction="column" gap="1">
-        <Text size="2" weight="medium" style={{ color: authTheme.text }}>
+        <Text size="2" weight="medium" style={{ color: "var(--text-primary)" }}>
           {title}
         </Text>
-        <Text size="1" style={{ color: authTheme.muted }}>
+        <Text size="1" style={{ color: "var(--text-secondary)" }}>
           {description}
         </Text>
       </Flex>

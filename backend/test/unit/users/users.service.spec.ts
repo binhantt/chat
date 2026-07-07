@@ -23,6 +23,11 @@ describe('UsersService', () => {
     transaction: jest.Mock;
   };
   let passwordService: { hash: jest.Mock; verify: jest.Mock };
+  let eventBus: {
+    emit: jest.Mock;
+    on: jest.Mock;
+    getAll: jest.Mock;
+  };
   let userFactoryService: {
     createGoogleUser: jest.Mock;
     createEmailUser: jest.Mock;
@@ -62,6 +67,11 @@ describe('UsersService', () => {
       hash: jest.fn().mockReturnValue('admin-hash'),
       verify: jest.fn(),
     };
+    eventBus = {
+      emit: jest.fn(),
+      on: jest.fn(),
+      getAll: jest.fn(),
+    };
     userFactoryService = {
       createGoogleUser: jest.fn(),
       createEmailUser: jest.fn(),
@@ -72,6 +82,7 @@ describe('UsersService', () => {
       dataSource as never,
       passwordService as never,
       userFactoryService as never,
+      eventBus as never,
     );
   });
 

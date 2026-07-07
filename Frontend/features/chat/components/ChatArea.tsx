@@ -5,11 +5,11 @@ import {
   Text,
   TextField,
   Box,
-  Avatar,
   ScrollArea,
   Dialog,
   Badge,
 } from "@radix-ui/themes";
+import { AvatarWithVipBadge } from "@/components/shared/AvatarWithVipBadge";
 import {
   useState,
   useEffect,
@@ -36,6 +36,7 @@ interface MatchedUser {
   email: string;
   fullName: string | null;
   avatarUrl: string | null;
+  badge: string | null;
   gender: string | null;
   city: string | null;
   dateOfBirth?: string | null;
@@ -48,6 +49,7 @@ interface ConversationUser {
   email: string;
   fullName: string | null;
   avatarUrl: string | null;
+  badge?: string | null;
   gender?: string | null;
   city?: string | null;
   dateOfBirth?: string | null;
@@ -95,10 +97,14 @@ export function ChatArea({
   );
   const [currentUserAccepted, setCurrentUserAccepted] = useState(false);
   const [accepting, setAccepting] = useState(false);
+  const [showAcceptDialog, setShowAcceptDialog] = useState(false);
+  const [phoneRevealed, setPhoneRevealed] = useState(false);
+  const phoneTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastTypingSentRef = useRef(0);
+  const acceptedRef = useRef(false);
   const emojiOptions = [
     "😀",
     "😂",
@@ -133,17 +139,15 @@ export function ChatArea({
       : null;
 
   // Theme colors
-  const bgPrimary = isDark ? "#1a1a2e" : "#f8fafc";
-  const bgSecondary = isDark ? "#16213e" : "#ffffff";
-  const bgMessageMe = isDark
-    ? "linear-gradient(135deg, #4f46e5, #7c3aed)"
-    : "linear-gradient(135deg, #6366f1, #8b5cf6)";
-  const bgMessageOther = isDark ? "#0f172a" : "#f1f5f9";
-  const textPrimary = isDark ? "#e2e8f0" : "#1e293b";
-  const textSecondary = isDark ? "#94a3b8" : "#64748b";
+  const bgPrimary = "var(--chat-bg)";
+  const bgSecondary = "var(--chat-surface)";
+  const bgMessageMe = "linear-gradient(135deg, var(--chat-accent), var(--secondary))";
+  const bgMessageOther = "var(--chat-surface-muted)";
+  const textPrimary = "var(--chat-text)";
+  const textSecondary = "var(--chat-muted)";
   const textOnPrimary = "#ffffff";
-  const accentColor = "#6366f1";
-  const borderColor = isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.08)";
+  const accentColor = "var(--chat-accent)";
+  const borderColor = "var(--chat-border)";
 
   const getUserInitials = (name: string | null | undefined, email: string) => {
     if (!name) return email ? email.slice(0, 2).toUpperCase() : "??";
@@ -217,7 +221,8 @@ export function ChatArea({
       const nextCurrentUserAccepted = isUser1
         ? conversation.user1Accepted === true
         : conversation.user2Accepted === true;
-      const canViewProfile = nextCurrentUserAccepted;
+      const bothAccepted = conversation.user1Accepted === true && conversation.user2Accepted === true;
+      const canViewProfile = bothAccepted;
 
       setCurrentUserAccepted(nextCurrentUserAccepted);
       setResolvedUser({
@@ -225,6 +230,7 @@ export function ChatArea({
         email: canViewProfile ? partner?.email || "" : "",
         fullName: canViewProfile ? partner?.fullName || null : null,
         avatarUrl: canViewProfile ? partner?.avatarUrl || null : null,
+        badge: canViewProfile ? partner?.badge || null : null,
         gender: canViewProfile ? partner?.gender || null : null,
         city: canViewProfile ? partner?.city || matchedUser?.city || null : null,
         dateOfBirth: canViewProfile ? partner?.dateOfBirth || null : null,
@@ -372,6 +378,13 @@ export function ChatArea({
       await res.json().catch(() => null);
       setCurrentUserAccepted(true);
       await fetchConversationUser();
+      // Start 2-minute phone timer if both have now accepted
+      if (!phoneTimerRef.current && phoneRevealed === false) {
+        phoneTimerRef.current = setTimeout(() => {
+          setPhoneRevealed(true);
+          phoneTimerRef.current = null;
+        }, 120000);
+      }
     } catch (error) {
       console.error("Error accepting conversation:", error);
       setSendError("Không thể thích cuộc trò chuyện");
@@ -459,6 +472,9 @@ export function ChatArea({
     });
   }, [conversationId, fetchMessages]);
 
+  // Sync acceptedRef with state
+  useEffect(() => { acceptedRef.current = currentUserAccepted; }, [currentUserAccepted]);
+
   useEffect(() => {
     if (!conversationId) return;
 
@@ -498,9 +514,20 @@ export function ChatArea({
           if (payload.conversationId === conversationId) {
             if (payload.acceptedByUserId === userId) {
               setCurrentUserAccepted(true);
+              acceptedRef.current = true;
+            } else if (!acceptedRef.current) {
+              // Other user liked us first - show dialog asking to share
+              setShowAcceptDialog(true);
             }
             if (payload.chatReady === true) {
               void fetchConversationUser();
+              // Start 2-minute timer to reveal phone numbers
+              if (!phoneTimerRef.current) {
+                phoneTimerRef.current = setTimeout(() => {
+                  setPhoneRevealed(true);
+                  phoneTimerRef.current = null;
+                }, 120000);
+              }
             }
           }
           return;
@@ -543,6 +570,10 @@ export function ChatArea({
         clearTimeout(typingTimeoutRef.current);
         typingTimeoutRef.current = null;
       }
+      if (phoneTimerRef.current) {
+        clearTimeout(phoneTimerRef.current);
+        phoneTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -584,9 +615,10 @@ export function ChatArea({
       <Flex
         className="chat-sticky-header"
         align="center"
-        gap="3"
-        px="4"
-        py="3"
+        gap={{ initial: "2", sm: "3" }}
+        px={{ initial: "3", sm: "4" }}
+        py={{ initial: "2", sm: "3" }}
+        wrap="wrap"
         style={{
           borderBottom: `1px solid ${borderColor}`,
           background: bgSecondary,
@@ -595,7 +627,7 @@ export function ChatArea({
         {onBack && (
           <button
             onClick={onBack}
-            className="chat-icon-button"
+            className="chat-icon-button chat-mobile-only"
             style={{ flexShrink: 0 }}
           >
             <svg
@@ -614,6 +646,7 @@ export function ChatArea({
           <ProfileDialog
             user={visibleUser}
             accentColor={accentColor}
+            phoneRevealed={phoneRevealed}
             textSecondary={textSecondary}
           >
             <AvatarButton
@@ -624,7 +657,7 @@ export function ChatArea({
             />
           </ProfileDialog>
         ) : (
-          <Avatar
+          <AvatarWithVipBadge
             size="2"
             radius="full"
             src={undefined}
@@ -632,7 +665,7 @@ export function ChatArea({
             style={{ background: accentColor, color: "white" }}
           />
         )}
-        <Flex direction="column" gap="0" style={{ flex: 1 }}>
+        <Flex direction="column" gap="0" style={{ flex: 1 }} className="chat-header-info">
           <Text size="3" weight="medium" style={{ color: textPrimary }}>
             {visibleUser?.fullName ||
               visibleUser?.email ||
@@ -654,33 +687,36 @@ export function ChatArea({
             </Text>
           )}
         </Flex>
-        {otherUser && (
-          <ReportUserDialog
-            reportedUser={{
-              id: otherUser.id,
-              fullName: visibleUser?.fullName ?? null,
-              email: visibleUser?.email ?? "",
-              avatarUrl: visibleUser?.avatarUrl ?? null,
-            }}
-            recentPartners={[]}
-          />
-        )}
-        {canViewProfile && visibleUser && (
-          <ProfileDialog
-            user={visibleUser}
-            accentColor={accentColor}
-            textSecondary={textSecondary}
-          >
-            <button
-              type="button"
-              className="chat-secondary-button"
-              style={{
-                minWidth: 92,
-                height: 36,
-                padding: "0 12px",
-                flexShrink: 0,
+        <div className="chat-header-actions">
+          {otherUser && (
+            <ReportUserDialog
+              reportedUser={{
+                id: otherUser.id,
+                fullName: visibleUser?.fullName ?? null,
+                email: visibleUser?.email ?? "",
+                avatarUrl: visibleUser?.avatarUrl ?? null,
               }}
+              recentPartners={[]}
+            />
+          )}
+          {canViewProfile && visibleUser && (
+            <ProfileDialog
+              user={visibleUser}
+              accentColor={accentColor}
+              phoneRevealed={phoneRevealed}
+              textSecondary={textSecondary}
             >
+              <button
+                type="button"
+                className="chat-secondary-button"
+                style={{
+                  minWidth: 0,
+                  height: 32,
+                  padding: "0 10px",
+                  flexShrink: 0,
+                  fontSize: 13,
+                }}
+              >
               Xem ho so
             </button>
           </ProfileDialog>
@@ -693,31 +729,61 @@ export function ChatArea({
             aria-label="Thich"
             className="chat-primary-button"
             style={{
-              minWidth: 86,
-              height: 36,
+              minWidth: 0,
+              height: 32,
+              padding: "0 10px",
               background:
                 currentUserAccepted || accepting
-                  ? isDark
-                    ? "#334155"
-                    : "#e2e8f0"
+                  ? "var(--chat-surface-muted)"
                   : "linear-gradient(135deg, #22c55e, #10b981)",
-              color: currentUserAccepted || accepting ? textSecondary : "white",
+              color: currentUserAccepted || accepting ? "var(--chat-muted)" : "white",
               cursor:
                 currentUserAccepted || accepting ? "default" : "pointer",
               flexShrink: 0,
+              fontSize: 13,
             }}
           >
             {currentUserAccepted ? "Đã thích" : accepting ? "..." : "Thích"}
           </button>
         )}
+
+        {/* Show phone number after mutual like + 2-minute delay */}
+        {currentUserAccepted && phoneRevealed && resolvedUser?.phoneNumber && (
+          <span
+            className="chat-phone-number"
+            style={{
+              fontSize: 12,
+              color: textSecondary,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            📱 {resolvedUser.phoneNumber}
+          </span>
+        )}
+        {currentUserAccepted && !phoneRevealed && resolvedUser?.phoneNumber && (
+          <span
+            className="chat-phone-number"
+            style={{
+              fontSize: 11,
+              color: textSecondary,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
+            📱 chưa mở
+          </span>
+        )}
+
+        </div>
         <button
           onClick={handleEndConversation}
           className="chat-danger-button"
           title="Thoat cuoc tro chuyen"
           aria-label="Thoat cuoc tro chuyen"
           style={{
-            width: 36,
-            height: 36,
+            width: 32,
+            height: 32,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -740,6 +806,32 @@ export function ChatArea({
           </svg>
         </button>
       </Flex>
+
+      {/* Accept dialog - shown when other user liked us */}
+      <Dialog.Root open={showAcceptDialog} onOpenChange={setShowAcceptDialog}>
+        <Dialog.Content style={{ maxWidth: 400 }}>
+          <Dialog.Title>👋 Có người thích bạn!</Dialog.Title>
+          <Flex direction="column" gap="4">
+            <Text size="2" style={{ color: "var(--chat-muted)", lineHeight: 1.6 }}>
+              {visibleUser?.fullName || "Người này"} đã thích bạn và <strong>chia sẻ thông tin của họ</strong>.
+              Bạn có muốn chia sẻ thông tin của mình để họ có thể xem không?
+            </Text>
+            <Flex gap="3" justify="end">
+              <Dialog.Close>
+                <button type="button" style={{ height: 38, padding: "0 18px", borderRadius: 10, border: "1px solid var(--chat-border)", background: "transparent", color: "var(--chat-text)", cursor: "pointer", fontSize: 14 }}>
+                  Để sau
+                </button>
+              </Dialog.Close>
+              <Dialog.Close>
+                <button type="button" onClick={handleAcceptConversation}
+                  style={{ height: 38, padding: "0 18px", borderRadius: 10, border: "none", background: "linear-gradient(135deg, var(--chat-accent), var(--secondary))", color: "#FFFFFF", cursor: "pointer", fontSize: 14, fontWeight: 600 }}>
+                  Chia sẻ thông tin
+                </button>
+              </Dialog.Close>
+            </Flex>
+          </Flex>
+        </Dialog.Content>
+      </Dialog.Root>
 
       {/* Messages */}
       <ScrollArea
@@ -855,9 +947,7 @@ export function ChatArea({
                         style={{
                           padding: "6px 16px",
                           borderRadius: "20px",
-                          background: isDark
-                            ? "rgba(255,255,255,0.1)"
-                            : "rgba(0,0,0,0.05)",
+                          background: "var(--chat-surface-muted)",
                         }}
                       >
                         <Text size="1" style={{ color: textSecondary }}>
@@ -880,7 +970,7 @@ export function ChatArea({
                           }}
                         >
                           {!isMe && (
-                            <Avatar
+                            <AvatarWithVipBadge
                               size="1"
                               radius="full"
                               src={visibleUser?.avatarUrl || undefined}
@@ -888,6 +978,7 @@ export function ChatArea({
                                 visibleUser?.fullName,
                                 visibleUser?.email || "??",
                               )}
+                              badge={visibleUser?.badge}
                               style={{
                                 background: accentColor,
                                 color: "white",
@@ -934,7 +1025,7 @@ export function ChatArea({
               )}
               {otherTyping && (
                 <Flex justify="start" gap="2" style={{ maxWidth: "75%", minWidth: 0 }}>
-                  <Avatar
+                  <AvatarWithVipBadge
                     size="1"
                     radius="full"
                     src={visibleUser?.avatarUrl || undefined}
@@ -942,6 +1033,7 @@ export function ChatArea({
                       visibleUser?.fullName,
                       visibleUser?.email || "??",
                     )}
+                    badge={visibleUser?.badge}
                     style={{
                       background: accentColor,
                       color: "white",
@@ -1047,7 +1139,7 @@ export function ChatArea({
               width: 44,
               height: 44,
               borderRadius: "50%",
-              background: isDark ? "#1f2937" : "#eef2ff",
+              background: "var(--chat-surface-muted)",
               border: `1px solid ${borderColor}`,
               cursor: conversationEnded ? "not-allowed" : "pointer",
               display: "flex",
@@ -1084,9 +1176,7 @@ export function ChatArea({
                 borderRadius: 14,
                 background: bgSecondary,
                 border: `1px solid ${borderColor}`,
-                boxShadow: isDark
-                  ? "0 18px 48px rgba(0,0,0,0.45)"
-                  : "0 18px 48px rgba(15,23,42,0.14)",
+                boxShadow: "var(--chat-shadow)",
                 display: "grid",
                 gridTemplateColumns: "repeat(4, 1fr)",
                 gap: 6,
@@ -1103,7 +1193,7 @@ export function ChatArea({
                     height: 40,
                     borderRadius: 10,
                     border: "none",
-                    background: isDark ? "rgba(255,255,255,0.06)" : "#f8fafc",
+                    background: "var(--chat-surface-muted)",
                     cursor: "pointer",
                     fontSize: 22,
                     lineHeight: 1,
@@ -1124,10 +1214,8 @@ export function ChatArea({
             borderRadius: "50%",
             background:
               newMessage.trim() && !sending && !conversationEnded
-                ? "linear-gradient(135deg, #6366f1, #8b5cf6)"
-                : isDark
-                  ? "#374151"
-                  : "#e2e8f0",
+                ? "linear-gradient(135deg, var(--chat-accent), var(--secondary))"
+                : "var(--chat-surface-muted)",
             border: "none",
             cursor: newMessage.trim() && !sending && !conversationEnded ? "pointer" : "not-allowed",
             display: "flex",
@@ -1135,7 +1223,7 @@ export function ChatArea({
             justifyContent: "center",
             boxShadow:
               newMessage.trim() && !sending && !conversationEnded
-                ? "0 4px 16px rgba(99, 102, 241, 0.4)"
+                ? "0 4px 16px rgba(93, 45, 230, 0.4)"
                 : "none",
             transition: "all 0.3s ease",
             flexShrink: 0,
@@ -1223,11 +1311,12 @@ function AvatarButton({
         lineHeight: 0,
       }}
     >
-      <Avatar
+      <AvatarWithVipBadge
         size="2"
         radius="full"
         src={user.avatarUrl || undefined}
         fallback={getUserInitials(user.fullName, user.email || "??")}
+        badge={user.badge}
         style={{ background: accentColor, color: "white" }}
       />
     </span>
@@ -1237,11 +1326,13 @@ function AvatarButton({
 function ProfileDialog({
   user,
   accentColor,
+  phoneRevealed,
   textSecondary,
   children,
 }: {
   user: MatchedUser;
   accentColor: string;
+  phoneRevealed: boolean;
   textSecondary: string;
   children: ReactNode;
 }) {
@@ -1252,11 +1343,12 @@ function ProfileDialog({
         <Dialog.Title>Trang ca nhan</Dialog.Title>
         <Flex direction="column" gap="4">
           <Flex align="center" gap="3">
-            <Avatar
+            <AvatarWithVipBadge
               size="5"
               radius="full"
               src={user.avatarUrl || undefined}
               fallback={(user.fullName || user.email || "??").slice(0, 2)}
+              badge={user.badge}
               style={{ background: accentColor, color: "white" }}
             />
             <Flex direction="column" gap="1">
@@ -1284,17 +1376,17 @@ function ProfileDialog({
                 value={new Date(user.dateOfBirth).toLocaleDateString("vi-VN")}
               />
             )}
-            {user.phoneNumber && (
+            {user.phoneNumber && phoneRevealed && (
               <ProfileField label="Số điện thoại" value={user.phoneNumber} />
             )}
           </Flex>
 
           <Box
             style={{
-              border: "1px solid rgba(99,102,241,0.18)",
+              border: "1px solid var(--chat-border)",
               borderRadius: 8,
               padding: 12,
-              background: "rgba(99,102,241,0.06)",
+              background: "var(--chat-surface-muted)",
             }}
           >
             <Text size="1" style={{ color: textSecondary }}>
@@ -1313,8 +1405,9 @@ function ProfileDialog({
                   height: 36,
                   padding: "0 14px",
                   borderRadius: 8,
-                  border: "1px solid rgba(0,0,0,0.12)",
+                  border: "1px solid var(--chat-border)",
                   background: "transparent",
+                  color: "var(--chat-text)",
                   cursor: "pointer",
                 }}
               >

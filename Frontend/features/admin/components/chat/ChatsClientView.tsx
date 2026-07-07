@@ -11,8 +11,8 @@ import {
   ChatToolbar,
   type ChatStatusFilter,
 } from "@/features/admin/components/chat";
-import { authTheme } from "@/features/athu/styles/authTheme";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 const CHATS_PAGE_SIZE = 8;
 const EMPTY_CHAT_STATS = {
@@ -23,6 +23,7 @@ const EMPTY_CHAT_STATS = {
 };
 
 export function ChatsClientView() {
+  const s = useAdminStyles();
   const fetchedStatusRef = useRef<ChatStatusFilter | null>(null);
   const [conversations, setConversations] = useState<AdminConversation[]>([]);
   const [cursorStack, setCursorStack] = useState<(string | null)[]>([]);
@@ -126,10 +127,10 @@ export function ChatsClientView() {
 
   if (loading) {
     return (
-      <Flex align="center" justify="center" style={{ minHeight: 420 }}>
+      <Flex align="center" justify="center" className={s.chat.loadingContainer}>
         <Flex align="center" direction="column" gap="3">
           <Spinner size="3" />
-          <Text style={{ color: authTheme.muted }}>Đang tải danh sách cuộc trò chuyện...</Text>
+          <Text className={s.chat.loadingText}>Đang tải danh sách cuộc trò chuyện...</Text>
         </Flex>
       </Flex>
     );

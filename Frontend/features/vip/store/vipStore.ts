@@ -8,22 +8,10 @@ const includedFeatures = [
 
 export const vipBenefits: VipBenefit[] = [
   {
-    description: "Lưu lại ảnh đã chia sẻ trong cuộc trò chuyện để xem lại.",
-    icon: "image",
-    title: "Giữ hình ảnh sau trò chuyện",
-    tone: "blue",
-  },
-  {
     description: "Hiển thị thông tin nhận diện rõ hơn khi kết nối mới.",
     icon: "identity",
     title: "Xem họ tên người trò chuyện",
     tone: "cyan",
-  },
-  {
-    description: "Mở khóa các kiểu giao diện riêng cho phòng trò chuyện.",
-    icon: "theme",
-    title: "Đổi giao diện trò chuyện",
-    tone: "gold",
   },
 ];
 

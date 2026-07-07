@@ -5,6 +5,7 @@ export interface MatchedUser {
   email: string;
   fullName: string | null;
   avatarUrl: string | null;
+  badge: string | null;
   gender: string | null;
   city: string | null;
 }

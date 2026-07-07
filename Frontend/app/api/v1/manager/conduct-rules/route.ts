@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import {
   applyCsrfCookie,
   buildBackendHeaders,
@@ -8,7 +8,7 @@ import {
   refreshBackendSessionCookie,
 } from "@/app/api/_utils/backendHeaders";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { BACKEND_URL } from "@/lib/env";
 
 async function proxyJson(res: Response) {
   const data = await res.json().catch(() => ({}));

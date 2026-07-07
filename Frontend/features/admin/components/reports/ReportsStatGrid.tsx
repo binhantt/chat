@@ -1,8 +1,7 @@
 ﻿import { Box, Flex, Grid, Text } from "@radix-ui/themes";
 import { CheckCircledIcon, CrossCircledIcon, ExclamationTriangleIcon, FileTextIcon } from "@radix-ui/react-icons";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { reportsInnerBorder } from "@/features/admin/styles/reportsTheme";
 import type { ReportStatsValue } from "./types";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function ReportsStatGrid({ stats }: { stats: ReportStatsValue }) {
   return (
@@ -26,36 +25,28 @@ function ReportStatCard({
   tone?: "amber" | "blue" | "green" | "red";
   value: number;
 }) {
+  const s = useAdminStyles();
   const color =
-    tone === "green" ? "#22C55E" : tone === "red" ? "#EF4444" : tone === "amber" ? "#F59E0B" : authTheme.control;
+    tone === "green" ? "#22C55E" : tone === "red" ? "#EF4444" : tone === "amber" ? "#F59E0B" : "var(--primary)";
 
   return (
-    <Box
-      style={{
-        background: authTheme.panel,
-        border: reportsInnerBorder,
-        borderRadius: 8,
-        padding: 14,
-      }}
-    >
+    <Box className={s.reports.statCard}>
       <Flex align="center" gap="3" justify="between">
         <Box>
-          <Text as="div" size="1" style={{ color: authTheme.muted }}>
+          <Text as="div" size="1" className={s.reports.statLabel}>
             {label}
           </Text>
-          <Text as="div" size="6" weight="bold" style={{ color: authTheme.text, lineHeight: 1.15 }}>
+          <Text as="div" size="6" weight="bold" className={s.reports.statValue}>
             {value}
           </Text>
         </Box>
         <Flex
           align="center"
           justify="center"
+          className={s.reports.statIconBox}
           style={{
             background: `${color}18`,
-            borderRadius: 8,
             color,
-            height: 42,
-            width: 42,
           }}
         >
           {icon}

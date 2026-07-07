@@ -27,11 +27,11 @@ export class AuthTokenService {
   createRefreshToken(userId: string): string {
     const tokenId = randomUUID();
     const expiresAt = Date.now() + REFRESH_TOKEN_TTL_MS;
-    const signature = this.signRefreshToken(tokenId, expiresAt);
+    const signature = this.signRefreshToken(userId, tokenId, expiresAt);
 
     this.refreshSessions.set(tokenId, this.createSession(userId, expiresAt));
 
-    return `refresh:${tokenId}:${expiresAt}:${signature}`;
+    return `refresh:${userId}:${tokenId}:${expiresAt}:${signature}`;
   }
 
   verifyRefreshToken(refreshToken: string | null): string {
@@ -39,10 +39,16 @@ export class AuthTokenService {
       throw new UnauthorizedException('Thieu refresh token');
     }
 
-    const tokenId = this.verifyRefreshTokenSignature(refreshToken);
+    const { tokenId, userId } = this.verifyRefreshTokenSignature(refreshToken);
     const session = this.refreshSessions.get(tokenId);
 
-    return this.getSessionUserId(tokenId, session);
+    if (session) {
+      return this.getSessionUserId(tokenId, session);
+    }
+
+    // Session lost after restart — restore from self-contained token payload.
+    this.refreshSessions.set(tokenId, this.createSession(userId, this.extractExpiresAt(refreshToken)));
+    return userId;
   }
 
   revokeRefreshToken(refreshToken: string | null): void {
@@ -51,7 +57,7 @@ export class AuthTokenService {
     }
 
     try {
-      const tokenId = this.verifyRefreshTokenSignature(refreshToken);
+      const { tokenId } = this.verifyRefreshTokenSignature(refreshToken);
       this.refreshSessions.delete(tokenId);
     } catch {
       return;
@@ -121,17 +127,20 @@ export class AuthTokenService {
     return session.userId;
   }
 
-  private verifyRefreshTokenSignature(refreshToken: string): string {
+  private verifyRefreshTokenSignature(refreshToken: string): {
+    tokenId: string;
+    userId: string;
+  } {
     const parts = refreshToken.split(':');
 
-    if (parts.length !== 4 || parts[0] !== 'refresh') {
+    if (parts.length !== 5 || parts[0] !== 'refresh') {
       throw new UnauthorizedException('Refresh token khong hop le');
     }
 
-    const [, tokenId, expiresAtRaw, signature] = parts;
+    const [, userId, tokenId, expiresAtRaw, signature] = parts;
     const expiresAt = Number(expiresAtRaw);
 
-    if (!tokenId || !signature || !Number.isFinite(expiresAt)) {
+    if (!userId || !tokenId || !signature || !Number.isFinite(expiresAt)) {
       throw new UnauthorizedException('Refresh token khong hop le');
     }
 
@@ -140,19 +149,28 @@ export class AuthTokenService {
       throw new UnauthorizedException('Refresh token da het han');
     }
 
-    const expectedSignature = this.signRefreshToken(tokenId, expiresAt);
+    const expectedSignature = this.signRefreshToken(userId, tokenId, expiresAt);
 
     if (!this.safeCompare(signature, expectedSignature)) {
       throw new UnauthorizedException('Refresh token sai chu ky');
     }
 
-    return tokenId;
+    return { tokenId, userId };
   }
 
-  private signRefreshToken(tokenId: string, expiresAt: number): string {
+  private signRefreshToken(
+    userId: string,
+    tokenId: string,
+    expiresAt: number,
+  ): string {
     return createHmac('sha256', this.getRefreshTokenSecret())
-      .update(`${tokenId}:${expiresAt}`)
+      .update(`${userId}:${tokenId}:${expiresAt}`)
       .digest('base64url');
+  }
+
+  private extractExpiresAt(refreshToken: string): number {
+    const parts = refreshToken.split(':');
+    return Number(parts[parts.length - 2]);
   }
 
   private signAccessToken(userId: string, expiresAt: number): string {

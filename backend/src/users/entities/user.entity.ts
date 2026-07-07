@@ -60,6 +60,10 @@ export class User {
 
   @Column({ nullable: true, type: 'text' })
   avatarUrl!: string | null; // Đường dẫn ảnh (từ Google hoặc tự upload)
+
+  @Column({ nullable: true, type: 'text' })
+  badge!: string | null; // Huy hiệu VIP (URL ảnh hoặc emoji)
+
   @Column({ nullable: true, type: 'date' })
   dateOfBirth!: Date | null;
   @Column({ type: 'varchar', nullable: true })

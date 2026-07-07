@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { BACKEND_URL } from "@/lib/env";
 
 function getCookieHeader(request: Request) {
   return request.headers.get("cookie") || "";

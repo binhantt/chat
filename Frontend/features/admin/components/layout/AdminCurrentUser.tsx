@@ -1,13 +1,14 @@
 import { cookies } from "next/headers";
-import { Avatar, Flex, Text } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
-
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { Flex, Text } from "@radix-ui/themes";
+import { AvatarWithVipBadge } from "@/components/shared/AvatarWithVipBadge";
+import { BACKEND_URL } from "@/lib/env";
+import styles from "./admin-current-user.module.css";
 
 type CurrentUser = {
   avatarUrl?: string | null;
   email?: string | null;
   fullName?: string | null;
+  badge?: string | null;
 };
 
 export async function AdminCurrentUser() {
@@ -16,18 +17,19 @@ export async function AdminCurrentUser() {
 
   return (
     <Flex align="center" gap="2">
-      <Avatar
+      <AvatarWithVipBadge
         fallback={getUserInitials(displayName)}
         radius="full"
         size="2"
         src={user?.avatarUrl || undefined}
-        style={{ background: authTheme.control, color: "#FFFFFF" }}
+        badge={user?.badge}
+        className={styles.avatar}
       />
       <Flex direction="column" display={{ initial: "none", sm: "flex" }}>
-        <Text size="2" weight="bold" style={{ color: authTheme.text }}>
+        <Text size="2" weight="bold" className={styles.userName}>
           {displayName}
         </Text>
-        <Text size="1" style={{ color: authTheme.muted }}>
+        <Text size="1" className={styles.userRole}>
           Quản lý
         </Text>
       </Flex>

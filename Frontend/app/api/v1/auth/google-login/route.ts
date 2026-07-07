@@ -1,11 +1,11 @@
+import { BACKEND_URL } from "@/lib/env";
 import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
     const { idToken } = await request.json();
 
-    const backendUrl =
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const backendUrl = BACKEND_URL;
 
     const backendRes = await fetch(`${backendUrl}/api/v1/auth/google-login`, {
       method: "POST",
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       credentials: "include",
     });
 
-    const data = await backendRes.json();
+    const data = await backendRes.json().catch(() => ({}));
 
     if (!backendRes.ok) {
       return NextResponse.json(

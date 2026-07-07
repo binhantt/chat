@@ -4,6 +4,7 @@ import { Box, Flex, Text, TextField, Button, Select, TextArea, Badge } from "@ra
 import { useEffect, useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { getCsrfHeaders } from "@/lib/csrf";
 
 interface ReportableUser {
   id: string;
@@ -79,6 +80,7 @@ export function ReportForm() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...getCsrfHeaders(),
         },
         body: JSON.stringify({
           reportedUserId,

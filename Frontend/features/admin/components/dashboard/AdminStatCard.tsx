@@ -1,30 +1,23 @@
-﻿import { Box, Flex, Text } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { adminPanelStyle } from "@/features/admin/styles/dashboardTheme";
+﻿"use client";
+
+import { Box, Flex, Text } from "@radix-ui/themes";
 import type { AdminStatItem } from "./types";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function AdminStatCard({ icon, label, value }: AdminStatItem) {
+  const s = useAdminStyles();
+
   return (
-    <Box style={adminPanelStyle}>
+    <Box className={s.dashboard.statCard}>
       <Flex align="center" gap="3">
-        <Flex
-          align="center"
-          justify="center"
-          style={{
-            background: `linear-gradient(135deg, ${authTheme.control}, ${authTheme.cyan})`,
-            borderRadius: 8,
-            color: "#FFFFFF",
-            height: 46,
-            width: 46,
-          }}
-        >
+        <Flex align="center" justify="center" className={s.dashboard.statIconBox}>
           {icon}
         </Flex>
         <Box>
-          <Text as="div" size="1" style={{ color: authTheme.muted }}>
+          <Text as="div" size="1" className={s.dashboard.statLabel}>
             {label}
           </Text>
-          <Text as="div" size="7" weight="bold" style={{ color: authTheme.text }}>
+          <Text as="div" size="7" weight="bold" className={s.dashboard.statValue}>
             {value}
           </Text>
         </Box>

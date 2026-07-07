@@ -1,9 +1,8 @@
 import { Badge, Box, Button, Flex, Select, Text } from "@radix-ui/themes";
 import { MagicWandIcon } from "@radix-ui/react-icons";
 import type { AdminReport, ReportAiReview } from "./types";
-import { authTheme } from "@/features/athu/styles/authTheme";
 import { formatReportDate, reportLockOptions, reportStatusOptions } from "./reportUtils";
-import { reportsInnerBorder } from "@/features/admin/styles/reportsTheme";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function ReportExpandedPanel({
   aiReview,
@@ -30,33 +29,18 @@ export function ReportExpandedPanel({
   report: AdminReport;
   updating: boolean;
 }) {
+  const s = useAdminStyles();
   return (
-    <Box
-      style={{
-        background: "var(--auth-panel-gradient)",
-        border: reportsInnerBorder,
-        borderRadius: 8,
-        padding: 14,
-      }}
-    >
+    <Box className={s.reports.expandedPanel}>
       <Flex align="stretch" direction={{ initial: "column", lg: "row" }} gap="3">
-        <Box
-          style={{
-            background: authTheme.panel,
-            border: reportsInnerBorder,
-            borderRadius: 8,
-            flex: "1 1 auto",
-            minHeight: 150,
-            padding: 14,
-          }}
-        >
-          <Text size="2" weight="bold" style={{ color: authTheme.text }}>
+        <Box className={s.reports.expandedPanelContent}>
+          <Text size="2" weight="bold" className={s.reports.expandedPanelSectionTitle}>
             Nội dung báo cáo
           </Text>
           <Text
             as="div"
             size="2"
-            style={{ color: authTheme.muted, lineHeight: 1.6, marginTop: 10, whiteSpace: "pre-wrap" }}
+            className={s.reports.expandedPanelContentDesc}
           >
             {report.description || "Người dùng chưa nhập nội dung chi tiết."}
           </Text>
@@ -65,17 +49,11 @@ export function ReportExpandedPanel({
         <Flex
           direction="column"
           gap="3"
-          style={{
-            background: authTheme.panel,
-            border: reportsInnerBorder,
-            borderRadius: 8,
-            flex: "0 0 360px",
-            padding: 14,
-          }}
+          className={s.reports.expandedPanelSidebar}
         >
           {report.recentPartners && report.recentPartners.length > 0 && (
             <Flex direction="column" gap="2">
-              <Text size="2" weight="bold" style={{ color: authTheme.text }}>
+              <Text size="2" weight="bold" className={s.reports.expandedPanelSectionTitle}>
                 Người liên quan gần đây
               </Text>
               <Flex gap="2" wrap="wrap">
@@ -89,14 +67,14 @@ export function ReportExpandedPanel({
           )}
 
           {report.reportedUser.lockType && report.reportedUser.lockType !== "none" && (
-            <Badge color="red" variant="soft" style={{ width: "fit-content" }}>
+            <Badge color="red" variant="soft" className={s.reports.fitContent}>
               Đang khóa: {report.reportedUser.lockType}
               {report.reportedUser.lockedUntil ? ` đến ${formatReportDate(report.reportedUser.lockedUntil)}` : ""}
             </Badge>
           )}
 
           <Flex direction="column" gap="2">
-            <Text size="2" weight="bold" style={{ color: authTheme.text }}>
+            <Text size="2" weight="bold" className={s.reports.expandedPanelSectionTitle}>
               AI kiểm duyệt
             </Text>
             <Button
@@ -104,7 +82,7 @@ export function ReportExpandedPanel({
               loading={aiReviewing}
               onClick={onAiReview}
               size="2"
-              style={{ borderRadius: 8 }}
+              className={s.reports.roundedBtn}
               variant="soft"
             >
               <MagicWandIcon />
@@ -115,7 +93,7 @@ export function ReportExpandedPanel({
           </Flex>
 
           <Flex direction="column" gap="2">
-            <Text size="2" weight="bold" style={{ color: authTheme.text }}>
+            <Text size="2" weight="bold" className={s.reports.expandedPanelSectionTitle}>
               Xử lý báo cáo
             </Text>
             <Flex direction="column" gap="2">
@@ -127,7 +105,7 @@ export function ReportExpandedPanel({
                 size="2"
                 value={newStatus}
               >
-                <Select.Trigger placeholder="Chọn trạng thái" style={{ width: "100%" }} />
+                <Select.Trigger placeholder="Chọn trạng thái" className={s.reports.selectTrigger} />
                 <Select.Content>
                   {reportStatusOptions.map((option) => (
                     <Select.Item key={option.value} value={option.value}>
@@ -139,7 +117,7 @@ export function ReportExpandedPanel({
 
               {newStatus === "resolved" && (
                 <Select.Root onValueChange={onLockTypeChange} size="2" value={lockType}>
-                  <Select.Trigger placeholder="Chọn mức khóa" style={{ width: "100%" }} />
+                  <Select.Trigger placeholder="Chọn mức khóa" className={s.reports.selectTrigger} />
                   <Select.Content>
                     {reportLockOptions.map((option) => (
                       <Select.Item key={option.value} value={option.value}>
@@ -158,7 +136,7 @@ export function ReportExpandedPanel({
             loading={updating}
             onClick={onUpdate}
             size="2"
-            style={{ borderRadius: 8 }}
+            className={s.reports.roundedBtn}
           >
             {updating ? "Đang cập nhật..." : "Cập nhật"}
           </Button>
@@ -175,15 +153,9 @@ function ReportAiReviewBox({
   aiReview: ReportAiReview;
   onApply: () => void;
 }) {
+  const s = useAdminStyles();
   return (
-    <Box
-      style={{
-        background: "rgba(59,130,246,0.08)",
-        border: reportsInnerBorder,
-        borderRadius: 8,
-        padding: 10,
-      }}
-    >
+    <Box className={s.reports.expandedPanelAiBox}>
       <Flex align="center" gap="2" justify="between" wrap="wrap">
         <Badge
           color={aiReview.riskLevel === "high" ? "red" : aiReview.riskLevel === "medium" ? "yellow" : "green"}
@@ -200,7 +172,7 @@ function ReportAiReviewBox({
         </Badge>
       </Flex>
 
-      <Text as="div" size="2" style={{ color: authTheme.muted, lineHeight: 1.55, marginTop: 8 }}>
+      <Text as="div" size="2" className={s.reports.expandedPanelAiSummary}>
         {aiReview.summary}
       </Text>
 
@@ -217,7 +189,7 @@ function ReportAiReviewBox({
       {aiReview.evidenceMessages.length > 0 && (
         <Flex direction="column" gap="1" mt="2">
           {aiReview.evidenceMessages.slice(0, 2).map((message) => (
-            <Text as="div" key={message.id} size="1" style={{ color: authTheme.text, lineHeight: 1.45 }}>
+            <Text as="div" key={message.id} size="1" className={s.reports.expandedPanelEvidenceText}>
               “{message.content}”
             </Text>
           ))}
@@ -225,7 +197,7 @@ function ReportAiReviewBox({
       )}
 
       {aiReview.recommendation !== "none" && (
-        <Button mt="3" onClick={onApply} size="2" style={{ borderRadius: 8 }} variant="solid">
+        <Button mt="3" onClick={onApply} size="2" className={s.reports.roundedBtn} variant="solid">
           Áp dụng đề xuất
         </Button>
       )}

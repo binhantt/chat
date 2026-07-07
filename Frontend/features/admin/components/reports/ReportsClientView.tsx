@@ -8,9 +8,10 @@ import {
   ReportsToolbar,
 } from "@/features/admin/components/reports";
 import { useAdminReportsPage } from "@/features/admin/hooks/useAdminReportsPage";
-import { authTheme } from "@/features/athu/styles/authTheme";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function ReportsClientView() {
+  const s = useAdminStyles();
   const {
     aiReview,
     aiReviewing,
@@ -44,10 +45,10 @@ export function ReportsClientView() {
 
   if (loading) {
     return (
-      <Flex align="center" justify="center" style={{ minHeight: 420 }}>
+      <Flex align="center" justify="center" className={s.reports.loadingContainer}>
         <Flex align="center" direction="column" gap="3">
           <Spinner size="3" />
-          <Text style={{ color: authTheme.muted }}>Đang tải danh sách báo cáo...</Text>
+          <Text className={s.reports.loadingText}>Đang tải danh sách báo cáo...</Text>
         </Flex>
       </Flex>
     );

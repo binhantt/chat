@@ -1,10 +1,9 @@
 import { Avatar, Box, Button, Flex, Text } from "@radix-ui/themes";
 import { EyeOpenIcon } from "@radix-ui/react-icons";
 import type { AdminConversation } from "@/features/athu";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { chatInnerBorder } from "@/features/admin/styles/chatTheme";
 import { ChatStatusBadge } from "./ChatStatusBadge";
 import { formatChatTimeAgo, getChatInitials, getChatUserName } from "./chatUtils";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function ChatRow({
   chat,
@@ -13,6 +12,7 @@ export function ChatRow({
   chat: AdminConversation;
   onView: (chat: AdminConversation) => void;
 }) {
+  const s = useAdminStyles();
   const user1Name = getChatUserName(chat.user1, chat.user1Id);
   const user2Name = getChatUserName(chat.user2, chat.user2Id);
 
@@ -22,15 +22,9 @@ export function ChatRow({
       direction={{ initial: "column", lg: "row" }}
       gap="3"
       onClick={() => onView(chat)}
-      style={{
-        background: "#FFFFFF",
-        border: chatInnerBorder,
-        borderRadius: 8,
-        cursor: "pointer",
-        padding: 14,
-      }}
+      className={s.chat.chatRow}
     >
-      <Flex align="center" gap="3" style={{ flex: "1.4 1 0", minWidth: 250 }}>
+      <Flex align="center" gap="3" className={s.chat.chatUserSection}>
         <Flex align="center">
           <Avatar
             fallback={getChatInitials(chat.user1?.fullName, chat.user1Id)}
@@ -43,26 +37,26 @@ export function ChatRow({
             radius="full"
             size="3"
             src={chat.user2?.avatarUrl || undefined}
-            style={{ marginLeft: -10 }}
+            className={s.chat.chatUserAvatarOverlap}
           />
         </Flex>
-        <Box style={{ minWidth: 0 }}>
-          <Text as="div" size="3" weight="bold" style={{ color: authTheme.text }}>
+        <Box className={s.chat.chatUserNames}>
+          <Text as="div" size="3" weight="bold" className={s.chat.chatUserName}>
             {user1Name}
           </Text>
-          <Text as="div" size="2" style={{ color: authTheme.muted, overflowWrap: "anywhere" }}>
+          <Text as="div" size="2" className={s.chat.chatUserWith}>
             với {user2Name}
           </Text>
         </Box>
       </Flex>
 
       <InfoBlock label="Mã trò chuyện" value={`#${chat.id.slice(0, 8)}`} />
-      <Flex align="center" style={{ flex: "0.6 1 0", minWidth: 120 }}>
+      <Flex align="center" className={s.chat.chatStatusBlock}>
         <ChatStatusBadge status={chat.status} />
       </Flex>
       <InfoBlock label="Cập nhật" value={formatChatTimeAgo(chat.updatedAt)} />
 
-      <Flex justify={{ initial: "start", lg: "end" }} style={{ minWidth: 84 }}>
+      <Flex justify={{ initial: "start", lg: "end" }} className={s.chat.chatActionBlock}>
         <Button
           onClick={(event) => {
             event.stopPropagation();
@@ -70,7 +64,7 @@ export function ChatRow({
           }}
           size="2"
           variant="soft"
-          style={{ borderRadius: 8 }}
+          className={s.chat.chatViewBtn}
         >
           <EyeOpenIcon />
           Xem
@@ -81,12 +75,13 @@ export function ChatRow({
 }
 
 function InfoBlock({ label, value }: { label: string; value: string }) {
+  const s = useAdminStyles();
   return (
-    <Box style={{ flex: "0.75 1 0", minWidth: 130 }}>
-      <Text as="div" size="1" style={{ color: authTheme.muted }}>
+    <Box className={s.chat.chatInfoBlock}>
+      <Text as="div" size="1" className={s.chat.chatInfoLabel}>
         {label}
       </Text>
-      <Text as="div" size="2" style={{ color: authTheme.text, overflowWrap: "anywhere" }}>
+      <Text as="div" size="2" className={s.chat.chatInfoValue}>
         {value}
       </Text>
     </Box>
