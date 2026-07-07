@@ -1,8 +1,9 @@
-import { Avatar, Box, Button, Dialog, Flex, Grid, Heading, Separator, Spinner, Text } from "@radix-ui/themes";
+import { Box, Button, Dialog, Flex, Grid, Heading, Separator, Spinner, Text } from "@radix-ui/themes";
+import { AvatarWithVipBadge } from "@/components/shared/AvatarWithVipBadge";
 import type { AdminUser } from "@/features/athu";
-import { authTheme } from "@/features/athu/styles/authTheme";
 import { UserStatusBadge } from "./UserStatusBadge";
 import { formatAdminCity, formatAdminDateTime, formatAdminValue, genderLabel, getUserInitials } from "./userUtils";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function UserDetailDialog({
   onOpenChange,
@@ -13,24 +14,26 @@ export function UserDetailDialog({
   open: boolean;
   user: AdminUser | null;
 }) {
+  const s = useAdminStyles();
   return (
     <Dialog.Root onOpenChange={onOpenChange} open={open}>
-      <Dialog.Content style={{ border: `1px solid ${authTheme.line}`, borderRadius: 8, maxWidth: 720 }}>
+      <Dialog.Content className={s.users.detailDialogContent}>
         <Dialog.Title>Chi tiết tài khoản</Dialog.Title>
         <Dialog.Description>Thông tin hồ sơ và trạng thái truy cập của người dùng.</Dialog.Description>
 
         {user ? (
           <Flex direction="column" gap="4" mt="4">
             <Flex align="center" gap="4">
-              <Avatar
+              <AvatarWithVipBadge
                 fallback={getUserInitials(user.fullName, user.email)}
                 radius="full"
                 size="5"
                 src={user.avatarUrl || undefined}
+                badge={user.badge}
               />
               <Flex direction="column" gap="1">
                 <Heading size="5">{user.fullName || "Chưa đặt tên"}</Heading>
-                <Text size="2" style={{ color: authTheme.muted }}>
+                <Text size="2" className={s.users.detailField}>
                   {user.email}
                 </Text>
                 <Flex align="center" gap="2" wrap="wrap">
@@ -57,17 +60,17 @@ export function UserDetailDialog({
             </Grid>
 
             <Flex direction="column" gap="2">
-              <Text size="2" weight="medium" style={{ color: authTheme.muted }}>
+              <Text size="2" weight="medium" className={s.users.detailField}>
                 Tiểu sử
               </Text>
-              <Box style={{ background: "var(--auth-soft-control)", borderRadius: 8, minHeight: 72, padding: 12 }}>
+              <Box className={s.users.detailBio}>
                 <Text size="2">{formatAdminValue(user.bio)}</Text>
               </Box>
             </Flex>
 
             <Flex justify="end">
               <Dialog.Close>
-                <Button variant="soft" style={{ borderRadius: 8 }}>
+                <Button variant="soft" className={s.users.headerBtn}>
                   Đóng
                 </Button>
               </Dialog.Close>
@@ -84,12 +87,13 @@ export function UserDetailDialog({
 }
 
 function DetailItem({ label, value }: { label: string; value: string }) {
+  const s = useAdminStyles();
   return (
     <Flex direction="column" gap="1">
-      <Text size="1" style={{ color: authTheme.muted }}>
+      <Text size="1" className={s.users.detailField}>
         {label}
       </Text>
-      <Text size="2" style={{ color: authTheme.text, overflowWrap: "anywhere" }}>
+      <Text size="2" className={s.users.detailValue}>
         {value}
       </Text>
     </Flex>

@@ -9,6 +9,18 @@ Tai lieu nay mo ta nhanh cau truc backend va giao dien hien tai de tiep tuc code
 - Public user API dung `/api/v1/...`.
 - Khu quan ly khong public chu `admin` trong API nua, dung namespace `/api/v1/manager/...`.
 - Frontend route quan ly van la `/admin/...` de nguoi dung de truy cap giao dien.
+- Kien truc **CQRS + Event-Driven** duoc ap dung cho module `conduct` (xem [DOC_08_EVENT_DRIVEN.md](DOC_08_EVENT_DRIVEN.md)).
+
+## Kien truc Event-Driven
+
+Du an ap dung Event-Driven Architecture ket hop CQRS. Cac command (Create, Update, Delete) duoc xu ly boi handler rieng, sau khi hoan tat thi **emit event** qua `EventBusService` (dung RxJS Subject). Cac listener co the lang nghe va phan ung.
+
+```text
+Command Handler -> DB + Cache -> EventBus.emit() -> Listeners
+Query Handler  -> DB Read       -> Response
+```
+
+Hien tai Event-Driven duoc ap dung o module `conduct`. Xem [DOC_08_EVENT_DRIVEN.md](DOC_08_EVENT_DRIVEN.md) de biet chi tiet va huong dan mo rong.
 
 ## Backend
 
@@ -118,15 +130,51 @@ Xu ly bao cao nguoi dung va quan ly bao cao.
 
 ### `conduct`
 
-Xu ly luat ung xu va tu khoa can chan.
+Xu ly luat ung xu va tu khoa can chan. Ap dung kien truc **CQRS + Event-Driven**. Cac command va query duoc tach rieng, moi handler mot nhiem vu.
 
-- `conduct.controller.ts`
-  - `GET /api/v1/manager/conduct-rules`
-  - `POST /api/v1/manager/conduct-rules`
-  - `PATCH /api/v1/manager/conduct-rules/:id`
-  - `DELETE /api/v1/manager/conduct-rules/:id`
-- `conduct.service.ts`: CRUD va pagination.
-- `entities/conduct-rule.entity.ts`: entity TypeORM, dung `declare` cho field ORM gan sau.
+**API:**
+- `GET /api/v1/manager/conduct-rules`
+- `POST /api/v1/manager/conduct-rules`
+- `PATCH /api/v1/manager/conduct-rules/:id`
+- `DELETE /api/v1/manager/conduct-rules/:id`
+
+**Cau truc thu muc:**
+
+```text
+src/conduct/
+├── commands/
+│   ├── create-conduct-rule.command.ts      # Dinh nghia command
+│   ├── update-conduct-rule.command.ts
+│   ├── delete-conduct-rule.command.ts
+│   └── handlers/
+│       ├── create-conduct-rule.handler.ts  # Handler + emit event
+│       ├── update-conduct-rule.handler.ts
+│       └── delete-conduct-rule.handler.ts
+├── queries/
+│   ├── get-conduct-rules.query.ts          # Dinh nghia query
+│   ├── check-message.query.ts
+│   └── handlers/
+│       ├── get-conduct-rules.handler.ts    # Handler doc du lieu
+│       └── check-message.handler.ts
+├── events/
+│   ├── event-bus.service.ts               # EventBus (RxJS Subject)
+│   ├── conduct-rule-created.event.ts       # Event factory
+│   ├── conduct-rule-updated.event.ts
+│   └── conduct-rule-deleted.event.ts
+├── entities/conduct-rule.entity.ts
+├── pipes/
+├── repositories/conduct-rule.repository.ts
+└── services/
+    ├── conduct-rule-cache.service.ts
+    ├── conduct-rule-cursor.service.ts
+    ├── conduct-rule-normalizer.service.ts
+    └── conduct-rule-seeder.service.ts
+```
+
+**Luong xu ly:**
+- Command (POST/PATCH/DELETE) -> Handler -> DB + Cache -> `EventBus.emit()` -> Response
+- Query (GET) -> Handler -> DB Read -> Response
+- Controller inject handlers truc tiep, khong qua service layer
 
 ### `common`, `security`, `database`
 

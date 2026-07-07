@@ -1,14 +1,7 @@
 "use client";
 
-import { Badge, Box, Flex, Grid, Heading, Text } from "@radix-ui/themes";
-import {
-  ChatBubbleIcon,
-  LightningBoltIcon,
-  LockClosedIcon,
-  MagnifyingGlassIcon,
-  RocketIcon,
-} from "@radix-ui/react-icons";
-import { authTheme } from "../styles/authTheme";
+import { Badge, Box, Card, Flex, Text } from "@radix-ui/themes";
+import { ChatBubbleIcon, LightningBoltIcon, LockClosedIcon, HeartFilledIcon } from "@radix-ui/react-icons";
 
 const features = [
   {
@@ -18,7 +11,7 @@ const features = [
   },
   {
     description: "Kết nối đúng người.",
-    icon: MagnifyingGlassIcon,
+    icon: HeartFilledIcon,
     title: "Ghép đôi thông minh",
   },
   {
@@ -32,182 +25,128 @@ export function AuthVisual() {
   return (
     <Box
       display={{ initial: "none", md: "block" }}
-      width="640px"
-      style={{
-        flexShrink: 1,
-        maxHeight: "calc(100dvh - 56px)",
-        position: "relative",
-      }}
+      style={{ width: 480, flexShrink: 0 }}
     >
-      <Box
-        style={{
-          background:
-            "linear-gradient(135deg, rgba(59, 130, 246, 0.10), rgba(34, 211, 238, 0.06))",
-          border: `1px solid ${authTheme.line}`,
-          borderRadius: 8,
-          height: 150,
-          left: 26,
-          position: "absolute",
-          top: 78,
-          transform: "rotate(-5deg)",
-          width: 310,
-          zIndex: 0,
-        }}
-      />
-      <Box
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(59, 130, 246, 0.16), rgba(255, 255, 255, 0))",
-          borderRadius: 8,
-          bottom: 10,
-          height: 180,
-          position: "absolute",
-          right: 42,
-          transform: "rotate(12deg)",
-          width: 72,
-          zIndex: 0,
-        }}
-      />
-
       <Flex
         direction="column"
-        gap="4"
+        gap="5"
         justify="center"
-        style={{
-          maxWidth: 600,
-          minHeight: "calc(100dvh - 116px)",
-          position: "relative",
-          zIndex: 1,
-        }}
+        style={{ position: "relative", zIndex: 1 }}
       >
+        {/* Badge */}
         <Badge
           size="3"
           style={{
             alignSelf: "flex-start",
-            background: "rgba(59, 130, 246, 0.12)",
-            border: `1px solid ${authTheme.line}`,
-            color: authTheme.text,
+            background: "var(--auth-soft-control)",
+            border: "1px solid var(--auth-line)",
+            borderRadius: 999,
+            color: "var(--auth-control)",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "6px 16px",
           }}
         >
-          <Flex align="center" gap="2">
-            <ChatBubbleIcon />
-            <Text size="2" weight="bold">
-              Website kết nối mỗi ngày
-            </Text>
-          </Flex>
+          <ChatBubbleIcon width={14} height={14} />
+          <Text size="2" weight="bold" style={{ fontFamily: "var(--font-body)", letterSpacing: "0.01em" }}>
+            Website kết nối mỗi ngày
+          </Text>
         </Badge>
-        <Heading
-          as="h1"
-          size="7"
+
+        {/* Title */}
+        <h1
           style={{
-            color: authTheme.text,
-            letterSpacing: 0,
-            lineHeight: 1.08,
-            maxWidth: 560,
+            color: "var(--auth-text)",
+            fontFamily: "var(--font-heading)",
+            fontSize: 38,
+            fontWeight: 700,
+            lineHeight: 1.15,
+            margin: 0,
+            maxWidth: 460,
           }}
         >
-          Trò chuyện gọn gàng, riêng tư và an toàn hơn.
-        </Heading>
+          Trò chuyện gọn gàng,<br />riêng tư và an toàn hơn.
+        </h1>
+
+        {/* Description */}
         <Text
           as="p"
           size="3"
           style={{
-            color: authTheme.muted,
-            lineHeight: 1.6,
+            color: "var(--auth-muted)",
+            fontFamily: "var(--font-body)",
+            lineHeight: 1.7,
             margin: 0,
-            maxWidth: 560,
+            maxWidth: 440,
           }}
         >
           Người Lạ giúp bạn đăng nhập nhanh, tạo hồ sơ, tìm người phù hợp và
           bắt đầu câu chuyện trong không gian gọn gàng, tập trung vào điều quan trọng.
         </Text>
 
-        <Flex
-          align="center"
-          gap="3"
-          style={{
-            background: "rgba(255, 255, 255, 0.62)",
-            border: `1px solid ${authTheme.line}`,
-            borderRadius: 8,
-            boxShadow: "0 18px 40px rgba(59, 130, 246, 0.10)",
-            maxWidth: 560,
-            padding: 12,
-          }}
-        >
-          <Flex
-            align="center"
-            justify="center"
-            style={{
-              background: authTheme.control,
-              borderRadius: 8,
-              color: "#FFFFFF",
-              height: 42,
-              width: 42,
-            }}
-          >
-            <RocketIcon height={20} width={20} />
-          </Flex>
-          <Box>
-            <Text as="div" size="3" weight="bold" style={{ color: authTheme.text }}>
-              Bắt đầu chỉ trong một lần bấm
-            </Text>
-            <Text as="div" size="2" style={{ color: authTheme.muted }}>
-              Đăng nhập, tìm người phù hợp và vào phòng trò chuyện nhanh gọn.
-            </Text>
-          </Box>
-        </Flex>
-
-        <Grid columns="3" gap="3" style={{ maxWidth: 560, width: "100%" }}>
-          {features.map(({ description, icon: Icon, title }, index) => (
-            <Box
+        {/* Feature cards */}
+        <Flex gap="3" style={{ maxWidth: 480, width: "100%" }}>
+          {features.map(({ description, icon: Icon, title }) => (
+            <Card
               key={title}
+              size="1"
+              variant="surface"
               style={{
-                background: authTheme.panelSoft,
-                border: `1px solid ${authTheme.line}`,
-                borderRadius: 8,
-                boxShadow: "0 14px 32px rgba(15, 23, 42, 0.08)",
-                minHeight: 100,
-                padding: 12,
+                flex: 1,
+                border: "1px solid var(--auth-line)",
               }}
             >
-              <Flex align="start" direction="column" gap="3">
+              <Flex align="start" direction="column" gap="2">
                 <Box
                   style={{
                     alignItems: "center",
-                    background:
-                      index === 1
-                        ? authTheme.cyan
-                        : index === 2
-                          ? authTheme.gold
-                          : authTheme.control,
-                    borderRadius: 8,
-                    color:
-                      index === 2 ? authTheme.background : "#FFFFFF",
+                    background: "var(--auth-soft-control)",
+                    borderRadius: 10,
+                    color: "var(--auth-control)",
                     display: "flex",
-                    height: 38,
+                    height: 36,
                     justifyContent: "center",
-                    width: 38,
+                    width: 36,
                   }}
                 >
-                  <Icon height={18} width={18} />
+                  <Icon height={16} width={16} />
                 </Box>
                 <Box>
                   <Text
                     as="div"
                     size="2"
                     weight="bold"
-                    style={{ color: authTheme.text }}
+                    style={{ color: "var(--auth-text)", fontFamily: "var(--font-body)" }}
                   >
                     {title}
                   </Text>
-                  <Text as="div" size="1" style={{ color: authTheme.muted, lineHeight: 1.45 }}>
+                  <Text
+                    as="div"
+                    size="1"
+                    style={{
+                      color: "var(--auth-muted)",
+                      fontFamily: "var(--font-body)",
+                      lineHeight: 1.4,
+                      marginTop: 2,
+                    }}
+                  >
                     {description}
                   </Text>
                 </Box>
               </Flex>
-            </Box>
+            </Card>
           ))}
-        </Grid>
+        </Flex>
+
+        {/* Decorative highlight line */}
+        <Box
+          style={{
+            background: "linear-gradient(90deg, transparent, var(--auth-line), transparent)",
+            height: 1,
+            width: "60%",
+          }}
+        />
       </Flex>
     </Box>
   );

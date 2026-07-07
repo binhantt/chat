@@ -2,7 +2,6 @@
 
 import { Flex, Text } from "@radix-ui/themes";
 import { InfoCircledIcon } from "@radix-ui/react-icons";
-import { authTheme } from "../styles/authTheme";
 
 export function AuthTerms() {
   return (
@@ -14,13 +13,19 @@ export function AuthTerms() {
         paddingInline: 8,
       }}
     >
-      <InfoCircledIcon color={authTheme.muted} height={15} width={15} />
+      <InfoCircledIcon color="var(--auth-muted)" height={14} width={14} />
       <Text
         as="p"
         size="1"
-        style={{ color: authTheme.muted, lineHeight: 1.4, margin: 0, textAlign: "center" }}
+        style={{
+          color: "var(--auth-muted)",
+          fontFamily: "var(--font-body)",
+          lineHeight: 1.5,
+          margin: 0,
+          textAlign: "center",
+        }}
       >
-        Tiep tuc nghia la ban dong y voi dieu khoan va chinh sach bao mat.
+        Tiếp tục nghĩa là bạn đồng ý với điều khoản và chính sách bảo mật.
       </Text>
     </Flex>
   );

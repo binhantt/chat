@@ -1,21 +1,23 @@
-﻿import { Box, Flex, Text } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { adminPanelStyle } from "@/features/admin/styles/dashboardTheme";
+﻿"use client";
+
+import { Box, Flex, Text } from "@radix-ui/themes";
 import { AdminProgressRow } from "./AdminProgressRow";
 import type { AdminDashboardStats } from "./types";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function AdminChartPanel({ stats }: { stats: AdminDashboardStats }) {
+  const s = useAdminStyles();
   const activePct = getPercent(stats.active, stats.total);
   const bannedPct = getPercent(stats.banned, stats.total);
 
   return (
-    <Box style={adminPanelStyle}>
+    <Box className={s.dashboard.chartPanel}>
       <Flex direction="column" gap="4">
         <Box>
-          <Text as="div" size="4" weight="bold" style={{ color: authTheme.text }}>
+          <Text as="div" size="4" weight="bold" className={s.dashboard.chartTitle}>
             Sơ đồ tài khoản
           </Text>
-          <Text as="div" size="2" style={{ color: authTheme.muted, marginTop: 4 }}>
+          <Text as="div" size="2" className={s.dashboard.chartDesc}>
             Gộp biểu đồ và trạng thái tài khoản trong một khung.
           </Text>
         </Box>
@@ -25,43 +27,33 @@ export function AdminChartPanel({ stats }: { stats: AdminDashboardStats }) {
             align="center"
             justify="center"
             style={{
-              background: `conic-gradient(${authTheme.control} 0 ${activePct}%, #EF4444 ${activePct}% ${
+              background: `conic-gradient(var(--primary) 0 ${activePct}%, #EF4444 ${activePct}% ${
                 activePct + bannedPct
-              }%, rgba(59,130,246,0.12) 0)`,
+              }%, rgba(75,46,131,0.12) 0)`,
               borderRadius: "50%",
               height: 148,
               minWidth: 148,
               width: 148,
             }}
           >
-            <Flex
-              align="center"
-              direction="column"
-              justify="center"
-              style={{
-                background: authTheme.panel,
-                borderRadius: "50%",
-                height: 104,
-                width: 104,
-              }}
-            >
-              <Text size="7" weight="bold" style={{ color: authTheme.text }}>
+            <Flex align="center" direction="column" justify="center" className={s.dashboard.chartDonutCenter}>
+              <Text size="7" weight="bold" className={s.dashboard.chartDonutCenterTotal}>
                 {stats.total}
               </Text>
-              <Text size="1" style={{ color: authTheme.muted }}>
+              <Text size="1" className={s.dashboard.chartDonutCenterLabel}>
                 tổng
               </Text>
             </Flex>
           </Flex>
 
           <Flex direction="column" gap="3" style={{ flex: 1, minWidth: 220 }}>
-            <ChartLegend color={authTheme.control} label="Hoạt động" percent={activePct} value={stats.active} />
+            <ChartLegend color="var(--primary)" label="Hoạt động" percent={activePct} value={stats.active} />
             <ChartLegend color="#EF4444" label="Đã khóa" percent={bannedPct} value={stats.banned} />
           </Flex>
         </Flex>
 
         <Flex direction="column" gap="3">
-          <Text size="2" weight="bold" style={{ color: authTheme.text }}>
+          <Text size="2" weight="bold" className={s.dashboard.chartSectionTitle}>
             Trạng thái người dùng
           </Text>
           <AdminProgressRow label="Hoạt động" total={stats.total} value={stats.active} />
@@ -83,21 +75,22 @@ function ChartLegend({
   percent: number;
   value: number;
 }) {
+  const s = useAdminStyles();
   return (
     <Box>
       <Flex align="center" gap="2" justify="between">
         <Flex align="center" gap="2">
           <Box style={{ background: color, borderRadius: 999, height: 10, width: 10 }} />
-          <Text size="2" weight="medium" style={{ color: authTheme.text }}>
+          <Text size="2" weight="medium" className={s.dashboard.chartTitle}>
             {label}
           </Text>
         </Flex>
-        <Text size="2" style={{ color: authTheme.muted }}>
+        <Text size="2" className={s.dashboard.visitMetricLabel}>
           {value} / {percent}%
         </Text>
       </Flex>
-      <Box style={{ background: "rgba(59,130,246,0.1)", borderRadius: 999, height: 6, marginTop: 7, overflow: "hidden" }}>
-        <Box style={{ background: color, borderRadius: 999, height: "100%", width: `${percent}%` }} />
+      <Box className={s.dashboard.chartLegendItem}>
+        <Box className={s.dashboard.chartLegendFill} style={{ background: color, width: `${percent}%` }} />
       </Box>
     </Box>
   );

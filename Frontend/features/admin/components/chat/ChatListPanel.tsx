@@ -1,9 +1,8 @@
 import { Button, Flex, Text } from "@radix-ui/themes";
 import { ChatBubbleIcon, ChevronLeftIcon, ChevronRightIcon } from "@radix-ui/react-icons";
 import type { AdminConversation } from "@/features/athu";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { chatPanelStyle } from "@/features/admin/styles/chatTheme";
 import { ChatRow } from "./ChatRow";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function ChatListPanel({
   chats,
@@ -30,8 +29,9 @@ export function ChatListPanel({
   showingFrom: number;
   showingTo: number;
 }) {
+  const s = useAdminStyles();
   return (
-    <Flex direction="column" gap="3" style={chatPanelStyle}>
+    <Flex direction="column" gap="3" className={s.chat.listPanel}>
       <Flex
         align={{ initial: "start", sm: "center" }}
         direction={{ initial: "column", sm: "row" }}
@@ -39,23 +39,23 @@ export function ChatListPanel({
         justify="between"
       >
         <Flex align="center" gap="2">
-          <ChatBubbleIcon color={authTheme.control} />
-          <Text size="4" weight="bold" style={{ color: authTheme.text }}>
+          <ChatBubbleIcon color="var(--primary)" />
+          <Text size="4" weight="bold" className={s.chat.listTitle}>
             Danh sách hội thoại
           </Text>
         </Flex>
-        <Text size="2" style={{ color: authTheme.muted }}>
+        <Text size="2" className={s.chat.listInfo}>
           {filteredCount > 0 ? `Hiển thị ${showingFrom}-${showingTo}` : "Chưa có dữ liệu"}
         </Text>
       </Flex>
 
       {chats.length === 0 ? (
-        <Flex align="center" direction="column" gap="2" justify="center" style={{ minHeight: 240 }}>
-          <ChatBubbleIcon color={authTheme.control} height={42} width={42} />
-          <Text size="3" weight="bold" style={{ color: authTheme.text }}>
+        <Flex align="center" direction="column" gap="2" justify="center" className={s.chat.emptyState}>
+          <ChatBubbleIcon color="var(--primary)" height={42} width={42} />
+          <Text size="3" weight="bold" className={s.chat.emptyTitle}>
             Không tìm thấy cuộc trò chuyện
           </Text>
-          <Text size="2" style={{ color: authTheme.muted }}>
+          <Text size="2" className={s.chat.emptyDesc}>
             Thử đổi bộ lọc hoặc từ khóa tìm kiếm.
           </Text>
         </Flex>
@@ -69,15 +69,15 @@ export function ChatListPanel({
 
       {filteredCount > 0 && (
         <Flex align="center" gap="3" justify="between" pt="1" wrap="wrap">
-          <Text size="2" style={{ color: authTheme.muted }}>
+          <Text size="2" className={s.chat.listInfo}>
             Trang {currentPage}
           </Text>
           <Flex align="center" gap="2">
-            <Button disabled={!hasPrevious || loadingPage} onClick={onPrevious} size="2" variant="soft">
+            <Button disabled={!hasPrevious || loadingPage} onClick={onPrevious} size="2" variant="soft" className={s.chat.headerBtn}>
               <ChevronLeftIcon />
               Trước
             </Button>
-            <Button disabled={!hasNext || loadingPage} onClick={onNext} size="2" variant="soft">
+            <Button disabled={!hasNext || loadingPage} onClick={onNext} size="2" variant="soft" className={s.chat.headerBtn}>
               {loadingPage ? "Đang tải..." : "Sau"}
               <ChevronRightIcon />
             </Button>

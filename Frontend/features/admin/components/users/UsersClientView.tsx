@@ -9,9 +9,10 @@ import {
   UsersToolbar,
 } from "@/features/admin/components/users";
 import { useAdminUsersPage } from "@/features/admin/hooks/useAdminUsersPage";
-import { authTheme } from "@/features/athu/styles/authTheme";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function UsersClientView() {
+  const s = useAdminStyles();
   const {
     detailOpen,
     error,
@@ -38,10 +39,10 @@ export function UsersClientView() {
 
   if (loading) {
     return (
-      <Flex align="center" justify="center" style={{ minHeight: 420 }}>
+      <Flex align="center" justify="center" className={s.users.loadingContainer}>
         <Flex align="center" direction="column" gap="3">
           <Spinner size="3" />
-          <Text style={{ color: authTheme.muted }}>Đang tải danh sách người dùng...</Text>
+          <Text className={s.users.loadingText}>Đang tải danh sách người dùng...</Text>
         </Flex>
       </Flex>
     );

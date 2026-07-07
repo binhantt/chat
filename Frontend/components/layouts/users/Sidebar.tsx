@@ -11,7 +11,6 @@ import {
   StarIcon,
 } from "@radix-ui/react-icons";
 import { BrandLogo } from "@/components/brand/BrandLogo";
-import { authTheme } from "@/features/athu/styles/authTheme";
 
 export type TabId = "chat" | "website" | "about" | "vip" | "settings" | "report";
 
@@ -52,14 +51,14 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       gap="2"
       p="3"
       style={{
-        background: authTheme.panel,
-        borderRight: `1px solid ${authTheme.line}`,
-        color: authTheme.text,
+        background: "var(--bg-sidebar)",
+        borderRight: `1px solid rgba(255,255,255,0.08)`,
+        color: "#FFFFFF",
         height: "100%",
         width: 232,
       }}
     >
-      <Text size="1" style={{ color: authTheme.muted, padding: "6px 10px" }}>
+      <Text size="1" style={{ color: "rgba(255,255,255,0.5)", padding: "6px 10px" }}>
         Menu
       </Text>
       {userNavItems.map((item) => (
@@ -74,14 +73,14 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       <Box style={{ flex: 1 }} />
       <Box
         style={{
-          background: "var(--auth-soft-control)",
-          border: `1px solid ${authTheme.line}`,
+          background: "rgba(255,255,255,0.06)",
+          border: `1px solid rgba(255,255,255,0.10)`,
           borderRadius: 8,
           padding: 12,
         }}
       >
         <BrandLogo compact />
-        <Text as="div" size="1" style={{ color: authTheme.muted, lineHeight: 1.5, marginTop: 8 }}>
+        <Text as="div" size="1" style={{ color: "rgba(255,255,255,0.5)", lineHeight: 1.5, marginTop: 8 }}>
           Kết nối, trò chuyện và bảo vệ trải nghiệm của bạn.
         </Text>
       </Box>
@@ -95,10 +94,10 @@ export function UserMobileNav({ activeTab, onTabChange }: SidebarProps) {
       display={{ initial: "flex", md: "none" }}
       gap="1"
       style={{
-        background: authTheme.panel,
-        borderTop: `1px solid ${authTheme.line}`,
+        background: "var(--bg-sidebar)",
+        borderTop: `1px solid rgba(255,255,255,0.08)`,
         bottom: 0,
-        boxShadow: "0 -12px 32px rgba(15, 23, 42, 0.08)",
+        boxShadow: "0 -12px 32px rgba(15, 23, 42, 0.3)",
         left: 0,
         overflowX: "auto",
         padding: "8px 10px calc(8px + env(safe-area-inset-bottom))",
@@ -119,7 +118,7 @@ export function UserMobileNav({ activeTab, onTabChange }: SidebarProps) {
               appearance: "none",
               background: "transparent",
               border: 0,
-              color: active ? authTheme.text : authTheme.muted,
+              color: active ? "#FFFFFF" : "rgba(255,255,255,0.50)",
               cursor: "pointer",
               flex: "0 0 76px",
               padding: 0,
@@ -132,8 +131,8 @@ export function UserMobileNav({ activeTab, onTabChange }: SidebarProps) {
               gap="1"
               justify="center"
               style={{
-                background: active ? "var(--auth-soft-control)" : "transparent",
-                border: active ? `1px solid ${authTheme.line}` : "1px solid transparent",
+                background: active ? "rgba(255,255,255,0.10)" : "transparent",
+                border: active ? "1px solid rgba(255,255,255,0.12)" : "1px solid transparent",
                 borderRadius: 8,
                 minHeight: 54,
                 padding: "6px 4px",
@@ -143,7 +142,7 @@ export function UserMobileNav({ activeTab, onTabChange }: SidebarProps) {
                 align="center"
                 justify="center"
                 style={{
-                  color: active ? authTheme.control : authTheme.muted,
+                  color: active ? "#FFFFFF" : "rgba(255,255,255,0.50)",
                   height: 18,
                   width: 18,
                 }}
@@ -155,6 +154,7 @@ export function UserMobileNav({ activeTab, onTabChange }: SidebarProps) {
                 size="1"
                 weight={active ? "bold" : "medium"}
                 style={{
+                  color: active ? "#FFFFFF" : "rgba(255,255,255,0.50)",
                   lineHeight: 1.1,
                   maxWidth: "100%",
                   overflow: "hidden",
@@ -181,18 +181,18 @@ function NavItem({ active, icon, label, onClick }: NavItemProps) {
       px="3"
       py="2"
       style={{
-        background: active ? "linear-gradient(135deg, rgba(59,130,246,0.16), rgba(34,211,238,0.12))" : "transparent",
-        border: active ? `1px solid ${authTheme.line}` : "1px solid transparent",
+        background: active ? "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(165,139,217,0.15))" : "transparent",
+        border: active ? `1px solid rgba(255,255,255,0.15)` : "1px solid transparent",
         borderRadius: 8,
-        color: active ? authTheme.text : authTheme.muted,
+        color: active ? "#FFFFFF" : "rgba(255,255,255,0.60)",
         cursor: "pointer",
         minHeight: 46,
       }}
     >
-      <Flex align="center" justify="center" style={{ color: active ? authTheme.control : authTheme.muted, height: 20, width: 20 }}>
+      <Flex align="center" justify="center" style={{ color: active ? "#FFFFFF" : "rgba(255,255,255,0.60)", height: 20, width: 20 }}>
         {icon}
       </Flex>
-      <Text size="2" weight={active ? "bold" : "medium"}>
+      <Text size="2" weight={active ? "bold" : "medium"} style={{ color: active ? "#FFFFFF" : "rgba(255,255,255,0.60)" }}>
         {label}
       </Text>
     </Flex>

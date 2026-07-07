@@ -1,13 +1,15 @@
 "use client";
 
-import { Avatar, Badge, Box, DropdownMenu, Flex, Spinner } from "@radix-ui/themes";
-import { ExitIcon, GearIcon, PersonIcon } from "@radix-ui/react-icons";
+import { Badge, Box, DropdownMenu, Flex, Spinner, Text, Tooltip } from "@radix-ui/themes";
+import { ExitIcon, GearIcon, PersonIcon, MoonIcon, SunIcon } from "@radix-ui/react-icons";
+import { AvatarWithVipBadge } from "@/components/shared/AvatarWithVipBadge";
 import { BrandLogo } from "@/components/brand/BrandLogo";
 import { useAuth } from "@/contexts/AuthContext";
-import { authTheme } from "@/features/athu/styles/authTheme";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export function Navbar() {
   const { user, loading, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const displayName = user?.fullName || user?.email || "Người dùng";
 
   return (
@@ -17,10 +19,9 @@ export function Navbar() {
       justify="between"
       px={{ initial: "3", md: "5" }}
       style={{
-        background: authTheme.panel,
-        borderBottom: `1px solid ${authTheme.line}`,
-        boxShadow: "0 10px 28px rgba(15, 23, 42, 0.06)",
-        color: authTheme.text,
+        background: "var(--bg-secondary)",
+        borderBottom: "1px solid var(--border-color)",
+        color: "var(--text-primary)",
         height: 64,
         minHeight: 64,
       }}
@@ -36,28 +37,61 @@ export function Navbar() {
               <Badge
                 size="2"
                 style={{
-                  background: "rgba(34, 211, 238, 0.14)",
-                  border: `1px solid ${authTheme.line}`,
-                  color: authTheme.text,
+                  background: "rgba(168, 85, 247, 0.08)",
+                  border: "1px solid rgba(168, 85, 247, 0.14)",
+                  color: "var(--text-primary)",
+                  fontFamily: "var(--font-body)",
                 }}
               >
                 {displayName}
               </Badge>
             </Box>
 
+            <Tooltip content={theme === "dark" ? "Chế độ sáng" : "Chế độ tối"}>
+              <Flex
+                align="center"
+                justify="center"
+                onClick={toggleTheme}
+                style={{
+                  background: "rgba(168, 85, 247, 0.08)",
+                  borderRadius: 8,
+                  color: "var(--chat-accent)",
+                  cursor: "pointer",
+                  height: 32,
+                  width: 32,
+                }}
+              >
+                {theme === "dark" ? (
+                  <SunIcon width={16} height={16} />
+                ) : (
+                  <MoonIcon width={16} height={16} />
+                )}
+              </Flex>
+            </Tooltip>
+
             <DropdownMenu.Root>
               <DropdownMenu.Trigger>
                 <Box style={{ cursor: "pointer" }}>
-                  <Avatar
-                    fallback={getUserInitials(displayName)}
-                    radius="full"
-                    size="2"
-                    src={user?.avatarUrl || undefined}
-                    style={{ background: authTheme.control, color: "#FFFFFF" }}
-                  />
+                  <Tooltip content="Menu người dùng">
+                    <AvatarWithVipBadge
+                      fallback={getUserInitials(displayName)}
+                      radius="full"
+                      size="2"
+                      src={user?.avatarUrl || undefined}
+                      badge={user?.badge}
+                      style={{
+                        background: "var(--chat-accent)",
+                        color: "#FFFFFF",
+                      }}
+                    />
+                  </Tooltip>
                 </Box>
               </DropdownMenu.Trigger>
               <DropdownMenu.Content align="end" sideOffset={10}>
+                <DropdownMenu.Label>
+                  <Text size="2" weight="bold">{displayName}</Text>
+                </DropdownMenu.Label>
+                <DropdownMenu.Separator />
                 <DropdownMenu.Item>
                   <PersonIcon />
                   Tài khoản

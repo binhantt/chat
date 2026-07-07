@@ -1,10 +1,9 @@
 import { Button, Flex, Text } from "@radix-ui/themes";
 import { ChevronLeftIcon, ChevronRightIcon, FileTextIcon } from "@radix-ui/react-icons";
 import type { AdminReport, ReportAiReview } from "./types";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { reportsPanelStyle } from "@/features/admin/styles/reportsTheme";
 import { ReportExpandedPanel } from "./ReportExpandedPanel";
 import { ReportRow } from "./ReportRow";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function ReportsListPanel({
   aiReview,
@@ -53,27 +52,28 @@ export function ReportsListPanel({
   reports: AdminReport[];
   updating: boolean;
 }) {
+  const s = useAdminStyles();
   return (
-    <Flex direction="column" gap="3" style={reportsPanelStyle}>
+    <Flex direction="column" gap="3" className={s.reports.listPanel}>
       <Flex align={{ initial: "start", sm: "center" }} direction={{ initial: "column", sm: "row" }} gap="2" justify="between">
         <Flex align="center" gap="2">
-          <FileTextIcon color={authTheme.control} />
-          <Text size="4" weight="bold" style={{ color: authTheme.text }}>
+          <FileTextIcon color="var(--primary)" />
+          <Text size="4" weight="bold" className={s.reports.listPanelTitle}>
             Danh sách báo cáo
           </Text>
         </Flex>
-        <Text size="2" style={{ color: authTheme.muted }}>
+        <Text size="2" className={s.reports.listPanelSubtitle}>
           {filteredCount > 0 ? `Hiển thị ${pageStart + 1}-${pageEnd}` : "Chưa có dữ liệu"}
         </Text>
       </Flex>
 
       {reports.length === 0 ? (
-        <Flex align="center" direction="column" gap="2" justify="center" style={{ minHeight: 240 }}>
-          <FileTextIcon color={authTheme.control} height={42} width={42} />
-          <Text size="3" weight="bold" style={{ color: authTheme.text }}>
+        <Flex align="center" direction="column" gap="2" justify="center" className={s.reports.emptyState}>
+          <FileTextIcon color="var(--primary)" height={42} width={42} />
+          <Text size="3" weight="bold" className={s.reports.emptyStateTitle}>
             Không có báo cáo nào
           </Text>
-          <Text size="2" style={{ color: authTheme.muted }}>
+          <Text size="2" className={s.reports.emptyStateSubtitle}>
             Thử đổi bộ lọc hoặc kiểm tra lại sau.
           </Text>
         </Flex>
@@ -108,7 +108,7 @@ export function ReportsListPanel({
 
       {filteredCount > 0 && (
         <Flex align="center" gap="3" justify="between" pt="1" wrap="wrap">
-          <Text size="2" style={{ color: authTheme.muted }}>
+          <Text size="2" className={s.reports.pageInfo}>
             Trang {currentPage}
           </Text>
           <Flex align="center" gap="2">

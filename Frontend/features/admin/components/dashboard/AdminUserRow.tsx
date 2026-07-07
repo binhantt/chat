@@ -1,25 +1,21 @@
-import { Avatar, Badge, Box, Flex, Text } from "@radix-ui/themes";
+"use client";
+
+import { Badge, Box, Flex, Text } from "@radix-ui/themes";
+import { AvatarWithVipBadge } from "@/components/shared/AvatarWithVipBadge";
 import type { AdminUser } from "@/features/athu";
-import { authTheme } from "@/features/athu/styles/authTheme";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export function AdminUserRow({ user }: { user: AdminUser }) {
+  const s = useAdminStyles();
+
   return (
-    <Flex
-      align="center"
-      gap="3"
-      style={{
-        background: authTheme.panelSoft,
-        border: `1px solid ${authTheme.line}`,
-        borderRadius: 8,
-        padding: 12,
-      }}
-    >
-      <Avatar fallback={getInitials(user.fullName, user.email)} radius="full" size="2" src={user.avatarUrl || undefined} />
-      <Box style={{ flex: 1, minWidth: 0 }}>
-        <Text as="div" size="2" weight="bold" style={{ color: authTheme.text }}>
+    <Flex align="center" gap="3" className={s.dashboard.userRow}>
+      <AvatarWithVipBadge fallback={getInitials(user.fullName, user.email)} radius="full" size="2" src={user.avatarUrl || undefined} badge={user.badge} />
+      <Box className={s.dashboard.userRowInfo}>
+        <Text as="div" size="2" weight="bold" className={s.dashboard.userRowName}>
           {user.fullName || "Chưa đặt tên"}
         </Text>
-        <Text as="div" size="1" style={{ color: authTheme.muted }}>
+        <Text as="div" size="1" className={s.dashboard.userRowEmail}>
           {user.email}
         </Text>
       </Box>

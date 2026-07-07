@@ -1,5 +1,6 @@
-import { Button, Flex, Spinner, Text } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
+"use client";
+
+import { Flex, Spinner, Text } from "@radix-ui/themes";
 import { MatchCard } from "./MatchCard";
 import { MatchIcon } from "./MatchIcon";
 
@@ -10,29 +11,58 @@ type MatchSearchingStateProps = {
 export function MatchSearchingState({ onStop }: MatchSearchingStateProps) {
   return (
     <MatchCard>
-      <MatchIcon />
-      <Flex align="center" direction="column" gap="2" style={{ textAlign: "center" }}>
+      <MatchIcon tone="searching" />
+      <Flex align="center" direction="column" gap="3" style={{ textAlign: "center" }}>
         <Spinner size="3" />
-        <Text size="6" weight="bold" style={{ color: authTheme.text }}>
+        <Text
+          size="5"
+          weight="bold"
+          style={{
+            color: "var(--text-primary)",
+            fontFamily: "var(--font-heading)",
+          }}
+        >
           Đang tìm người phù hợp
         </Text>
-        <Text size="2" style={{ color: authTheme.muted, lineHeight: 1.6, maxWidth: 360 }}>
+        <Text
+          size="2"
+          style={{
+            color: "var(--text-secondary)",
+            fontFamily: "var(--font-body)",
+            lineHeight: 1.7,
+            maxWidth: 300,
+          }}
+        >
           Hệ thống đang tìm người online để bắt đầu cuộc trò chuyện.
         </Text>
       </Flex>
-      <Button
-        size="3"
-        variant="soft"
+      <button
+        type="button"
         onClick={onStop}
         style={{
-          borderRadius: 8,
-          fontWeight: 700,
-          minHeight: 44,
+          background: "transparent",
+          border: "1.5px solid var(--chat-border)",
+          borderRadius: 14,
+          color: "var(--chat-text)",
+          cursor: "pointer",
+          fontFamily: "var(--font-body)",
+          fontSize: 16,
+          fontWeight: 600,
+          height: 50,
+          transition: "all 0.2s ease",
           width: "100%",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = "var(--chat-accent)";
+          e.currentTarget.style.background = "var(--chat-accent-soft)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = "var(--chat-border)";
+          e.currentTarget.style.background = "transparent";
         }}
       >
         Hủy tìm kiếm
-      </Button>
+      </button>
     </MatchCard>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
-import { Flex, Text, Box, Avatar } from "@radix-ui/themes";
+import { Flex, Text, Box } from "@radix-ui/themes";
 import { useAuth } from "@/contexts/AuthContext";
+import { AvatarWithVipBadge } from "@/components/shared/AvatarWithVipBadge";
 
 export function ProfileDisplay() {
   const { user } = useAuth();
@@ -19,17 +20,27 @@ export function ProfileDisplay() {
   return (
     <Flex direction="column" gap="4">
       <Flex align="center" gap="4">
-        <Avatar
+        <AvatarWithVipBadge
           size="5"
           radius="full"
           src={user.avatarUrl || undefined}
           fallback={initials}
+          badge={user.badge}
           style={{ background: "var(--indigo-9)", color: "white" }}
         />
         <Flex direction="column" gap="1">
-          <Text size="5" weight="bold">
-            {user.fullName || "Chưa đặt tên hiển thị"}
-          </Text>
+          <Flex align="center" gap="2">
+            <Text size="5" weight="bold">
+              {user.fullName || "Chưa đặt tên hiển thị"}
+            </Text>
+            {user.badge && (
+              user.badge.startsWith('http') ? (
+                <img src={user.badge} alt="Huy hiệu" style={{ width: 28, height: 28, borderRadius: 6 }} />
+              ) : (
+                <Text size="4">{user.badge}</Text>
+              )
+            )}
+          </Flex>
         </Flex>
       </Flex>
 

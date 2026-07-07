@@ -40,4 +40,9 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(120)
   city?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  badge?: string | null;
 }

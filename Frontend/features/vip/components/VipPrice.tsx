@@ -1,5 +1,4 @@
 import { Box, Text } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
 
 type VipPriceProps = {
   duration: string;
@@ -9,10 +8,10 @@ type VipPriceProps = {
 export function VipPrice({ duration, price }: VipPriceProps) {
   return (
     <Box>
-      <Text size="8" weight="bold" style={{ color: authTheme.cyan }}>
+      <Text size="8" weight="bold" style={{ color: "#22d3ee" }}>
         {price}
       </Text>
-      <Text size="2" style={{ color: authTheme.muted }}>
+      <Text size="2" style={{ color: "var(--text-secondary)" }}>
         {" "}
         / {duration}
       </Text>

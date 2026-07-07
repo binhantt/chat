@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildBackendHeaders } from "@/app/api/_utils/backendHeaders";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { BACKEND_URL } from "@/lib/env";
 
 // Join match queue
 export async function POST(request: Request) {

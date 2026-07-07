@@ -8,10 +8,11 @@ import {
   ManagerAnalyticsController,
 } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
+import { PageVisitRepository } from './repositories/page-visit.repository';
 
 @Module({
   imports: [TypeOrmModule.forFeature([PageVisit]), UsersModule],
   controllers: [AnalyticsController, ManagerAnalyticsController],
-  providers: [AnalyticsService, DemoAuthGuard],
+  providers: [AnalyticsService, PageVisitRepository, DemoAuthGuard],
 })
 export class AnalyticsModule {}

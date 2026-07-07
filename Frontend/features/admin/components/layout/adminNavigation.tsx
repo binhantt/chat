@@ -7,6 +7,8 @@ import {
   LockClosedIcon,
   PersonIcon,
   StarIcon,
+  GlobeIcon,
+  RocketIcon,
 } from "@radix-ui/react-icons";
 
 export type AdminNavItem = {
@@ -22,6 +24,8 @@ export const adminNavItems: AdminNavItem[] = [
   { href: "/admin/conduct", icon: <LockClosedIcon />, label: "Ứng xử" },
   { href: "/admin/reports", icon: <FileTextIcon />, label: "Báo cáo" },
   { href: "/admin/vip", icon: <StarIcon />, label: "Gói VIP" },
+  { href: "/admin/ads", icon: <GlobeIcon />, label: "Quảng cáo" },
+  { href: "/admin/payments", icon: <RocketIcon />, label: "Nạp tiền" },
   { href: "/admin/settings", icon: <GearIcon />, label: "Cài đặt" },
 ];
 

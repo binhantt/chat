@@ -1,21 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'node:crypto';
 import type { Request } from 'express';
-import { Repository } from 'typeorm';
-import { PageVisit } from './entities/page-visit.entity';
-
-type PopularPathRow = {
-  count: string;
-  path: string;
-};
+import { PageVisitRepository } from './repositories/page-visit.repository';
 
 @Injectable()
 export class AnalyticsService {
-  constructor(
-    @InjectRepository(PageVisit)
-    private readonly pageVisitRepository: Repository<PageVisit>,
-  ) {}
+  constructor(private readonly pageVisitRepository: PageVisitRepository) {}
 
   async trackPageVisit(input: {
     path?: string;
@@ -24,7 +14,7 @@ export class AnalyticsService {
   }) {
     const path = this.normalizePath(input.path);
 
-    await this.pageVisitRepository.insert({
+    await this.pageVisitRepository.insertVisit({
       ipHash: this.hashIp(this.getClientIp(input.request)),
       path,
       userAgent: this.truncate(input.request.headers['user-agent'], 300),
@@ -46,32 +36,15 @@ export class AnalyticsService {
 
     const [totalViews, todayViews, last7DaysViews, uniqueVisitors, popularPaths] =
       await Promise.all([
-        this.pageVisitRepository.count({ where: { path: homePath } }),
-        this.pageVisitRepository
-          .createQueryBuilder('visit')
-          .where('visit.path = :homePath', { homePath })
-          .andWhere('visit.createdAt >= :startOfToday', { startOfToday })
-          .getCount(),
-        this.pageVisitRepository
-          .createQueryBuilder('visit')
-          .where('visit.path = :homePath', { homePath })
-          .andWhere('visit.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
-          .getCount(),
-        this.pageVisitRepository
-          .createQueryBuilder('visit')
-          .select('COUNT(DISTINCT visit.visitorId)', 'count')
-          .where('visit.path = :homePath', { homePath })
-          .getRawOne<{ count: string }>(),
-        this.pageVisitRepository
-          .createQueryBuilder('visit')
-          .select('visit.path', 'path')
-          .addSelect('COUNT(*)', 'count')
-          .where('visit.path = :homePath', { homePath })
-          .andWhere('visit.createdAt >= :sevenDaysAgo', { sevenDaysAgo })
-          .groupBy('visit.path')
-          .orderBy('count', 'DESC')
-          .limit(5)
-          .getRawMany<PopularPathRow>(),
+        this.pageVisitRepository.countPath(homePath),
+        this.pageVisitRepository.countPathSince(homePath, startOfToday),
+        this.pageVisitRepository.countPathSince(homePath, sevenDaysAgo),
+        this.pageVisitRepository.countUniqueVisitors(homePath),
+        this.pageVisitRepository.findPopularPathsSince({
+          limit: 5,
+          path: homePath,
+          since: sevenDaysAgo,
+        }),
       ]);
 
     return {
@@ -83,7 +56,7 @@ export class AnalyticsService {
       sampledAt: now.toISOString(),
       todayViews,
       totalViews,
-      uniqueVisitors: Number(uniqueVisitors?.count ?? 0),
+      uniqueVisitors,
     };
   }
 

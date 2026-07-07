@@ -7,7 +7,7 @@ import {
   mergeSetCookiesIntoCookieHeader,
 } from "@/app/api/_utils/backendHeaders";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { BACKEND_URL } from "@/lib/env";
 
 interface RouteParams {
   params: Promise<{ id: string }>;

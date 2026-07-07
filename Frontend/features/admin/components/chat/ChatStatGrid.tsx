@@ -5,8 +5,7 @@ import {
   LockClosedIcon,
   StopIcon,
 } from "@radix-ui/react-icons";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { chatInnerBorder } from "@/features/admin/styles/chatTheme";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export type ChatStatsValue = {
   active: number;
@@ -16,6 +15,7 @@ export type ChatStatsValue = {
 };
 
 export function ChatStatGrid({ stats }: { stats: ChatStatsValue }) {
+  const s = useAdminStyles();
   return (
     <Grid columns={{ initial: "2", lg: "4" }} gap="3">
       <ChatStatCard icon={<ChatBubbleIcon />} label="Tổng cộng" value={stats.total} />
@@ -37,6 +37,7 @@ function ChatStatCard({
   tone?: "blue" | "gray" | "green" | "red";
   value: number;
 }) {
+  const s = useAdminStyles();
   const color =
     tone === "green"
       ? "#22C55E"
@@ -44,42 +45,20 @@ function ChatStatCard({
         ? "#EF4444"
         : tone === "gray"
           ? "#64748B"
-          : authTheme.control;
+          : "var(--primary)";
 
   return (
-    <Box
-      style={{
-        background: authTheme.panel,
-        border: chatInnerBorder,
-        borderRadius: 8,
-        padding: 14,
-      }}
-    >
+    <Box className={s.chat.statCard}>
       <Flex align="center" gap="3" justify="between">
         <Box>
-          <Text as="div" size="1" style={{ color: authTheme.muted }}>
+          <Text as="div" size="1" className={s.chat.statLabel}>
             {label}
           </Text>
-          <Text
-            as="div"
-            size="6"
-            weight="bold"
-            style={{ color: authTheme.text, lineHeight: 1.15 }}
-          >
+          <Text as="div" size="6" weight="bold" className={s.chat.statValue}>
             {value}
           </Text>
         </Box>
-        <Flex
-          align="center"
-          justify="center"
-          style={{
-            background: `${color}18`,
-            borderRadius: 8,
-            color,
-            height: 42,
-            width: 42,
-          }}
-        >
+        <Flex align="center" justify="center" className={s.chat.statIconBox} style={{ background: `${color}18`, color }}>
           {icon}
         </Flex>
       </Flex>

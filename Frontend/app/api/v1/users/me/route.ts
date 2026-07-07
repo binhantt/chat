@@ -7,7 +7,7 @@ import {
   refreshBackendSessionCookie,
 } from "@/app/api/_utils/backendHeaders";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+import { BACKEND_URL } from "@/lib/env";
 const authCookies = ["access_token", "refresh_token", "user_id", "csrf_token"];
 const ME_CACHE_TTL_MS = 60 * 1000;
 const meCache = new Map<string, { data: unknown; status: number; expiresAt: number }>();

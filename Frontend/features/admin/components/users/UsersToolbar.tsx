@@ -1,7 +1,6 @@
 import { Button, Flex, TextField } from "@radix-ui/themes";
 import { MagnifyingGlassIcon, PlusIcon } from "@radix-ui/react-icons";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { usersInnerBorder } from "@/features/admin/styles/usersTheme";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 export type UserStatusFilter = "all" | "active" | "banned";
 
@@ -16,23 +15,19 @@ export function UsersToolbar({
   search: string;
   status: UserStatusFilter;
 }) {
+  const s = useAdminStyles();
   return (
     <Flex
       align={{ initial: "stretch", md: "center" }}
       direction={{ initial: "column", md: "row" }}
       gap="3"
-      style={{
-        background: authTheme.panel,
-        border: usersInnerBorder,
-        borderRadius: 8,
-        padding: 10,
-      }}
+      className={s.users.toolbar}
     >
       <TextField.Root
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder="Tìm kiếm tên hoặc email..."
         size="3"
-        style={{ flex: 1, minWidth: 0 }}
+        className={s.users.toolbarSearch}
         value={search}
       >
         <TextField.Slot>
@@ -46,7 +41,7 @@ export function UsersToolbar({
         <FilterButton active={status === "banned"} color="red" label="Đã khóa" onClick={() => onStatusChange("banned")} />
       </Flex>
 
-      <Button size="3" style={{ borderRadius: 8, whiteSpace: "nowrap" }}>
+      <Button size="3" className={s.users.toolbarBtn}>
         <PlusIcon />
         Thêm người dùng
       </Button>
@@ -65,13 +60,14 @@ function FilterButton({
   label: string;
   onClick: () => void;
 }) {
+  const s = useAdminStyles();
   return (
     <Button
       color={color}
       onClick={onClick}
       size="2"
       variant={active ? "solid" : "soft"}
-      style={{ borderRadius: 8 }}
+      className={s.users.filterBtn}
     >
       {label}
     </Button>

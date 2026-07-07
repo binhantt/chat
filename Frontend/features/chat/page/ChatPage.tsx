@@ -16,8 +16,9 @@ export function ChatPage() {
         mode={chat.mode}
         onBack={chat.handleChatBack}
         onCancelMatch={chat.handleCancelMatch}
-        onHome={chat.handleHomeClick}
         onMatched={chat.handleMatched}
+        onSearch={chat.handleSearchClick}
+        onSelectConversation={chat.handleSelectConversation}
         selectedUser={chat.selectedUser}
       />
     </Box>

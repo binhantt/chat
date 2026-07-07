@@ -56,12 +56,12 @@ export function useGoogleIdentity() {
     });
 
     window.google.accounts.id.renderButton(buttonRef.current, {
-      logo_alignment: "left",
-      shape: "rectangular",
+      logo_alignment: "center",
+      shape: "pill",
       size: "large",
-      text: "signin_with",
+      text: "continue_with",
       theme: "outline",
-      width: "396",
+      width: "100%",
     });
 
     setGoogleReady(true);

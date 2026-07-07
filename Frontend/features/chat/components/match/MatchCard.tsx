@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Box, Flex } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
 
 type MatchCardProps = {
   children: ReactNode;
@@ -10,23 +9,31 @@ export function MatchCard({ children }: MatchCardProps) {
   return (
     <Box
       style={{
-        background:
-          "linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.9))",
-        border: `1px solid ${authTheme.line}`,
-        borderRadius: 8,
-        maxWidth: 520,
-        overflow: "hidden",
+        background: "var(--chat-surface)",
+        borderRadius: 24,
+        boxShadow: "var(--chat-shadow)",
+        maxWidth: 420,
         width: "100%",
+        position: "relative",
+        overflow: "hidden",
       }}
     >
+      {/* Decorative gradient glow */}
       <Box
         style={{
-          background: `linear-gradient(90deg, ${authTheme.control}, ${authTheme.cyan})`,
-          height: 3,
-          width: "100%",
+          background: "radial-gradient(circle at 30% 20%, var(--chat-accent-soft), transparent 50%)",
+          position: "absolute",
+          inset: 0,
+          pointerEvents: "none",
         }}
       />
-      <Flex align="center" direction="column" gap="4" p="5">
+      <Flex
+        align="center"
+        direction="column"
+        gap="5"
+        p="7"
+        style={{ position: "relative", zIndex: 1 }}
+      >
         {children}
       </Flex>
     </Box>

@@ -1,10 +1,11 @@
 import { Box, Button, Dialog, Flex, Separator, Spinner, Text } from "@radix-ui/themes";
 import { useEffect, useMemo, useState } from "react";
 import type { AdminConversation } from "@/features/athu";
-import { authTheme } from "@/features/athu/styles/authTheme";
 import { ChatStatusBadge } from "./ChatStatusBadge";
 import { UserAvatar } from "./UserAvatar";
 import { formatChatDate, getChatUserName } from "./chatUtils";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
+import chatStyles from "./admin-chat.module.css";
 
 type ChatMessage = {
   content: string;
@@ -27,6 +28,7 @@ export function ChatDetailDialog({
   chat: AdminConversation | null;
   onClose: () => void;
 }) {
+  const s = useAdminStyles();
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -92,7 +94,7 @@ export function ChatDetailDialog({
 
   return (
     <Dialog.Root onOpenChange={(open) => !open && onClose()} open={Boolean(chat)}>
-      <Dialog.Content style={{ border: `1px solid ${authTheme.line}`, borderRadius: 8, maxWidth: 780 }}>
+      <Dialog.Content className={s.chat.detailContent}>
         <Dialog.Title>Chi tiết cuộc trò chuyện</Dialog.Title>
         <Dialog.Description size="2">Thông tin và lịch sử tin nhắn gần nhất.</Dialog.Description>
 
@@ -100,7 +102,7 @@ export function ChatDetailDialog({
           <Flex align="center" direction="column" gap="3" py="3">
             <Flex align="center" gap="2">
               <UserAvatar size="3" user={chat.user1} />
-              <Text size="2" style={{ color: authTheme.muted }}>
+              <Text size="2" className={s.chat.chatInfoLabel}>
                 với
               </Text>
               <UserAvatar size="3" user={chat.user2} />
@@ -110,24 +112,18 @@ export function ChatDetailDialog({
 
           <Separator />
 
-          <Box
-            style={{
-              display: "grid",
-              gap: 16,
-              gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            }}
-          >
+          <Box className={s.chat.detailGrid}>
             <DetailItem label="Người dùng 1" value={getChatUserName(chat.user1, chat.user1Id)} />
             <DetailItem label="Người dùng 2" value={getChatUserName(chat.user2, chat.user2Id)} />
             <DetailItem label="Bắt đầu" value={formatChatDate(chat.createdAt)} />
             <DetailItem label="Cập nhật cuối" value={formatChatDate(chat.updatedAt)} />
           </Box>
 
-          <Box style={{ background: "rgba(59,130,246,0.06)", borderRadius: 8, padding: 12 }}>
-            <Text as="div" size="1" style={{ color: authTheme.muted }}>
+          <Box className={s.chat.detailIdBox}>
+            <Text as="div" size="1" className={s.chat.detailIdLabel}>
               ID cuộc trò chuyện
             </Text>
-            <Text as="div" size="2" style={{ color: authTheme.text, fontFamily: "monospace", overflowWrap: "anywhere" }}>
+            <Text as="div" size="2" className={s.chat.detailIdValue}>
               {chat.id}
             </Text>
           </Box>
@@ -136,27 +132,19 @@ export function ChatDetailDialog({
 
           <Flex direction="column" gap="3">
             <Flex align="center" justify="between">
-              <Text size="3" weight="bold" style={{ color: authTheme.text }}>
+              <Text size="3" weight="bold" className={s.chat.listTitle}>
                 Giám sát nội dung trò chuyện
               </Text>
-              <Text size="1" style={{ color: authTheme.muted }}>
+              <Text size="1" className={s.chat.chatInfoLabel}>
                 {messages.length} tin nhắn gần nhất
               </Text>
             </Flex>
 
-            <Box
-              style={{
-                background: "rgba(59,130,246,0.06)",
-                borderRadius: 8,
-                maxHeight: 320,
-                overflowY: "auto",
-                padding: 12,
-              }}
-            >
+            <Box className={s.chat.messagesSection}>
               {loadingMessages ? (
                 <Flex align="center" gap="2">
                   <Spinner size="1" />
-                  <Text size="2" style={{ color: authTheme.muted }}>
+                  <Text size="2" className={s.chat.loadingText}>
                     Đang tải lịch sử tin nhắn...
                   </Text>
                 </Flex>
@@ -165,7 +153,7 @@ export function ChatDetailDialog({
                   {messageError}
                 </Text>
               ) : messages.length === 0 ? (
-                <Text size="2" style={{ color: authTheme.muted }}>
+                <Text size="2" className={s.chat.loadingText}>
                   Cuộc trò chuyện chưa có tin nhắn.
                 </Text>
               ) : (
@@ -180,14 +168,14 @@ export function ChatDetailDialog({
                     return (
                       <Flex key={message.id} direction="column" gap="1">
                         <Flex align="center" gap="3" justify="between">
-                          <Text size="2" weight="bold" style={{ color: authTheme.text }}>
+                          <Text size="2" weight="bold" className={s.chat.messageSender}>
                             {senderName}
                           </Text>
-                          <Text size="1" style={{ color: authTheme.muted }}>
+                          <Text size="1" className={s.chat.messageTime}>
                             {formatChatDate(message.createdAt)}
                           </Text>
                         </Flex>
-                        <Text size="2" style={{ lineHeight: 1.5, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                        <Text size="2" className={s.chat.messageContent}>
                           {message.content}
                         </Text>
                       </Flex>
@@ -212,10 +200,10 @@ export function ChatDetailDialog({
 function DetailItem({ label, value }: { label: string; value: string }) {
   return (
     <Flex direction="column" gap="1">
-      <Text size="1" style={{ color: authTheme.muted }}>
+      <Text size="1" className={chatStyles.chatInfoLabel}>
         {label}
       </Text>
-      <Text size="2" weight="medium" style={{ color: authTheme.text, overflowWrap: "anywhere" }}>
+      <Text size="2" weight="medium" className={chatStyles.chatInfoValue}>
         {value}
       </Text>
     </Flex>

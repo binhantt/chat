@@ -1,8 +1,7 @@
 import { Button, Flex, Text, TextField } from "@radix-ui/themes";
 import { MagnifyingGlassIcon } from "@radix-ui/react-icons";
-import { authTheme } from "@/features/athu/styles/authTheme";
-import { chatInnerBorder } from "@/features/admin/styles/chatTheme";
 import type { ChatStatusFilter } from "./chatUtils";
+import { useAdminStyles } from "@/features/admin/hooks/useAdminStyles";
 
 const filters: { label: string; value: ChatStatusFilter }[] = [
   { label: "Tất cả", value: "all" },
@@ -26,23 +25,19 @@ export function ChatToolbar({
   status: ChatStatusFilter;
   totalCount: number;
 }) {
+  const s = useAdminStyles();
   return (
     <Flex
       align="center"
       gap="3"
       justify="between"
       wrap="wrap"
-      style={{
-        background: authTheme.panel,
-        border: chatInnerBorder,
-        borderRadius: 8,
-        padding: 10,
-      }}
+      className={s.chat.toolbar}
     >
       <TextField.Root
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder="Tìm theo ID, tên hoặc email..."
-        style={{ flex: "1 1 320px", minWidth: 240 }}
+        className={s.chat.toolbarSearch}
         value={search}
       >
         <TextField.Slot>
@@ -57,14 +52,14 @@ export function ChatToolbar({
             onClick={() => onStatusChange(item.value)}
             size="2"
             variant={status === item.value ? "solid" : "soft"}
-            style={{ borderRadius: 8 }}
+            className={s.chat.filterBtn}
           >
             {item.label}
           </Button>
         ))}
       </Flex>
 
-      <Text size="2" style={{ color: authTheme.muted }}>
+      <Text size="2" className={s.chat.toolbarInfo}>
         Hiển thị {filteredCount} / {totalCount}
       </Text>
     </Flex>

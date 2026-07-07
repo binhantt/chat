@@ -21,7 +21,6 @@ import {
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import type { User } from "@/contexts/AuthContext";
-import { authTheme } from "@/features/athu/styles/authTheme";
 
 const cities = [
   "Hà Nội",
@@ -58,7 +57,7 @@ export function AboutForm() {
   if (authLoading) {
     return (
       <Flex align="center" justify="center" p="5">
-        <Text style={{ color: authTheme.muted }}>Đang tải thông tin...</Text>
+        <Text style={{ color: "var(--chat-muted)" }}>Đang tải thông tin...</Text>
       </Flex>
     );
   }
@@ -66,9 +65,7 @@ export function AboutForm() {
   if (!user) {
     return (
       <Flex align="center" direction="column" gap="2" justify="center" p="5">
-        <Text style={{ color: authTheme.muted }}>
-          Vui lòng đăng nhập để cập nhật hồ sơ
-        </Text>
+        <Text style={{ color: "var(--chat-muted)" }}>Vui lòng đăng nhập để cập nhật hồ sơ</Text>
       </Flex>
     );
   }
@@ -129,7 +126,7 @@ function EditableProfileForm({
 
   return (
     <form onSubmit={handleSubmit}>
-      <Flex direction="column" gap="4">
+      <Flex direction="column" gap="5">
         <ProfileTextInput
           icon={<PersonIcon />}
           label="Họ và tên"
@@ -138,7 +135,7 @@ function EditableProfileForm({
           value={formData.fullName}
         />
 
-        <Flex gap="3" wrap="wrap">
+        <Flex gap="4" wrap="wrap">
           <ProfileTextInput
             icon={<CalendarIcon />}
             label="Ngày sinh"
@@ -155,7 +152,7 @@ function EditableProfileForm({
           />
         </Flex>
 
-        <Flex gap="3" wrap="wrap">
+        <Flex gap="4" wrap="wrap">
           <ProfileSelect
             icon={<FaceIcon />}
             label="Giới tính"
@@ -181,7 +178,7 @@ function EditableProfileForm({
         <Flex direction="column" gap="2">
           <FieldLabel icon={<IdCardIcon />} label="Giới thiệu bản thân" />
           <TextArea
-            placeholder="Viết một vài câu về bạn"
+            placeholder="Viết một vài câu về bạn..."
             resize="vertical"
             value={formData.bio}
             onChange={(event) => handleInputChange("bio", event.target.value)}
@@ -190,13 +187,13 @@ function EditableProfileForm({
         </Flex>
 
         {error && (
-          <Callout.Root color="red" size="1">
+          <Callout.Root color="red" size="1" style={{ borderRadius: 10 }}>
             <Callout.Text>{error}</Callout.Text>
           </Callout.Root>
         )}
 
         {success && (
-          <Callout.Root color="green" size="1">
+          <Callout.Root color="green" size="1" style={{ borderRadius: 10 }}>
             <Callout.Text>Cập nhật hồ sơ thành công!</Callout.Text>
           </Callout.Root>
         )}
@@ -206,9 +203,13 @@ function EditableProfileForm({
           size="3"
           type="submit"
           style={{
-            background: authTheme.control,
-            borderRadius: 8,
+            background: "linear-gradient(135deg, var(--chat-accent), var(--secondary))",
+            borderRadius: 10,
             color: "#FFFFFF",
+            cursor: "pointer",
+            fontFamily: "var(--font-body)",
+            fontWeight: 600,
+            height: 46,
             marginTop: 4,
           }}
         >
@@ -287,15 +288,11 @@ function FieldLabel({ icon, label }: { icon: React.ReactNode; label: string }) {
       <Flex
         align="center"
         justify="center"
-        style={{
-          color: authTheme.cyan,
-          height: 18,
-          width: 18,
-        }}
+        style={{ color: "var(--chat-accent)", height: 18, width: 18 }}
       >
         {icon}
       </Flex>
-      <Text size="2" weight="medium" style={{ color: authTheme.text }}>
+      <Text size="2" weight="medium" style={{ color: "var(--chat-text)" }}>
         {label}
       </Text>
     </Flex>
@@ -308,8 +305,9 @@ function normalizeCity(city?: string | null) {
 }
 
 const inputStyle = {
-  background: "rgba(255, 255, 255, 0.9)",
-  border: `1px solid ${authTheme.line}`,
-  borderRadius: 8,
-  color: authTheme.text,
+  background: "var(--chat-accent-soft)",
+  border: "1px solid var(--chat-border)",
+  borderRadius: 10,
+  color: "var(--chat-text)",
+  padding: "0 14px",
 } as const;

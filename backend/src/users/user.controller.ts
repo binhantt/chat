@@ -69,6 +69,11 @@ export class UserController {
   ) {
     return this.usersService.setupProfile(request.user!.id, profileSetupDto);
   }
+
+  @Post('unlink-google')
+  unlinkGoogle(@Req() request: AuthenticatedRequest) {
+    return this.usersService.unlinkGoogle(request.user!.id);
+  }
 }
 
 @Controller('v1/manager/users')
@@ -114,5 +119,14 @@ export class AdminUserController {
       updateUserAccessDto,
       request.user!.id,
     );
+  }
+
+  @Patch(':id/badge')
+  @CheckPolicies(canUpdateUser)
+  updateBadge(
+    @Param('id') id: string,
+    @Body('badge') badge: string | null,
+  ) {
+    return this.usersService.update(id, { badge });
   }
 }

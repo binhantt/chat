@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   Avatar,
@@ -25,6 +25,7 @@ import {
 } from "@radix-ui/react-icons";
 import { Fragment, memo, useCallback, useEffect, useMemo, useState } from "react";
 import { usePagination } from "@/hooks/usePagination";
+import { getCsrfHeaders } from "@/lib/csrf";
 
 const REPORTS_PER_PAGE = 8;
 
@@ -232,7 +233,7 @@ export function AdminReportManagement() {
     try {
       const response = await fetch(`/api/v1/manager/reports/${expandedReport.id}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...getCsrfHeaders() },
         body: JSON.stringify({
           status: newStatus,
           ...(newStatus === "resolved" ? { lockType } : {}),

@@ -471,6 +471,7 @@ export interface AdminUser {
   googleId?: string | null;
   fullName: string | null;
   avatarUrl: string | null;
+  badge: string | null;
   dateOfBirth?: string | null;
   phoneNumber?: string | null;
   bio?: string | null;

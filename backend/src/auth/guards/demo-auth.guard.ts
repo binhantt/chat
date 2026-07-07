@@ -19,6 +19,12 @@ export class DemoAuthGuard implements CanActivate {
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const response = context.switchToHttp().getResponse<Response>();
+
+    // Allow login endpoints and IPN webhook without authentication
+    if (request.path?.startsWith('/api/v1/manager/login') || request.path?.startsWith('/api/v1/auth/') || request.path === '/api/v1/payment/seppay/ipn' || request.path === '/api/v1/payment/seppay/sync') {
+      return true;
+    }
+
     const { refreshedAccessToken, userId } =
       this.authCookieService.resolveAuthenticatedSession(request);
 

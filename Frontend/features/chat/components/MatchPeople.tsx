@@ -1,7 +1,7 @@
 "use client";
 
-import { Box, Flex } from "@radix-ui/themes";
-import { useCallback, useEffect, useRef } from "react";
+import { Box, Flex, Text } from "@radix-ui/themes";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { MatchedUser } from "../types";
 import {
   type MatchResult,
@@ -11,6 +11,9 @@ import { MatchEmptyState } from "./match/MatchEmptyState";
 import { MatchFoundState } from "./match/MatchFoundState";
 import { MatchIdleState } from "./match/MatchIdleState";
 import { MatchSearchingState } from "./match/MatchSearchingState";
+import { VipMatchEffect } from "./match/VipMatchEffect";
+import { VipMatchFilters, type MatchFilters } from "./match/VipMatchFilters";
+import { useAuth } from "@/contexts/AuthContext";
 
 const API_URL = "/api/v1/match";
 
@@ -52,6 +55,12 @@ export function MatchPeople({ onCancel, onMatched }: MatchPeopleProps) {
     streamRef.current = null;
   }, []);
 
+  const { user } = useAuth();
+  const isVip = !!user?.badge;
+  const hasCompleteProfile = !!(user?.gender && user?.city);
+  const [matchFilters, setMatchFilters] = useState<MatchFilters>({});
+  const [error, setError] = useState<string | null>(null);
+
   const completeMatch = useCallback(
     (data: MatchStatusResponse) => {
       if (!data.conversationId || !data.matchedWithUserId) return;
@@ -61,6 +70,7 @@ export function MatchPeople({ onCancel, onMatched }: MatchPeopleProps) {
         data.matchedUser ??
         ({
           avatarUrl: null,
+          badge: null,
           city: null,
           email: "",
           fullName: null,
@@ -217,15 +227,31 @@ export function MatchPeople({ onCancel, onMatched }: MatchPeopleProps) {
   const handleStart = async () => {
     completedRef.current = false;
     setMatchResult(null);
+    setError(null);
     setStatus("searching");
 
     try {
+      // Build filter payload if VIP
+      const body: Record<string, unknown> = {};
+      if (isVip && matchFilters) {
+        if (matchFilters.preferredGender) body.preferredGender = matchFilters.preferredGender;
+        if (matchFilters.city) body.city = matchFilters.city;
+        if (matchFilters.ageMin != null) body.ageMin = matchFilters.ageMin;
+        if (matchFilters.ageMax != null) body.ageMax = matchFilters.ageMax;
+      }
+
       const res = await fetch(`${API_URL}/join`, {
         credentials: "include",
-        headers: getCsrfHeaders(),
+        headers: {
+          ...getCsrfHeaders(),
+          "Content-Type": "application/json",
+        },
         method: "POST",
+        body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
       });
       if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.message || "Không thể tham gia tìm kiếm");
         setStatus("idle");
         return;
       }
@@ -237,6 +263,7 @@ export function MatchPeople({ onCancel, onMatched }: MatchPeopleProps) {
       }
       startPolling();
     } catch {
+      setError("Lỗi kết nối. Vui lòng thử lại.");
       setStatus("idle");
     }
   };
@@ -285,7 +312,8 @@ export function MatchPeople({ onCancel, onMatched }: MatchPeopleProps) {
   };
 
   return (
-    <Box className="match-scroll-panel">
+    <Box className={hasCompleteProfile ? "match-scroll-panel" : ""} style={!hasCompleteProfile ? { flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" } : undefined}>
+      <VipMatchEffect show={status === "matched" && isVip} />
       <Flex
         align="center"
         justify="center"
@@ -295,7 +323,61 @@ export function MatchPeople({ onCancel, onMatched }: MatchPeopleProps) {
           width: "100%",
         }}
       >
-        {status === "idle" && <MatchIdleState onStart={handleStart} />}
+        {status === "idle" && (
+          <Flex direction="column" gap="4" style={{ width: "100%", maxWidth: 400 }}>
+            {isVip && (
+              <VipMatchFilters
+                filters={matchFilters}
+                onChange={setMatchFilters}
+              />
+            )}
+            {error && (
+              <Box
+                style={{
+                  background: "rgba(239, 68, 68, 0.1)",
+                  border: "1px solid rgba(239, 68, 68, 0.3)",
+                  borderRadius: 12,
+                  padding: "12px 16px",
+                }}
+              >
+                <Flex align="center" gap="3">
+                  <Box style={{ color: "var(--chat-danger)", flexShrink: 0 }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <line x1="12" y1="8" x2="12" y2="12" />
+                      <line x1="12" y1="16" x2="12.01" y2="16" />
+                    </svg>
+                  </Box>
+                  <Flex direction="column" gap="1" style={{ flex: 1 }}>
+                    <Text size="2" weight="medium" style={{ color: "var(--chat-text)" }}>
+                      {error}
+                    </Text>
+                    {error.includes("cập nhật") && (
+                      <Text
+                        size="2"
+                        style={{
+                          color: "var(--primary)",
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                        }}
+                        onClick={() => {
+                          // Will be handled by parent
+                        }}
+                      >
+                        Cập nhật hồ sơ ngay
+                      </Text>
+                    )}
+                  </Flex>
+                </Flex>
+              </Box>
+            )}
+            <MatchIdleState
+              onStart={handleStart}
+              user={user}
+              hasCompleteProfile={!!(user?.gender && user?.city)}
+            />
+          </Flex>
+        )}
         {status === "searching" && <MatchSearchingState onStop={handleStop} />}
         {status === "not_found" && <MatchEmptyState onRetry={resetMatch} />}
         {status === "matched" && matchResult && (

@@ -1,5 +1,4 @@
 import { Flex, Text } from "@radix-ui/themes";
-import { authTheme } from "@/features/athu/styles/authTheme";
 import { SearchPeople } from "./SearchPeople";
 import type { MatchedUser } from "../types";
 
@@ -15,7 +14,7 @@ export function ChatConversationSection({
   return (
     <Flex direction="column" gap="2" style={{ minHeight: 0 }}>
       <Flex align="center" justify="between">
-        <Text size="2" weight="bold" style={{ color: authTheme.text }}>
+        <Text size="2" weight="bold" style={{ color: "var(--text-primary)" }}>
           Hoi thoai
         </Text>
         <Text size="1" className="chat-muted">

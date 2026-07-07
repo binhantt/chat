@@ -52,6 +52,7 @@ interface SearchPeopleProps {
       email: string;
       fullName: string | null;
       avatarUrl: string | null;
+      badge: string | null;
       gender: string | null;
       city: string | null;
     },
@@ -88,25 +89,22 @@ export const SearchPeople = memo(function SearchPeople({
           const partnerId = isUser1 ? conv.user2Id : conv.user1Id;
           const chatReady =
             conv.user1Accepted === true && conv.user2Accepted === true;
-          const name = chatReady
-            ? partner?.fullName || partner?.email || "Người dùng"
-            : "Người ẩn danh";
+          const name =
+            partner?.fullName || partner?.email || "Người dùng";
 
           return {
             conversationId: conv.id,
             partnerId,
             partnerName: name,
-            partnerEmail: chatReady ? partner?.email || "" : "",
-            partnerAvatar: chatReady ? partner?.avatarUrl || null : null,
-            partnerCity: chatReady ? partner?.city || null : null,
+            partnerEmail: partner?.email || "",
+            partnerAvatar: partner?.avatarUrl || null,
+            partnerCity: partner?.city || null,
             chatReady,
             lastTime: formatTimeAgo(conv.updatedAt),
             status: conv.status,
-            preview: chatReady
-              ? partner?.city
-                ? `Vi tri: ${partner.city}`
-                : "San sang tro chuyen"
-              : "Ẩn danh đến khi cả hai cùng thích",
+            preview: partner?.city
+              ? `Vi tri: ${partner.city}`
+              : "San sang tro chuyen",
             unreadCount: 0,
           };
         });
@@ -178,6 +176,7 @@ export const SearchPeople = memo(function SearchPeople({
       email: chat.partnerEmail,
       fullName: chat.partnerName,
       avatarUrl: chat.partnerAvatar,
+      badge: null,
       gender: null,
       city: chat.partnerCity,
     });
@@ -288,11 +287,6 @@ export const SearchPeople = memo(function SearchPeople({
                     >
                       {chat.partnerName}
                     </Text>
-                    {!chat.chatReady && (
-                      <Badge color="gray" variant="soft">
-                        Chờ thích
-                      </Badge>
-                    )}
                   </Flex>
                   <Text size="1" className="chat-muted chat-list-preview">
                     {chat.preview}

@@ -1,3 +1,5 @@
+import { APP_URL } from "@/lib/env";
+
 export function getSiteUrl() {
   const configuredUrl = process.env.NEXT_PUBLIC_SITE_URL;
   const vercelUrl = process.env.VERCEL_URL;
@@ -10,5 +12,5 @@ export function getSiteUrl() {
     return `https://${vercelUrl.replace(/\/$/, "")}`;
   }
 
-  return "http://localhost:3001";
+  return APP_URL;
 }

@@ -1,6 +1,5 @@
 import { Box, Flex, Text } from "@radix-ui/themes";
 import { ChatBubbleIcon } from "@radix-ui/react-icons";
-import { authTheme } from "@/features/athu/styles/authTheme";
 
 type ChatSidebarHeaderProps = {
   onHome: () => void;
@@ -19,7 +18,7 @@ export function ChatSidebarHeader({ onHome }: ChatSidebarHeaderProps) {
         <ChatBubbleIcon height={18} width={18} />
       </button>
       <Box style={{ minWidth: 0 }}>
-        <Text as="div" size="3" weight="bold" style={{ color: authTheme.text }}>
+        <Text as="div" size="3" weight="bold" style={{ color: "var(--text-primary)" }}>
           Phòng trò chuyện
         </Text>
         <Text as="div" size="1" className="chat-muted">

@@ -1,7 +1,6 @@
 "use client";
 
 import { Badge, Flex } from "@radix-ui/themes";
-import { authTheme } from "../styles/authTheme";
 
 const benefits = ["Nhanh", "Bảo mật", "Đồng bộ hồ sơ"];
 
@@ -14,9 +13,9 @@ export function AuthBenefits() {
           size="2"
           variant="soft"
           style={{
-            background: "rgba(59, 130, 246, 0.10)",
-            border: `1px solid ${authTheme.line}`,
-            color: authTheme.text,
+            background: "rgba(168, 85, 247, 0.08)",
+            border: `1px solid var(--chat-border)`,
+            color: "var(--text-primary)",
             padding: "4px 8px",
           }}
         >
