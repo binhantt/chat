@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getCsrfHeaders } from "@/lib/csrf";
+import { useGuestCleanup } from "@/features/athu/hooks/useGuestCleanup";
 
 export interface User {
   id: string;
@@ -16,6 +17,7 @@ export interface User {
   bio: string | null;
   gender: "male" | "female" | "other" | null;
   city: string | null;
+  isGuest: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -24,6 +26,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isAuthenticated: boolean;
+  isGuest: boolean;
   fetchUser: (force?: boolean) => Promise<void>;
   updateUser: (userData: Partial<User>) => Promise<void>;
   logout: () => void;
@@ -33,6 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   isAuthenticated: false,
+  isGuest: false,
   fetchUser: async (_force?: boolean) => {},
   updateUser: async () => {},
   logout: () => {},
@@ -216,6 +220,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       };
     }
 
+    // Skip /api/v1/users/me call on login/public pages — no token exists yet
+    if (pathname === "/login" || pathname === "/admin/login") {
+      queueMicrotask(() => {
+        if (isActive) {
+          setUser(null);
+          setLoading(false);
+        }
+      });
+      return () => {
+        isActive = false;
+      };
+    }
+
     const freshUser = getFreshCachedUser();
     if (freshUser !== undefined) {
       queueMicrotask(() => {
@@ -273,11 +290,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener(FORCE_LOGOUT_EVENT, onForceLogout);
   }, [forceLogout]);
 
+  // Register guest cleanup on page unload
+  useGuestCleanup();
+
   const value: AuthContextType = useMemo(
     () => ({
       user,
       loading,
       isAuthenticated: !!user,
+      isGuest: user?.isGuest === true,
       fetchUser,
       updateUser,
       logout,
