@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useGoogleLogin } from "./useGoogleLogin";
 import { useAuthUiStore } from "../store/useAuthUiStore";
 
@@ -18,7 +18,6 @@ declare global {
             callback: (response: GoogleCredentialResponse) => void;
             auto_select?: boolean;
           }) => void;
-          prompt: (callback?: (notification: { isNotDisplayed: () => boolean; isSkippedMoment: () => boolean }) => void) => void;
           renderButton: (
             element: HTMLElement,
             config: Record<string, unknown>,
@@ -70,7 +69,6 @@ export function useGoogleIdentity() {
   const setGoogleReady = useAuthUiStore((state) => state.setGoogleReady);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
   const initDone = useRef(false);
-  const [triggerGoogle, setTriggerGoogle] = useState<(() => void) | null>(null);
 
   const initGoogle = useCallback(() => {
     if (!clientId) return;
@@ -88,17 +86,42 @@ export function useGoogleIdentity() {
             auto_select: false,
           });
 
-          setGoogleReady(true);
+          // Use renderButton (popup flow) — does NOT require FedCM
+          const doRender = () => {
+            if (!buttonRef.current || !window.google?.accounts?.id) return;
+            try {
+              window.google.accounts.id.renderButton(buttonRef.current, {
+                type: "standard",
+                theme: "outline",
+                size: "large",
+                text: "continue_with",
+                shape: "rectangular",
+                width: 360,
+              });
+              setGoogleReady(true);
+            } catch (err) {
+              console.error("[Google] Render error:", err);
+              setGoogleReady(false);
+            }
+          };
 
-          // Expose trigger function for custom button
-          setTriggerGoogle(() => () => {
-            window.google?.accounts?.id?.prompt((notification) => {
-              if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                // One Tap not shown — fallback: reload page to retry
-                console.warn("[Google] One Tap not displayed, retrying...");
+          // Wait for iframe to exist before renderButton
+          const waitForFrame = (r = 0) => {
+            const iframes = document.querySelectorAll("iframe");
+            let found = false;
+            for (const f of iframes) {
+              if ((f.src || "").includes("accounts.google.com")) {
+                found = true;
+                break;
               }
-            });
-          });
+            }
+            if (found || r >= 20) {
+              doRender();
+            } else {
+              setTimeout(() => waitForFrame(r + 1), 150);
+            }
+          };
+          waitForFrame();
         } catch (err) {
           console.error("[Google] Init error:", err);
           setGoogleReady(false);
@@ -154,5 +177,5 @@ export function useGoogleIdentity() {
     };
   }, [clientId, initGoogle, setError, setGoogleReady]);
 
-  return { buttonRef, triggerGoogle };
+  return { buttonRef };
 }
