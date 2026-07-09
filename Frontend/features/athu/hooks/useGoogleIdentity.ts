@@ -37,21 +37,28 @@ declare global {
 const GOOGLE_SCRIPT_ID = "google-identity-services";
 
 /**
- * Global error interceptor: Google GSI's internal code calls postMessage
- * to a hidden iframe. If the iframe is null (race condition during init),
- * this throws an uncaught TypeError. We suppress ONLY that specific error
- * so it never reaches the console or error boundaries.
+ * Suppress Google GSI postMessage errors that occur when the
+ * gsi/transform iframe communicates with a destroyed parent window.
  */
 function installPostMessageGuard() {
   const handler = (event: ErrorEvent) => {
     const msg = event?.message ?? "";
     if (
-      msg.includes("Cannot read properties of null (reading 'postMessage')") ||
-      msg.includes("Cannot read properties of null (reading 'contentWindow')")
+      msg.includes("postMessage") ||
+      msg.includes("contentWindow") ||
+      msg.includes("Cannot read properties of null")
     ) {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      return false;
+      const stack = event?.error?.stack || "";
+      if (
+        stack.includes("accounts.google.com") ||
+        stack.includes("gsi/client") ||
+        stack.includes("gsi/transform") ||
+        msg.includes("postMessage")
+      ) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return false;
+      }
     }
   };
 
@@ -71,70 +78,79 @@ export function useGoogleIdentity() {
   const setError = useAuthUiStore((state) => state.setError);
   const setGoogleReady = useAuthUiStore((state) => state.setGoogleReady);
   const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ?? "";
+  const initDone = useRef(false);
 
   const renderGoogleButton = useCallback(() => {
-    if (!buttonRef.current || !window.google?.accounts?.id || !clientId) {
-      return;
-    }
+    if (!buttonRef.current || !clientId) return;
 
-    try {
-      window.google.accounts.id.initialize({
-        client_id: clientId,
-        callback: (response) => {
-          if (response?.credential) {
-            void loginWithCredential(response.credential);
-          }
-        },
-      });
-
-      const doRender = () => {
-        if (!buttonRef.current || !window.google?.accounts?.id) return;
+    // Poll until window.google.accounts.id is fully bootstrapped.
+    // Calling initialize() before the API is ready creates a broken
+    // iframe at gsi/transform that can never postMessage back.
+    const pollApi = (retries = 0) => {
+      if (window.google?.accounts?.id) {
         try {
-          window.google.accounts.id.renderButton(buttonRef.current, {
-            logo_alignment: "center",
-            shape: "pill",
-            size: "large",
-            text: "continue_with",
-            theme: "outline",
-            width: "360",
+          window.google.accounts.id.initialize({
+            client_id: clientId,
+            callback: (response) => {
+              if (response?.credential) {
+                void loginWithCredential(response.credential);
+              }
+            },
           });
-          setGoogleReady(true);
+
+          const doRender = () => {
+            if (!buttonRef.current || !window.google?.accounts?.id) return;
+            try {
+              window.google.accounts.id.renderButton(buttonRef.current, {
+                logo_alignment: "center",
+                shape: "pill",
+                size: "large",
+                text: "continue_with",
+                theme: "outline",
+                width: "360",
+              });
+              setGoogleReady(true);
+            } catch (err) {
+              console.error("[Google] Render error:", err);
+              setGoogleReady(false);
+            }
+          };
+
+          // Wait for iframe to exist before renderButton
+          const waitForFrame = (r = 0) => {
+            const iframes = document.querySelectorAll("iframe");
+            let found = false;
+            for (const f of iframes) {
+              if ((f.src || "").includes("accounts.google.com")) {
+                found = true;
+                break;
+              }
+            }
+            if (found || r >= 20) {
+              doRender();
+            } else {
+              setTimeout(() => waitForFrame(r + 1), 150);
+            }
+          };
+          waitForFrame();
         } catch (err) {
-          console.error("[Google] Render error:", err);
+          console.error("[Google] Init error:", err);
           setGoogleReady(false);
         }
-      };
-
-      // Wait for GSI iframe to mount before calling renderButton.
-      // initialize() creates a hidden iframe for postMessage communication.
-      // If renderButton runs before the iframe exists, GSI throws
-      // "Cannot read properties of null (reading 'postMessage')".
-      const waitForFrame = (retries = 0) => {
-        if (
-          document.querySelector('iframe[src*="accounts.google.com/gsi"]') ||
-          document.querySelector('iframe[src*="accounts.google.com/o2"]')
-        ) {
-          doRender();
-        } else if (retries < 10) {
-          setTimeout(() => waitForFrame(retries + 1), 150);
-        } else {
-          // Fallback: try anyway, the guard will catch any residual error
-          doRender();
-        }
-      };
-      waitForFrame();
-    } catch (err) {
-      console.error("[Google] Init error:", err);
-      setGoogleReady(false);
-    }
+      } else if (retries < 50) {
+        // Poll up to 5 seconds (50 * 100ms)
+        setTimeout(() => pollApi(retries + 1), 100);
+      } else {
+        console.error("[Google] API not available after 5s");
+        setGoogleReady(false);
+      }
+    };
+    pollApi();
   }, [clientId, loginWithCredential, setGoogleReady]);
 
   useEffect(() => {
-    if (!clientId) {
-      setError("Thieu NEXT_PUBLIC_GOOGLE_CLIENT_ID");
-      setGoogleReady(false);
-      return;
-    }
+    if (!clientId || initDone.current) return;
+    initDone.current = true;
 
     let mounted = true;
     const cleanupGuard = installPostMessageGuard();
@@ -155,8 +171,8 @@ export function useGoogleIdentity() {
     script.src = "https://accounts.google.com/gsi/client";
     script.onload = () => {
       if (mounted) {
-        // Extra delay after script load to let GSI fully bootstrap
-        setTimeout(() => renderGoogleButton(), 50);
+        // Delay to let GSI fully bootstrap its internal state
+        setTimeout(() => renderGoogleButton(), 100);
       }
     };
     script.onerror = () => {
