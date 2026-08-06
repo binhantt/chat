@@ -10,7 +10,7 @@ nul
 ibdex.html
 
 # -- Credentials / secrets (do not commit) --
-deploy/login_b64.txt
+deploy/
 deploy/backend.env.production
 deploy/frontend.env.production
 
