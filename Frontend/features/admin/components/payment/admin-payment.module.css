@@ -1,0 +1,65 @@
+.loadingText {
+  color: var(--text-secondary);
+}
+
+.pageHeading {
+  color: var(--text-primary);
+}
+
+.descriptionText {
+  color: var(--text-secondary);
+  margin-top: 6px;
+  max-width: 600px;
+}
+
+.tableContainer {
+  background: var(--chat-surface);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.tableHeaderRow {
+  border-bottom: 1px solid var(--chat-border);
+}
+
+.tableRow {
+  border-bottom: 1px solid var(--chat-border);
+}
+
+.emptyCell {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 24px;
+}
+
+.primaryText {
+  color: var(--text-primary);
+}
+
+.secondaryText {
+  color: var(--text-secondary);
+}
+
+.actionButton {
+  border-radius: 6px;
+}
+
+.activatedText {
+  color: var(--green-9);
+}
+
+.statCard {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 14px 20px;
+  min-width: 140px;
+}
+
+.statLabel {
+  color: var(--text-secondary);
+}
+
+.statValue {
+  color: var(--text-primary);
+}

@@ -1,10 +1,13 @@
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { performance } from 'node:perf_hooks';
 import { GoogleUserProfile } from '../users/interfaces/google-user-profile.interface';
 import { UserRole } from '../users/entities/user.entity';
 import { UsersService } from '../users/users.service';
 import { AuthTokenService } from './services/auth-token.service';
 import { GoogleAuthService } from './services/google-auth.service';
+import { GUEST_ACCESS_TOKEN_TTL_MS } from './constants/auth-token.constant';
+
+const DISPLAY_NAME_REGEX = /^[a-zA-ZÀ-ỹ\s]+$/;
 
 @Injectable()
 export class AuthService {
@@ -15,6 +18,39 @@ export class AuthService {
     private readonly authTokenService: AuthTokenService,
     private readonly googleAuthService: GoogleAuthService,
   ) {}
+
+  async guestLogin(displayName?: string, clientIp?: string) {
+    const trimmed = displayName?.trim();
+
+    if (trimmed !== undefined && trimmed.length > 0) {
+      if (trimmed.length < 2) {
+        throw new BadRequestException('Ten phai co it nhat 2 ky tu');
+      }
+      if (trimmed.length > 30) {
+        throw new BadRequestException('Ten khong duoc vuot qua 30 ky tu');
+      }
+      if (!DISPLAY_NAME_REGEX.test(trimmed)) {
+        throw new BadRequestException('Ten chi duoc dung chu cai, dau tieng Viet va khoang trang');
+      }
+    }
+
+    const guestUser = await this.usersService.createGuestUser(trimmed || undefined, clientIp);
+
+    return {
+      message: 'Dang nhap an danh thanh cong',
+      accessToken: this.authTokenService.createAccessToken(guestUser.id, GUEST_ACCESS_TOKEN_TTL_MS),
+      refreshToken: this.authTokenService.createRefreshToken(guestUser.id),
+      user: guestUser,
+    };
+  }
+
+  async guestCleanup(guestId: string) {
+    await this.usersService.deleteGuestUserAndData(guestId);
+    return {
+      message: 'Da xoa du lieu nguoi dung an danh',
+      success: true,
+    };
+  }
 
   async googleLogin(idToken: string) {
     const payload = await this.googleAuthService.verifyToken(idToken);

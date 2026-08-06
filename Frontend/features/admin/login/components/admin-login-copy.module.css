@@ -1,0 +1,28 @@
+.loginCopySection {
+  text-align: center;
+}
+
+.loginIconBox {
+  background: linear-gradient(135deg, var(--primary), #22d3ee);
+  border-radius: 8px;
+  color: #FFFFFF;
+  height: 52px;
+  width: 52px;
+}
+
+.loginBadge {
+  color: var(--primary);
+}
+
+.loginHeading {
+  color: var(--text-primary);
+  letter-spacing: 0;
+  line-height: 1.08;
+  margin: 0;
+}
+
+.loginDescription {
+  color: var(--text-secondary);
+  line-height: 1.55;
+  max-width: 320px;
+}

@@ -76,8 +76,7 @@ export function AuthWebsiteIntro() {
   return (
     <Box
       style={{
-        background: "var(--auth-bg)",
-        borderTop: "1px solid var(--auth-line)",
+        background: "linear-gradient(180deg, transparent, var(--auth-bg) 40px)",
         padding: "40px 16px",
         position: "relative",
         zIndex: 1,
@@ -91,9 +90,10 @@ export function AuthWebsiteIntro() {
         }}
       >
         {/* Section header */}
-        <Flex direction="column" gap="3" mb="9" style={{ textAlign: "center" }}>
+        <header style={{ textAlign: "center", marginBottom: 72 }}>
+        <Flex direction="column" gap="3" style={{ textAlign: "center" }}>
           <Flex align="center" justify="center" gap="2">
-            <GlobeIcon width={20} height={20} style={{ color: "var(--auth-control)" }} />
+            <GlobeIcon width={20} height={20} aria-hidden="true" style={{ color: "var(--auth-control)" }} />
             <Text
               size="2"
               weight="bold"
@@ -136,6 +136,7 @@ export function AuthWebsiteIntro() {
             trong một không gian an toàn, riêng tư và thân thiện.
           </Text>
         </Flex>
+        </header>
 
         {/* Feature sections grid */}
         <Box
@@ -169,7 +170,7 @@ export function AuthWebsiteIntro() {
                     flexShrink: 0,
                   }}
                 >
-                  <Icon width={18} height={18} />
+                  <Icon width={18} height={18} aria-hidden="true" />
                 </Box>
                 <Text
                   size="3"
@@ -187,6 +188,7 @@ export function AuthWebsiteIntro() {
                   <Flex key={i} align="start" gap="2">
                     <Text
                       size="1"
+                      aria-hidden="true"
                       style={{
                         color: "var(--auth-control)",
                         marginTop: 3,
@@ -213,10 +215,10 @@ export function AuthWebsiteIntro() {
         </Box>
 
         {/* Footer */}
-        <Box
-          mt="9"
-          pt="7"
+        <footer
           style={{
+            marginTop: 72,
+            paddingTop: 56,
             borderTop: "1px solid var(--auth-line)",
           }}
         >
@@ -240,8 +242,8 @@ export function AuthWebsiteIntro() {
                   }}
                 >
                   <img
-                    alt="Người Lạ"
-                    src="/nguoi-la-logo.svg"
+                    alt=""
+                    src="/nguoi-la-logo.png"
                     style={{ height: "100%", width: "100%", objectFit: "contain", padding: 4 }}
                   />
                 </Box>
@@ -260,10 +262,16 @@ export function AuthWebsiteIntro() {
                 Nền tảng kết nối và trò chuyện trực tuyến dành cho người Việt —
                 kết nối nhanh, hồ sơ rõ ràng, ghép đôi thông minh, riêng tư và an toàn.
               </Text>
-              <Flex gap="2">
-                {[InstagramLogoIcon, TwitterLogoIcon, GitHubLogoIcon].map((Icon, i) => (
+              <Flex gap="2" role="list">
+                {[
+                  { Icon: InstagramLogoIcon, label: "Instagram" },
+                  { Icon: TwitterLogoIcon, label: "Twitter" },
+                  { Icon: GitHubLogoIcon, label: "GitHub" },
+                ].map(({ Icon, label }) => (
                   <Flex
-                    key={i}
+                    key={label}
+                    role="listitem"
+                    aria-label={label}
                     align="center"
                     justify="center"
                     style={{
@@ -284,7 +292,7 @@ export function AuthWebsiteIntro() {
                       e.currentTarget.style.color = "var(--auth-control)";
                     }}
                   >
-                    <Icon width={16} height={16} />
+                    <Icon width={16} height={16} aria-hidden="true" />
                   </Flex>
                 ))}
               </Flex>
@@ -298,44 +306,10 @@ export function AuthWebsiteIntro() {
                   weight="bold"
                   style={{ color: "var(--auth-text)", fontFamily: "var(--font-heading)", marginBottom: 4 }}
                 >
-                  Sản phẩm
-                </Text>
-                {[
-                  { label: "Giới thiệu sản phẩm", href: "/" },
-                  { label: "Trò chuyện", href: "/" },
-                  { label: "Ghép đôi", href: "/" },
-                  { label: "Hồ sơ cá nhân", href: "/" },
-                  { label: "Gói VIP", href: "/" },
-                ].map(({ label, href }) => (
-                  <Link
-                    key={label}
-                    href={href}
-                    style={{
-                      color: "var(--auth-muted)",
-                      fontSize: 13,
-                      textDecoration: "none",
-                      transition: "color 0.2s",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = "var(--auth-control)"; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = "var(--auth-muted)"; }}
-                  >
-                    {label}
-                  </Link>
-                ))}
-              </Flex>
-
-              <Flex direction="column" gap="2" style={{ minWidth: 120 }}>
-                <Text
-                  size="2"
-                  weight="bold"
-                  style={{ color: "var(--auth-text)", fontFamily: "var(--font-heading)", marginBottom: 4 }}
-                >
                   Hỗ trợ
                 </Text>
                 {[
                   { label: "Trung tâm trợ giúp", href: "/faq" },
-                  { label: "Liên hệ", href: "/" },
-                  { label: "Báo cáo lỗi", href: "/" },
                 ].map(({ label, href }) => (
                   <Link
                     key={label}
@@ -369,7 +343,7 @@ export function AuthWebsiteIntro() {
                   onMouseEnter={(e) => { e.currentTarget.style.color = "var(--auth-control)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.color = "var(--auth-muted)"; }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }} aria-hidden="true">
                     <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-6h2v6zm4 0h-2v-6h2v6zm-2-8c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1z"/>
                   </svg>
                   Nhắn Zalo
@@ -388,7 +362,6 @@ export function AuthWebsiteIntro() {
                   { label: "Điều khoản sử dụng", href: "/terms" },
                   { label: "Chính sách bảo mật", href: "/privacy" },
                   { label: "Quy tắc cộng đồng", href: "/phap-ly" },
-                  { label: "Người dùng", href: "/phap-ly" },
                 ].map(({ label, href }) => (
                   <Link
                     key={label}
@@ -431,6 +404,9 @@ export function AuthWebsiteIntro() {
                 gap="2"
                 px="3"
                 py="2"
+                role="link"
+                aria-label="Gửi email support@nguoila.vn"
+                tabIndex={0}
                 style={{
                   background: "var(--auth-soft-control)",
                   borderRadius: 8,
@@ -440,7 +416,7 @@ export function AuthWebsiteIntro() {
                 onMouseEnter={(e) => { e.currentTarget.style.background = "var(--auth-control)"; e.currentTarget.style.color = "#fff"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "var(--auth-soft-control)"; e.currentTarget.style.color = "inherit"; }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <rect x="2" y="4" width="20" height="16" rx="2"/>
                   <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
                 </svg>
@@ -451,6 +427,9 @@ export function AuthWebsiteIntro() {
                 gap="2"
                 px="3"
                 py="2"
+                role="link"
+                aria-label="Gọi điện thoại 1900 1234"
+                tabIndex={0}
                 style={{
                   background: "var(--auth-soft-control)",
                   borderRadius: 8,
@@ -460,14 +439,14 @@ export function AuthWebsiteIntro() {
                 onMouseEnter={(e) => { e.currentTarget.style.background = "var(--auth-control)"; e.currentTarget.style.color = "#fff"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = "var(--auth-soft-control)"; e.currentTarget.style.color = "inherit"; }}
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                 </svg>
                 <Text size="1">1900 1234</Text>
               </Flex>
             </Flex>
           </Flex>
-        </Box>
+        </footer>
       </Box>
     </Box>
   );

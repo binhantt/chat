@@ -1,0 +1,66 @@
+.sidebar {
+  background: var(--bg-sidebar);
+  color: #ffffff;
+  flex-shrink: 0;
+  height: 100%;
+  width: 248px;
+  padding: 20px 14px;
+}
+
+@media (max-width: 767px) {
+  .sidebar {
+    display: none;
+  }
+}
+
+.logoArea {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding-bottom: 20px;
+}
+
+.navList {
+  flex: 1;
+}
+
+.navLink {
+  text-decoration: none;
+}
+
+.navItem {
+  border-radius: 10px;
+  cursor: pointer;
+  min-height: 44px;
+  font-size: 14px;
+  transition: all 0.15s ease;
+}
+
+.navItemActive {
+  background: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.navItemInactive {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 400;
+}
+
+.navItemInactive:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.navIconBox {
+  height: 20px;
+  width: 20px;
+  flex-shrink: 0;
+}
+
+.navIconActive {
+  color: #ffffff;
+}
+
+.navIconInactive {
+  color: rgba(255, 255, 255, 0.4);
+}

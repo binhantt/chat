@@ -31,7 +31,7 @@ async function isAccessTokenResponse(response: Response): Promise<boolean> {
   const data = (await response.clone().json().catch(() => null)) as { message?: string } | null;
   const message = data?.message?.toLowerCase() ?? "";
 
-  return message.includes("access token");
+  return message.includes("access token") || message.includes("het han") || message.includes("phien dang nhap");
 }
 
 // ============ CHAT API ============

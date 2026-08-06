@@ -1,19 +1,19 @@
 # ChatApp Frontend
 
-Frontend cua ChatApp duoc xay bang Next.js, React, Radix UI va Tailwind CSS.
+The ChatApp frontend is built with Next.js, React, Radix UI, and Tailwind CSS.
 
-## Chay development
+## Run Development
 
 ```bash
 npm install
 npm run dev
 ```
 
-Mac dinh frontend chay o `http://localhost:3000`.
+Default frontend runs at `http://localhost:3000`.
 
-## Bien moi truong
+## Environment Variables
 
-Tao `.env` hoac `.env.local` tu file mau:
+Create `.env` or `.env.local` from the template:
 
 ```env
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -21,19 +21,19 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
 ```
 
-Chi tiet bien moi truong: [`../DOC_07_ENV.md`](../DOC_07_ENV.md).
+Full environment variable details: [`../DOC_07_ENV.md`](../DOC_07_ENV.md).
 
-## Vai tro frontend
+## Frontend Role
 
-- Hien thi UI cho user va admin.
-- Goi backend API thong qua API client hoac `app/api/...` proxy route.
-- Quan ly auth state o client.
-- Hien thi chat, matching, profile, report va admin dashboard.
+- Display UI for users and admins.
+- Call backend API via API client or `app/api/...` proxy routes.
+- Manage auth state on client.
+- Display chat, matching, profile, reports, and admin dashboard.
 
-## Nguyen tac API
+## API Principles
 
-- Backend NestJS la nguon nghiep vu chinh.
-- Frontend API route chi nen proxy/adapter request.
-- Khong lap logic matching, chat, report hoac moderation o frontend.
+- Backend NestJS is the primary business logic source.
+- Frontend API routes should only proxy/adapter requests.
+- Don't replicate matching, chat, report, or moderation logic on frontend.
 
-Xem them: [`../docs/API-CONTRACT.md`](../docs/API-CONTRACT.md).
+See also: [`../docs/API-CONTRACT.md`](../docs/API-CONTRACT.md).

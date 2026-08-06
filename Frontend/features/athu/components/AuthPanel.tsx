@@ -15,24 +15,24 @@ export function AuthPanel({ children }: AuthPanelProps) {
         border: "1px solid var(--auth-line)",
         borderRadius: 20,
         boxShadow: "var(--auth-shadow)",
-        flexShrink: 0,
-        maxWidth: 400,
+        flex: 1,
+        minWidth: 0,
+        maxWidth: 480,
         overflow: "hidden",
         padding: 0,
         position: "relative",
-        width: "100%",
       }}
     >
       {/* Purple accent bar */}
       <Box
         style={{
-          background: "linear-gradient(90deg, var(--auth-border), var(--auth-muted), var(--auth-panel-soft))",
+          background: "linear-gradient(90deg, var(--auth-control), var(--auth-muted), transparent)",
           height: 4,
           width: "100%",
         }}
       />
-      <Box px={{ initial: "5", sm: "6", md: "7" }} py={{ initial: "5", sm: "6", md: "7" }}>
-        <Flex direction="column" gap="5">
+      <Box px={{ initial: "4", sm: "5", md: "6" }} py={{ initial: "4", sm: "5", md: "6" }}>
+        <Flex direction="column" gap="4">
           {children}
         </Flex>
       </Box>

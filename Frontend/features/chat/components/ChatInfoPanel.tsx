@@ -56,6 +56,7 @@ export function ChatInfoPanel({ conversationId, mode, user }: ChatInfoPanelProps
             </Flex>
           </Flex>
 
+          <InfoRow label="ID người dùng" value={user?.id ? user.id.slice(0, 12) + "..." : "Không rõ"} />
           <InfoRow label="Mã hội thoại" value={conversationId.slice(0, 8)} />
           <InfoRow label="Vị trí" value={user?.city || "Chưa cập nhật"} />
           <InfoRow label="Email" value={user?.email || "Chưa cập nhật"} />
@@ -78,7 +79,7 @@ function EmptyInfoState() {
       <Box
         className="chat-empty-icon"
         style={{
-          background: "rgba(168, 85, 247, 0.1)",
+          background: "var(--chat-accent-soft)",
           color: "var(--primary)",
         }}
       >

@@ -12,12 +12,25 @@ import {
 import { InputSanitizationPipe } from './security/input-sanitization.pipe';
 import { HttpLoggerInterceptor } from './common/interceptors/http-logger.interceptor';
 import { PublicRoleInterceptor } from './common/interceptors/public-role.interceptor';
+import { join } from 'node:path';
+import express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const allowedOrigins = getAllowedOrigins();
 
   app.setGlobalPrefix('api');
+
+  // Serve uploaded files (avatars, etc.)
+  const uploadsPath = join(__dirname, '..', 'uploads');
+  app.use('/api/uploads', express.static(uploadsPath, {
+    maxAge: '7d',
+    etag: true,
+    lastModified: true,
+    setHeaders: (res) => {
+      res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    },
+  }));
   app.use(compression());
   app.use(securityHeadersMiddleware);
   app.use(createOriginGuard(allowedOrigins));

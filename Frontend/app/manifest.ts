@@ -15,9 +15,9 @@ export default function manifest(): MetadataRoute.Manifest {
     lang: "vi",
     icons: [
       {
-        src: "/nguoi-la-logo.svg",
+        src: "/nguoi-la-logo.png",
         sizes: "any",
-        type: "image/svg+xml",
+        type: "image/png",
       },
     ],
   };

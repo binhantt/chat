@@ -23,7 +23,7 @@ export function BrandLogo({ compact = false, subtitle }: BrandLogoProps) {
           alt="Người Lạ"
           fill
           sizes={compact ? "54px" : "68px"}
-          src="/nguoi-la-logo.svg"
+          src="/nguoi-la-logo.png"
           style={{ objectFit: "contain", padding: 4 }}
         />
       </Box>

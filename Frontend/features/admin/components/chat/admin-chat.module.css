@@ -1,0 +1,223 @@
+/* Chat Header */
+.headerCard {
+  background: linear-gradient(90deg, rgba(75,46,131,0.12), rgba(255,255,255,0.92));
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.headerIcon {
+  background: var(--primary);
+  border-radius: 8px;
+  color: #ffffff;
+  height: 48px;
+  width: 48px;
+}
+
+.headerTitle {
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+.headerDesc {
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 4px 0 0;
+  max-width: 720px;
+}
+
+.headerBtn {
+  border-radius: 8px;
+}
+
+/* Chat Toolbar */
+.toolbar {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.toolbarSearch {
+  flex: 1 1 320px;
+  min-width: 240px;
+}
+
+.filterBtn {
+  border-radius: 8px;
+}
+
+.toolbarInfo {
+  color: var(--text-secondary);
+}
+
+/* Chat Stat Grid */
+.statCard {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.statLabel {
+  color: var(--text-secondary);
+}
+
+.statValue {
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.statIconBox {
+  border-radius: 8px;
+  height: 42px;
+  width: 42px;
+}
+
+/* Chat List Panel */
+.listPanel {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  box-shadow: var(--chat-shadow);
+  padding: 18px;
+}
+
+.listTitle {
+  color: var(--text-primary);
+}
+
+.listInfo {
+  color: var(--text-secondary);
+}
+
+/* Empty state */
+.emptyState {
+  min-height: 240px;
+}
+
+.emptyTitle {
+  color: var(--text-primary);
+}
+
+.emptyDesc {
+  color: var(--text-secondary);
+}
+
+/* Chat Row */
+.chatRow {
+  background: #ffffff;
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 14px;
+}
+
+.chatUserSection {
+  flex: 1.4 1 0;
+  min-width: 250px;
+}
+
+.chatUserNames {
+  min-width: 0;
+}
+
+.chatUserName {
+  color: var(--text-primary);
+}
+
+.chatUserWith {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.chatUserAvatarOverlap {
+  margin-left: -10px;
+}
+
+.chatInfoBlock {
+  flex: 0.75 1 0;
+  min-width: 130px;
+}
+
+.chatInfoLabel {
+  color: var(--text-secondary);
+}
+
+.chatInfoValue {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.chatStatusBlock {
+  flex: 0.6 1 0;
+  min-width: 120px;
+}
+
+.chatActionBlock {
+  min-width: 84px;
+}
+
+.chatViewBtn {
+  border-radius: 8px;
+}
+
+/* Detail Dialog */
+.detailContent {
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  max-width: 780px;
+}
+
+.detailGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.detailIdBox {
+  background: rgba(75, 46, 131, 0.06);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.detailIdLabel {
+  color: var(--text-secondary);
+}
+
+.detailIdValue {
+  color: var(--text-primary);
+  font-family: monospace;
+  overflow-wrap: anywhere;
+}
+
+/* Messages */
+.messagesSection {
+  background: rgba(75, 46, 131, 0.06);
+  border-radius: 8px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.messageSender {
+  color: var(--text-primary);
+}
+
+.messageTime {
+  color: var(--text-secondary);
+}
+
+.messageContent {
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Loading */
+.loadingContainer {
+  min-height: 420px;
+}
+
+.loadingText {
+  color: var(--text-secondary);
+}

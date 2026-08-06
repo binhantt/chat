@@ -9,6 +9,7 @@ import {
   StarIcon,
   GlobeIcon,
   RocketIcon,
+  MixerHorizontalIcon,
 } from "@radix-ui/react-icons";
 
 export type AdminNavItem = {
@@ -21,6 +22,7 @@ export const adminNavItems: AdminNavItem[] = [
   { href: "/admin", icon: <DashboardIcon />, label: "Tổng quan" },
   { href: "/admin/users", icon: <PersonIcon />, label: "Người dùng" },
   { href: "/admin/chats", icon: <ChatBubbleIcon />, label: "Tin nhắn" },
+  { href: "/admin/ai", icon: <MixerHorizontalIcon />, label: "AI Chat" },
   { href: "/admin/conduct", icon: <LockClosedIcon />, label: "Ứng xử" },
   { href: "/admin/reports", icon: <FileTextIcon />, label: "Báo cáo" },
   { href: "/admin/vip", icon: <StarIcon />, label: "Gói VIP" },

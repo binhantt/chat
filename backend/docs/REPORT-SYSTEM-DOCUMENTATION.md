@@ -1,18 +1,18 @@
-#  Bao Cao He Thong - Tai Lieu Ky Thuat
+# Report System - Technical Documentation
 
-## Tong Quan
+## Overview
 
-He thong bao cao cho phep nguoi dung gui bao cao ve cac van de (spam, quay roi, noi dung khong phu hop...) va cho phep admin quan ly, xem xet cac bao cao nay.
+The report system allows users to submit reports about issues (spam, harassment, inappropriate content...) and enables admins to manage and review these reports.
 
-## Kien Truc He Thong
+## System Architecture
 
 ```
 +-----------------------------------------------------------+
 |                    FRONTEND (Next.js)                    |
 |  +------------+  +-------------+  +------------------------+  |
 |  | ReportForm|  |ReportStats|  | ReportHistory        |  |
-|  | Gui bao  |  | Thong ke |  | Lich su bao cao     |  |
-|  | cao      |  |           |  |                      |  |
+|  | Submit    |  | Statistics |  | Report History      |  |
+|  | Report    |  |           |  |                      |  |
 |  `------------+  `-------------+  `------------------------+  |
 |       |              |                    |              |
 |       `---------------+---------------------+              |
@@ -20,18 +20,18 @@ He thong bao cao cho phep nguoi dung gui bao cao ve cac van de (spam, quay roi, 
 |-----------------------+-----------------------------------
 |                    BACKEND (NestJS)                      |
 |  +------------------------------------------------------+  |
-|  |  ReportController  (Xu ly HTTP request)           |  |
-|  |  |--- POST /reports        - Tao bao cao moi       |  |
-|  |  |--- GET  /reports        - Lay tat ca (admin)     |  |
-|  |  |--- GET  /reports/:id    - Lay theo ID (admin)    |  |
-|  |  `--- PATCH /reports/:id   - Cap nhat trang thai   |  |
+|  |  ReportController  (Handle HTTP requests)           |  |
+|  |  |--- POST /reports        - Create new report      |  |
+|  |  |--- GET  /reports        - Get all (admin)        |  |
+|  |  |--- GET  /reports/:id    - Get by ID (admin)      |  |
+|  |  `--- PATCH /reports/:id   - Update status          |  |
 |  `------------------------------------------------------+  |
 |  +------------------------------------------------------+  |
 |  |  ReportService  (Business Logic)                   |  |
-|  |  |--- create()         - Tao bao cao                |  |
-|  |  |--- findAllForAdmin()- Lay tat ca cho admin       |  |
-|  |  |--- findOneForAdmin()- Lay 1 bao cao cho admin    |  |
-|  |  `--- updateStatus()   - Cap nhat trang thai        |  |
+|  |  |--- create()         - Create report              |  |
+|  |  |--- findAllForAdmin()- Get all for admin          |  |
+|  |  |--- findOneForAdmin()- Get one report for admin   |  |
+|  |  `--- updateStatus()   - Update status              |  |
 |  `------------------------------------------------------+  |
 |  +------------------------------------------------------+  |
 |  |  Database (PostgreSQL + TypeORM)                   |  |
@@ -40,24 +40,24 @@ He thong bao cao cho phep nguoi dung gui bao cao ve cac van de (spam, quay roi, 
 `-----------------------------------------------------------+
 ```
 
-## Cau Truc Thu Muc
+## Directory Structure
 
 ```
 backend/src/report/
-|--- report.controller.ts    # Controller - Xu ly HTTP request
+|--- report.controller.ts    # Controller - Handle HTTP requests
 |--- report.service.ts       # Service - Business logic
-|--- report.module.ts        # Module - Dang ky dependencies
+|--- report.module.ts        # Module - Register dependencies
 |--- entities/
-|   `--- report.entity.ts    # Entity - Cau truc bang database
+|   `--- report.entity.ts    # Entity - Database table structure
 |--- dto/
 |   `--- create-report.dto.ts # DTO - Data Transfer Object
 `--- interfaces/
-    `--- (neu co)
+    `--- (if any)
 ```
 
 ## API Endpoints
 
-### 1. Tao Bao Cao Moi
+### 1. Create New Report
 
 ```
 POST /api/reports
@@ -72,34 +72,34 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "reportedUserId": "uuid-cua-nguoi-bi-bao-cao",
+  "reportedUserId": "uuid-of-reported-user",
   "reason": "spam | harassment | inappropriate_content | fake_profile | underage | other",
-  "description": "Mo ta chi tiet (tuy chon)"
+  "description": "Detailed description (optional)"
 }
 ```
 
 **Response (201 - Created):**
 ```json
 {
-  "id": "uuid-bao-cao",
-  "reporterId": "uuid-nguoi-gui",
-  "reportedUserId": "uuid-nguoi-bi-bao-cao",
+  "id": "report-uuid",
+  "reporterId": "sender-uuid",
+  "reportedUserId": "reported-user-uuid",
   "reason": "spam",
-  "description": "Mo ta chi tiet",
+  "description": "Detailed description",
   "status": "pending",
   "createdAt": "2026-05-10T10:00:00.000Z"
 }
 ```
 
-**Loi co the xay ra:**
+**Possible Errors:**
 ```json
-// 400 - Du lieu khong hop le
+// 400 - Invalid data
 {
   "message": "Validation failed",
   "errors": ["reportedUserId must be a UUID"]
 }
 
-// 401 - Chua dang nhap
+// 401 - Not logged in
 {
   "message": "Unauthorized"
 }
@@ -107,7 +107,7 @@ Content-Type: application/json
 
 ---
 
-### 2. Lay Tat Ca Bao Cao (Chi Admin)
+### 2. Get All Reports (Admin Only)
 
 ```
 GET /api/reports
@@ -122,25 +122,25 @@ Authorization: Bearer <token>
 ```json
 [
   {
-    "id": "uuid-bao-cao",
+    "id": "report-uuid",
     "reason": "spam",
-    "description": "Mo ta",
+    "description": "Description",
     "status": "pending",
     "createdAt": "2026-05-10T10:00:00.000Z",
     "reporter": {
       "id": "uuid",
-      "fullName": "Nguoi gui",
+      "fullName": "Sender",
       "email": "sender@example.com"
     },
     "reportedUser": {
       "id": "uuid",
-      "fullName": "Nguoi bi bao cao",
+      "fullName": "Reported User",
       "email": "reported@example.com"
     },
     "recentPartners": [
       {
         "id": "uuid",
-        "fullName": "Doi tac gan day",
+        "fullName": "Recent Partner",
         "avatarUrl": "https://..."
       }
     ]
@@ -148,9 +148,9 @@ Authorization: Bearer <token>
 ]
 ```
 
-**Loi:**
+**Errors:**
 ```json
-// 403 - Khong phai admin
+// 403 - Not admin
 {
   "message": "Chi admin moi co quyen xem bao cao"
 }
@@ -158,7 +158,7 @@ Authorization: Bearer <token>
 
 ---
 
-### 3. Lay Bao Cao Theo ID (Chi Admin)
+### 3. Get Report by ID (Admin Only)
 
 ```
 GET /api/reports/:id
@@ -167,28 +167,28 @@ GET /api/reports/:id
 **Response (200 - Success):**
 ```json
 {
-  "id": "uuid-bao-cao",
+  "id": "report-uuid",
   "reason": "harassment",
-  "description": "Mo ta chi tiet",
+  "description": "Detailed description",
   "status": "reviewed",
   "createdAt": "2026-05-10T10:00:00.000Z",
   "reporter": {
     "id": "uuid",
-    "fullName": "Nguoi gui",
+    "fullName": "Sender",
     "email": "sender@example.com"
   },
   "reportedUser": {
     "id": "uuid",
-    "fullName": "Nguoi bi bao cao",
+    "fullName": "Reported User",
     "email": "reported@example.com"
   },
   "recentPartners": []
 }
 ```
 
-**Loi:**
+**Errors:**
 ```json
-// 404 - Khong tim thay
+// 404 - Not found
 {
   "message": "Report not found"
 }
@@ -196,7 +196,7 @@ GET /api/reports/:id
 
 ---
 
-### 4. Cap Nhat Trang Thai Bao Cao (Chi Admin)
+### 4. Update Report Status (Admin Only)
 
 ```
 PATCH /api/reports/:id/status
@@ -209,18 +209,18 @@ PATCH /api/reports/:id/status
 }
 ```
 
-**Gia tri status hop le:**
-- `pending` - Cho xu ly
-- `reviewed` - Da xem xet
-- `resolved` - Da giai quyet
-- `rejected` - Bi tu choi
+**Valid Status Values:**
+- `pending` - Awaiting processing
+- `reviewed` - Reviewed
+- `resolved` - Resolved
+- `rejected` - Rejected
 
 **Response (200 - Success):**
 ```json
 {
-  "id": "uuid-bao-cao",
+  "id": "report-uuid",
   "reason": "spam",
-  "description": "Mo ta",
+  "description": "Description",
   "status": "reviewed",
   "createdAt": "2026-05-10T10:00:00.000Z",
   "updatedAt": "2026-05-10T11:00:00.000Z"
@@ -229,27 +229,27 @@ PATCH /api/reports/:id/status
 
 ---
 
-## Cac Gia Tri Enum
+## Enum Values
 
-### ReportReason (Ly do bao cao)
+### ReportReason (Report Reason)
 
-| Gia tri | Mo ta |
-|---------|-------|
-| `spam` | Noi dung spam |
-| `harassment` | Quay roi |
-| `inappropriate_content` | Noi dung khong phu hop |
-| `fake_profile` | Tai khoan gia mao |
-| `underage` | Nguoi dung chua du tuoi |
-| `other` | Khac |
+| Value | Description |
+|-------|-------------|
+| `spam` | Spam content |
+| `harassment` | Harassment |
+| `inappropriate_content` | Inappropriate content |
+| `fake_profile` | Fake account |
+| `underage` | Underage user |
+| `other` | Other |
 
-### ReportStatus (Trang thai bao cao)
+### ReportStatus (Report Status)
 
-| Gia tri | Mo ta |
-|---------|-------|
-| `pending` | Cho xu ly |
-| `reviewed` | Da xem xet |
-| `resolved` | Da giai quyet |
-| `rejected` | Bi tu choi |
+| Value | Description |
+|-------|-------------|
+| `pending` | Awaiting processing |
+| `reviewed` | Reviewed |
+| `resolved` | Resolved |
+| `rejected` | Rejected |
 
 ---
 
@@ -260,15 +260,15 @@ PATCH /api/reports/:id/status
 export class CreateReportDto {
   @IsNotEmpty()
   @IsUUID()
-  reportedUserId!: string;  // UUID cua nguoi bi bao cao
+  reportedUserId!: string;  // UUID of reported user
 
   @IsNotEmpty()
   @IsEnum(ReportReason)
-  reason!: ReportReason;    // Ly do bao cao
+  reason!: ReportReason;    // Report reason
 
   @IsOptional()
   @IsString()
-  description?: string;     // Mo ta chi tiet (tuy chon)
+  description?: string;     // Detailed description (optional)
 }
 ```
 
@@ -276,18 +276,18 @@ export class CreateReportDto {
 ```typescript
 @Entity('reports')
 export class Report {
-  id: string;              // UUID - Khoa chinh
-  reporterId: string;      // UUID nguoi gui bao cao
-  reportedUserId: string;  // UUID nguoi bi bao cao
-  reason: ReportReason;    // Ly do bao cao
-  description: string;     // Mo ta chi tiet
-  status: ReportStatus;    // Trang thai
-  createdAt: Date;         // Thoi gian tao
-  updatedAt: Date;         // Thoi gian cap nhat
+  id: string;              // UUID - Primary key
+  reporterId: string;      // UUID of reporter
+  reportedUserId: string;  // UUID of reported user
+  reason: ReportReason;    // Report reason
+  description: string;     // Detailed description
+  status: ReportStatus;    // Status
+  createdAt: Date;         // Creation time
+  updatedAt: Date;         // Update time
 }
 ```
 
-### ReportWithContext (Response cho Admin)
+### ReportWithContext (Admin Response)
 ```typescript
 export interface ReportWithContext {
   id: string;
@@ -315,47 +315,47 @@ export interface ReportWithContext {
 
 ---
 
-## Quy Trinh Xu Ly
+## Processing Flow
 
-### Nguoi Dung Gui Bao Cao
+### User Submits Report
 ```
-1. Nguoi dung chon "Bao cao" tren giao dien
-2. Chon ly do (spam, quay ro, loi...)
-3. Nhap mo ta chi tiet
-4. Nhan "Gui bao cao"
-5. Frontend goi POST /api/reports
-6. Backend luu vao database voi status = "pending"
-7. Hien thi thong bao gui thanh cong
+1. User selects "Report" on the interface
+2. Select reason (spam, harassment, error...)
+3. Enter detailed description
+4. Click "Submit Report"
+5. Frontend calls POST /api/reports
+6. Backend saves to database with status = "pending"
+7. Display success notification
 ```
 
-### Admin Xem Va Xu Ly Bao Cao
+### Admin Views and Processes Reports
 ```
-1. Admin dang nhap vao dashboard
-2. Goi GET /api/reports de xem danh sach bao cao
-3. Xem chi tiet tung bao cao bang GET /api/reports/:id
-4. Cap nhat trang thai:
-   - "reviewed" -> Da xem xet
-   - "resolved" -> Da giai quyet
-   - "rejected" -> Tu choi (khong hop le)
-5. Goi PATCH /api/reports/:id/status
+1. Admin logs into dashboard
+2. Call GET /api/reports to view report list
+3. View details of each report via GET /api/reports/:id
+4. Update status:
+   - "reviewed" -> Reviewed
+   - "resolved" -> Resolved
+   - "rejected" -> Rejected (invalid)
+5. Call PATCH /api/reports/:id/status
 ```
 
 ---
 
-## Bao Mat
+## Security
 
-### Xac Thuc
-- Tat ca endpoint yeu cau authentication (JWT token)
-- Su dung `DemoAuthGuard` de xac thuc
+### Authentication
+- All endpoints require authentication (JWT token)
+- Use `DemoAuthGuard` for authentication
 
-### Phan Quyen
-- **Nguoi dung thuong**: Chi co the tao bao cao moi
-- **Admin**: Co the xem tat ca bao cao va cap nhat trang thai
+### Authorization
+- **Regular users**: Can only create new reports
+- **Admins**: Can view all reports and update status
 
 ### Validation
-- Su dung `class-validator` de validate input
-- `reportedUserId` phai la UUID hop le
-- `reason` phai la mot trong cac gia tri enum
+- Use `class-validator` to validate input
+- `reportedUserId` must be a valid UUID
+- `reason` must be one of the enum values
 
 ---
 
@@ -375,7 +375,7 @@ CREATE TABLE reports (
     FOREIGN KEY (reported_user_id) REFERENCES users(id)
 );
 
--- Index cho performance
+-- Index for performance
 CREATE INDEX idx_reports_status ON reports(status);
 CREATE INDEX idx_reports_created_at ON reports(created_at DESC);
 CREATE INDEX idx_reports_reporter ON reports(reporter_id);
@@ -387,52 +387,52 @@ CREATE INDEX idx_reports_reported_user ON reports(reported_user_id);
 ## Frontend Components
 
 ### ReportForm.tsx
-- Form gui bao cao moi
-- Chon loai bao cao (bug, suggest, abuse, other)
-- Nhap tieu de va noi dung
-- Goi API POST /api/reports
+- Form to submit new reports
+- Select report type (bug, suggest, abuse, other)
+- Enter title and content
+- Calls API POST /api/reports
 
 ### ReportStats.tsx
-- Hien thi thong ke bao cao
-- Tong bao cao, cho xu ly, da xem xet, da giai quyet
-- Goi API GET /api/reports/stats
+- Display report statistics
+- Total reports, pending, reviewed, resolved
+- Calls API GET /api/reports/stats
 
 ### ReportHistory.tsx
-- Hien thi lich su bao cao cua nguoi dung
-- Goi API GET /api/reports/my-reports
-- Hien thi trang thai voi Badge mau
+- Display user's report history
+- Calls API GET /api/reports/my-reports
+- Display status with colored badges
 
 ### AdminReportManagement.tsx
-- Dashboard quan ly bao cao cho admin
-- Xem danh sach tat ca bao cao
-- Cap nhat trang thai bao cao
-- Goi API GET/PUT/PATCH /api/reports
+- Dashboard for admin to manage reports
+- View list of all reports
+- Update report status
+- Calls API GET/PUT/PATCH /api/reports
 
 ---
 
 ## Rate Limiting
 
-De ngan chan lam dung:
-- **Nguoi dung thuong**: Toi da 5 bao cao/phut, 50 bao cao/ngay
-- **Admin**: Khong gioi han
+To prevent abuse:
+- **Regular users**: Maximum 5 reports/minute, 50 reports/day
+- **Admins**: No limit
 
 ---
 
 ## Error Codes
 
-| Code | Mo ta |
-|------|-------|
-| 400 | Du lieu khong hop le (validation failed) |
-| 401 | Chua dang nhap (Unauthorized) |
-| 403 | Khong co quyen (Forbidden - chi admin) |
-| 404 | Bao cao khong ton tai |
-| 500 | Loi server noi bo |
+| Code | Description |
+|------|-------------|
+| 400 | Invalid data (validation failed) |
+| 401 | Not logged in (Unauthorized) |
+| 403 | No permission (Forbidden - admin only) |
+| 404 | Report not found |
+| 500 | Internal server error |
 
 ---
 
-## Vi Du Su Dung
+## Usage Examples
 
-### Tao Bao Cao (JavaScript)
+### Create Report (JavaScript)
 ```javascript
 const createReport = async (reportedUserId, reason, description) => {
   const response = await fetch('/api/reports', {
@@ -457,7 +457,7 @@ const createReport = async (reportedUserId, reason, description) => {
 };
 ```
 
-### Lay Danh Sach Bao Cao Admin (JavaScript)
+### Get All Reports for Admin (JavaScript)
 ```javascript
 const getAllReports = async () => {
   const response = await fetch('/api/reports', {
@@ -470,7 +470,7 @@ const getAllReports = async () => {
 };
 ```
 
-### Cap Nhat Trang Thai (JavaScript)
+### Update Status (JavaScript)
 ```javascript
 const updateReportStatus = async (reportId, status) => {
   const response = await fetch(`/api/reports/${reportId}/status`, {
@@ -488,17 +488,17 @@ const updateReportStatus = async (reportId, status) => {
 
 ---
 
-## Lich Su Phat Trien
+## Development History
 
-| Ngay | Mo ta |
-|------|-------|
-| 2026-05-10 | Tao tai lieu documentation dau tien |
-| 2026-05-10 | Them API endpoints cho frontend |
-| 2026-05-10 | Tao mock API routes cho development |
+| Date | Description |
+|------|-------------|
+| 2026-05-10 | Created initial documentation |
+| 2026-05-10 | Added API endpoints for frontend |
+| 2026-05-10 | Created mock API routes for development |
 
 ---
 
-## Lien Ket
+## Links
 
 - [NestJS Documentation](https://docs.nestjs.com)
 - [TypeORM Documentation](https://typeorm.io)
@@ -506,4 +506,4 @@ const updateReportStatus = async (reportId, status) => {
 
 ---
 
-*Tai lieu duoc tao ngay 10/05/2026*
+*Documentation created on 10/05/2026*

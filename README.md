@@ -1,47 +1,47 @@
 # Chat Project
 
-Day la muc luc tai lieu chinh cua du an chat. Tat ca tai lieu ben duoi nam o root hoac thu muc con lien quan.
+This is the main documentation index for the chat project. All documents below are located at the root or relevant subdirectories.
 
-## Muc luc nhanh
+## Quick Index
 
-- [Kien truc tong quan](ARCHITECTURE.md)
-- [Cau truc du an](DOC_01_CAU_TRUC.md)
-- [Y tuong san pham](DOC_02_Y_TUONG.md)
-- [Toi uu he thong](DOC_03_TOI_UU.md)
-- [Code tong hop](DOC_04_CODE_TONG_HOP.md)
-- [Bang mau giao dien](DOC_05_BANG_MAU.md)
-- [Bao mat](DOC_06_BAO_MAT.md)
-- [Bien moi truong](DOC_07_ENV.md)
+- [Architecture Overview](ARCHITECTURE.md)
+- [Project Structure](DOC_01_CAU_TRUC.md)
+- [Product Vision](DOC_02_Y_TUONG.md)
+- [System Optimization](DOC_03_TOI_UU.md)
+- [Code Summary](DOC_04_CODE_TONG_HOP.md)
+- [UI Color Palette](DOC_05_BANG_MAU.md)
+- [Security](DOC_06_BAO_MAT.md)
+- [Environment Variables](DOC_07_ENV.md)
 - [Event-Driven Architecture](DOC_08_EVENT_DRIVEN.md)
 
-## Tai lieu theo nhom
+## Documentation by Category
 
-### Tong quan
+### Overview
 
-- [ARCHITECTURE.md](ARCHITECTURE.md): kien truc tong quan cua he thong.
-- [DOC_01_CAU_TRUC.md](DOC_01_CAU_TRUC.md): cau truc frontend, backend va phan chia module.
-- [DOC_02_Y_TUONG.md](DOC_02_Y_TUONG.md): y tuong san pham va huong phat trien.
-- [DOC_08_EVENT_DRIVEN.md](DOC_08_EVENT_DRIVEN.md): kien truc huong su kien (Event-Driven).
+- [ARCHITECTURE.md](ARCHITECTURE.md): system architecture overview.
+- [DOC_01_CAU_TRUC.md](DOC_01_CAU_TRUC.md): frontend, backend structure and module breakdown.
+- [DOC_02_Y_TUONG.md](DOC_02_Y_TUONG.md): product vision and development direction.
+- [DOC_08_EVENT_DRIVEN.md](DOC_08_EVENT_DRIVEN.md): event-driven architecture.
 
-### Ky thuat
+### Technical
 
-- [DOC_03_TOI_UU.md](DOC_03_TOI_UU.md): toi uu truy van, pagination, index va hieu nang.
-- [DOC_04_CODE_TONG_HOP.md](DOC_04_CODE_TONG_HOP.md): tong hop cac diem code chinh.
-- [DOC_06_BAO_MAT.md](DOC_06_BAO_MAT.md): bao mat, auth, cookie, CSRF va quyen truy cap.
-- [DOC_07_ENV.md](DOC_07_ENV.md): bien moi truong `.env`, file lien quan va cach cau hinh.
+- [DOC_03_TOI_UU.md](DOC_03_TOI_UU.md): query optimization, pagination, indexes, and performance.
+- [DOC_04_CODE_TONG_HOP.md](DOC_04_CODE_TONG_HOP.md): summary of key code points.
+- [DOC_06_BAO_MAT.md](DOC_06_BAO_MAT.md): security, auth, cookie, CSRF, and access control.
+- [DOC_07_ENV.md](DOC_07_ENV.md): `.env` variables, related files, and configuration guide.
 
-### Giao dien
+### UI
 
-- [DOC_05_BANG_MAU.md](DOC_05_BANG_MAU.md): bang mau giao dien va quy uoc thiet ke.
-- [Frontend/README.md](Frontend/README.md): huong dan chay frontend va bien moi truong frontend.
-- [backend/README.md](backend/README.md): API backend va lien ket tai lieu env.
+- [DOC_05_BANG_MAU.md](DOC_05_BANG_MAU.md): UI color palette and design conventions.
+- [Frontend/README.md](Frontend/README.md): frontend run guide and frontend environment variables.
+- [backend/README.md](backend/README.md): backend API and env documentation links.
 
-## File env mau
+## Sample Env Files
 
-- [backend/.env.example](backend/.env.example): mau cau hinh backend.
-- [Frontend/.env.example](Frontend/.env.example): mau cau hinh frontend.
+- [backend/.env.example](backend/.env.example): backend config template.
+- [Frontend/.env.example](Frontend/.env.example): frontend config template.
 
-## Ghi chu
+## Notes
 
-- Khong commit `.env` that vi co the chua secret.
-- Neu can them bien cau hinh moi, cap nhat ca `.env.example` va [DOC_07_ENV.md](DOC_07_ENV.md).
+- Do not commit actual `.env` files as they may contain secrets.
+- If adding new config variables, update both `.env.example` and [DOC_07_ENV.md](DOC_07_ENV.md).

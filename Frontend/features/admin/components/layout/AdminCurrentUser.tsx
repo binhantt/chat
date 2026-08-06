@@ -1,7 +1,8 @@
-import { cookies } from "next/headers";
+"use client";
+
+import { useEffect, useState } from "react";
 import { Flex, Text } from "@radix-ui/themes";
 import { AvatarWithVipBadge } from "@/components/shared/AvatarWithVipBadge";
-import { BACKEND_URL } from "@/lib/env";
 import styles from "./admin-current-user.module.css";
 
 type CurrentUser = {
@@ -11,8 +12,16 @@ type CurrentUser = {
   badge?: string | null;
 };
 
-export async function AdminCurrentUser() {
-  const user = await getCurrentUser();
+export function AdminCurrentUser() {
+  const [user, setUser] = useState<CurrentUser | null>(null);
+
+  useEffect(() => {
+    fetch("/api/v1/users/me", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setUser)
+      .catch(() => {});
+  }, []);
+
   const displayName = user?.fullName || user?.email || "Chưa đăng nhập";
 
   return (
@@ -35,31 +44,6 @@ export async function AdminCurrentUser() {
       </Flex>
     </Flex>
   );
-}
-
-async function getCurrentUser(): Promise<CurrentUser | null> {
-  const cookieHeader = (await cookies())
-    .getAll()
-    .map((cookie) => `${cookie.name}=${encodeURIComponent(cookie.value)}`)
-    .join("; ");
-
-  if (!cookieHeader) {
-    return null;
-  }
-
-  const response = await fetch(`${BACKEND_URL}/api/v1/users/me`, {
-    cache: "no-store",
-    headers: {
-      Cookie: cookieHeader,
-      "Content-Type": "application/json",
-    },
-  }).catch(() => null);
-
-  if (!response?.ok) {
-    return null;
-  }
-
-  return response.json().catch(() => null) as Promise<CurrentUser | null>;
 }
 
 function getUserInitials(value: string) {

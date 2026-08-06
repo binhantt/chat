@@ -1,0 +1,9 @@
+.footerSection {
+  color: var(--text-secondary);
+}
+
+.footerLink {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: none;
+}

@@ -1,83 +1,83 @@
-# DOC 06 - Bao mat
+# DOC 06 - Security
 
-Cap nhat: 30/05/2026
+Updated: 30/05/2026
 
-Tai lieu nay ghi cac lop bao ve hien co va cac quy tac can giu khi phat trien tiep du an Chat/Nguoi La.
+This document records the existing protection layers and rules to maintain when continuing development of the Chat/Stranger project.
 
-## Muc tieu
+## Goals
 
-- Bao ve phien dang nhap bang cookie va token.
-- Tach khu vuc nguoi dung va khu vuc quan ly.
-- Chan request gia mao CSRF tren cac method ghi du lieu.
-- Khong lo thong tin nhay cam qua localStorage, payload API hoac log.
-- Giam rui ro query qua nang lam cham hoac treo server.
+- Protect login sessions with cookies and tokens.
+- Separate user area and management area.
+- Block CSRF forgery requests on write methods.
+- Don't leak sensitive information via localStorage, API payload, or logs.
+- Reduce risk of heavy queries slowing down or crashing the server.
 
-## Auth va token
+## Auth and Token
 
-Backend phu trach auth trong `backend/src/auth`.
+Backend handles auth in `backend/src/auth`.
 
-- Access token luu trong cookie `access_token`.
-- Refresh token luu trong cookie `refresh_token`.
-- `access_token` va `refresh_token` dung `HttpOnly`.
-- Cookie dung `sameSite: "strict"`.
-- Cookie chi bat `secure` khi `NODE_ENV=production`.
-- Cookie `user_id` va `csrf_token` khong `HttpOnly` de frontend/proxy doc khi can.
-- Khi logout phai clear: `access_token`, `refresh_token`, `user_id`, `csrf_token`.
+- Access token stored in cookie `access_token`.
+- Refresh token stored in cookie `refresh_token`.
+- `access_token` and `refresh_token` use `HttpOnly`.
+- Cookie uses `sameSite: "strict"`.
+- Cookie `secure` is only enabled when `NODE_ENV=production`.
+- Cookie `user_id` and `csrf_token` are not `HttpOnly` so frontend/proxy can read them when needed.
+- On logout, must clear: `access_token`, `refresh_token`, `user_id`, `csrf_token`.
 
-Quy tac can giu:
+Rules to maintain:
 
-- Khong luu user hien tai, access token, refresh token trong `localStorage`.
-- Khong dua object user lon vao JWT.
-- JWT payload chi nen gom thong tin toi thieu nhu `sub` va quyen neu backend can.
-- Refresh access token chi khi access token loi/het han, khong goi lien tuc.
-- Neu refresh token het han thi clear cookie va dua ve login.
-- Neu tai khoan bi khoa thi thoat phien ngay, khong tiep tuc dung cookie cu.
+- Don't store current user, access token, refresh token in `localStorage`.
+- Don't put large user objects in JWT.
+- JWT payload should only contain minimal info like `sub` and permissions if backend needs them.
+- Only refresh access token when it fails/expires, not continuously.
+- If refresh token expires, clear cookie and redirect to login.
+- If account is locked, end session immediately, don't continue using old cookie.
 
-## Manager/admin
+## Manager/Admin
 
-Du an dung route quan ly dang `manager`, tranh lo truc tiep chu `admin` o API moi.
+The project uses `manager` routing to avoid exposing the word `admin` directly in APIs.
 
 - Frontend page: `/admin/*`.
 - Frontend proxy API: `/api/v1/manager/*`.
 - Backend controller: `/api/v1/manager/*`.
-- Login quan ly: `POST /api/v1/manager/login`.
+- Manager login: `POST /api/v1/manager/login`.
 
-Quy tac:
+Rules:
 
-- Chi user co role quan ly moi vao duoc endpoint manager.
-- UI co the an nut theo quyen, nhung backend van phai check quyen that.
-- Khong tin vao role tu localStorage hoac state frontend.
-- Khong tra password hash, token, refresh session trong API danh sach user.
+- Only users with manager role can access manager endpoints.
+- UI can hide buttons based on permissions, but backend must still check permissions.
+- Don't trust roles from localStorage or frontend state.
+- Don't return password hash, token, or refresh session in user list API.
 
 ## CSRF
 
-Backend co origin guard va CSRF trong `backend/src/security/security.config.ts`.
+Backend has origin guard and CSRF in `backend/src/security/security.config.ts`.
 
-Co che:
+Mechanism:
 
-- Cac method nguy hiem: `POST`, `PUT`, `PATCH`, `DELETE`.
-- Cookie `csrf_token` phai khop header `x-csrf-token`.
-- Login va refresh nam trong danh sach exempt de tao/lam moi phien.
-- Proxy Next noi bo co header `x-internal-api-proxy: next`.
+- Dangerous methods: `POST`, `PUT`, `PATCH`, `DELETE`.
+- Cookie `csrf_token` must match header `x-csrf-token`.
+- Login and refresh are in the exempt list for session creation/refresh.
+- Internal Next proxy has header `x-internal-api-proxy: next`.
 
-Route duoc mien CSRF hien tai:
+Routes currently exempt from CSRF:
 
 - `/api/v1/auth/google-login`
 - `/api/v1/auth/email-login`
 - `/api/v1/auth/refresh`
 - `/api/v1/manager/login`
 
-Quy tac:
+Rules:
 
-- Khong them route ghi du lieu vao exempt neu khong can.
-- Moi request ghi du lieu tu frontend phai gui `x-csrf-token`.
-- Khi gap loi `CSRF token invalid or missing`, frontend chi refresh phien mot lan roi retry, tranh loop vo han.
+- Don't add write routes to exempt list if not needed.
+- Every write request from frontend must send `x-csrf-token`.
+- When encountering `CSRF token invalid or missing` error, frontend should only refresh session once then retry, avoiding infinite loops.
 
-## CORS va security headers
+## CORS and Security Headers
 
-Backend gioi han origin trong `getAllowedOrigins()`.
+Backend restricts origins in `getAllowedOrigins()`.
 
-Origin mac dinh cho dev:
+Default origins for dev:
 
 - `http://localhost:3000`
 - `http://127.0.0.1:3000`
@@ -86,7 +86,7 @@ Origin mac dinh cho dev:
 - `http://localhost:5173`
 - `http://127.0.0.1:5173`
 
-Header bao ve dang co:
+Current protection headers:
 
 - `X-Content-Type-Options: nosniff`
 - `X-Frame-Options: DENY`
@@ -94,56 +94,56 @@ Header bao ve dang co:
 - `Cross-Origin-Opener-Policy: same-origin`
 - `Permissions-Policy: camera=(), microphone=(), geolocation=()`
 - `Content-Security-Policy: default-src 'none'; frame-ancestors 'none'; base-uri 'none'`
-- Production co `Strict-Transport-Security`.
+- Production has `Strict-Transport-Security`.
 
-Quy tac deploy:
+Deploy rules:
 
-- Set `FRONTEND_URL` dung domain that.
-- Set `CORS_ORIGINS` neu co nhieu domain.
-- Khong de `*` cho CORS production.
-- Bat HTTPS de cookie `secure` co tac dung.
+- Set `FRONTEND_URL` to the real domain.
+- Set `CORS_ORIGINS` if there are multiple domains.
+- Don't use `*` for production CORS.
+- Enable HTTPS for `secure` cookie to take effect.
 
-## Input va noi dung chat
+## Input and Chat Content
 
-Backend co `backend/src/security/input-sanitization.pipe.ts` va module conduct.
+Backend has `backend/src/security/input-sanitization.pipe.ts` and conduct module.
 
-Quy tac:
+Rules:
 
-- Validate DTO cho moi payload.
-- Trim/sanitize string truoc khi luu.
-- Gioi han do dai content tin nhan, tieu de bao cao, bio, note.
-- Tin nhan can chay qua conduct rules de phat hien noi dung vi pham.
-- Khong render HTML tu user input tren frontend.
+- Validate DTO for every payload.
+- Trim/sanitize strings before saving.
+- Limit content length for messages, report titles, bios, notes.
+- Messages must pass through conduct rules to detect violating content.
+- Don't render HTML from user input on frontend.
 
-## Bao cao va khoa tai khoan
+## Reports and Account Lock
 
-Khi bao cao duoc xac nhan vi pham:
+When a report is confirmed as a violation:
 
-- Backend cap nhat report status.
-- Backend khoa user bi bao cao theo lock type.
-- User bi khoa phai bi day ra khoi phien dang nhap.
-- Khi mo khoa tu report, chi mo neu report do dang la nguon khoa.
+- Backend updates report status.
+- Backend locks the reported user based on lock type.
+- Locked user must be kicked out of the login session.
+- When unlocking from a report, only unlock if that report was the source of the lock.
 
-Quy tac:
+Rules:
 
-- Khong chi khoa o frontend.
-- Khong cho user tu mo khoa minh bang API user thuong.
-- Log hanh dong quan ly quan trong neu them audit sau nay.
+- Don't only lock at frontend level.
+- Don't let users unlock themselves via regular user API.
+- Log important management actions if adding audit later.
 
-## Database va API
+## Database and API
 
-Bao mat cung la tranh endpoint bi lam cham de tan cong.
+Security also means preventing endpoints from being slowed down as an attack vector.
 
-Quy tac:
+Rules:
 
-- Endpoint danh sach phai dung `limit`.
-- Danh sach lon dung cursor pagination, khong dung offset lon.
-- Chi select field can thiet, khong `SELECT *`.
-- Tranh N+1 query trong loop.
-- Them index theo query thuc te.
-- Gioi han `limit` toi da tren backend.
+- List endpoints must use `limit`.
+- Large lists use cursor pagination, not large offsets.
+- Only select needed fields, no `SELECT *`.
+- Avoid N+1 queries in loops.
+- Add indexes based on actual queries.
+- Enforce max `limit` on backend.
 
-Index quan trong:
+Important indexes:
 
 - `messages(room_id, created_at DESC)`
 - `messages(user_id, created_at DESC)`
@@ -151,38 +151,38 @@ Index quan trong:
 - `reports(status, created_at, id)`
 - `users(created_at, id)`
 
-## Log
+## Logging
 
-Duoc log:
+Logged:
 
-- Method, path, thoi gian request.
-- Login timing tach `db`, `password`, `token`.
-- Loi he thong khong chua secret.
+- Method, path, request duration.
+- Login timing split into `db`, `password`, `token`.
+- System errors without secrets.
 
-Khong duoc log:
+Not logged:
 
 - Password.
 - Access token.
 - Refresh token.
-- Cookie day du.
-- Google id token.
-- Noi dung chat nhay cam neu khong can debug cuc bo.
+- Full cookie.
+- Google ID token.
+- Sensitive chat content unless needed for local debugging.
 
-## Checklist truoc khi deploy
+## Pre-Deploy Checklist
 
 - `NODE_ENV=production`.
-- `FRONTEND_URL` dung domain production.
-- `CORS_ORIGINS` chi gom domain hop le.
-- `JWT_SECRET` va refresh secret khong dung gia tri dev.
-- HTTPS bat tren domain.
-- Cookie secure hoat dong.
-- Database da co index hieu nang.
-- Build frontend/backend pass.
-- Khong con token/user nhay cam trong localStorage.
-- Route manager da check quyen backend.
-- CSRF khong bi tat rong.
+- `FRONTEND_URL` points to production domain.
+- `CORS_ORIGINS` only includes valid domains.
+- `JWT_SECRET` and refresh secret not using dev values.
+- HTTPS enabled on domain.
+- Cookie secure is working.
+- Database has performance indexes.
+- Frontend/backend build passes.
+- No sensitive tokens/users in localStorage.
+- Manager routes have backend permission checks.
+- CSRF is not broadly disabled.
 
-## File lien quan
+## Related Files
 
 - `backend/src/auth/auth.controller.ts`
 - `backend/src/auth/auth.service.ts`

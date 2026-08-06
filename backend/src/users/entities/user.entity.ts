@@ -89,6 +89,10 @@ export class User {
   })
   role!: UserRole;
 
+  // --- TRẠNG THÁI ẨN DANH ---
+  @Column({ name: 'is_guest', default: false })
+  isGuest!: boolean;
+
   // --- QUẢN LÝ TRẠNG THÁI ---
   @Column({ default: true })
   isActive!: boolean;
@@ -108,6 +112,9 @@ export class User {
 
   @Column({ type: 'varchar', nullable: true })
   lockedByReportId!: string | null;
+
+  @Column({ name: 'created_by_ip', type: 'varchar', nullable: true })
+  createdByIp!: string | null;
 
   @CreateDateColumn({ type: 'timestamp with time zone' })
   createdAt!: Date;

@@ -7,6 +7,8 @@ import {
   RocketIcon,
   StarFilledIcon,
   LightningBoltIcon,
+  EnvelopeClosedIcon,
+  MobileIcon,
 } from "@radix-ui/react-icons";
 import { SeppayPaymentModal } from "@/features/vip/components/SeppayPaymentModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,11 +55,31 @@ const PREMIUM_FEATURES = [
 ];
 
 export function VipPage() {
-  const { fetchUser } = useAuth();
+  const { user, isGuest, fetchUser } = useAuth();
   const [plans, setPlans] = useState<PlanData[]>([]);
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
   const [loading, setLoading] = useState(true);
   const [paymentPlan, setPaymentPlan] = useState<PlanData | null>(null);
+
+  // Block VIP for anonymous users
+  if (isGuest) {
+    return (
+      <Box style={{ background: "var(--bg-primary)", minHeight: "100%", padding: "28px clamp(16px, 2.2vw, 32px)" }}>
+        <Flex direction="column" gap="5" style={{ margin: "0 auto", maxWidth: 480, width: "100%", textAlign: "center" }}>
+          <Flex align="center" justify="center" style={{ fontSize: 48, marginTop: 40 }}>
+            🔒
+          </Flex>
+          <Text size="5" weight="bold" style={{ color: "var(--chat-text)" }}>
+            Không khả dụng
+          </Text>
+          <Text size="2" style={{ color: "var(--chat-muted)", lineHeight: 1.6 }}>
+            Người dùng ẩn danh không thể nâng cấp VIP.
+            Vui lòng đăng nhập bằng Google để sử dụng tính năng này.
+          </Text>
+        </Flex>
+      </Box>
+    );
+  }
 
   useEffect(() => {
     const fetchData = async () => {
@@ -447,7 +469,7 @@ export function VipPage() {
         }}
       >
         <Flex align="center" gap="3" wrap="wrap" justify="center">
-          <Flex
+            <Flex
             align="center"
             gap="2"
             px="3"
@@ -461,13 +483,10 @@ export function VipPage() {
             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--chat-accent)"; e.currentTarget.style.color = "#fff"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "var(--chat-accent-soft)"; e.currentTarget.style.color = "inherit"; }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="4" width="20" height="16" rx="2"/>
-              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
-            </svg>
+            <EnvelopeClosedIcon width={16} height={16} />
             <Text size="2">support@nguoila.vn</Text>
           </Flex>
-          <Flex
+            <Flex
             align="center"
             gap="2"
             px="3"
@@ -481,9 +500,7 @@ export function VipPage() {
             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--chat-accent)"; e.currentTarget.style.color = "#fff"; }}
             onMouseLeave={(e) => { e.currentTarget.style.background = "var(--chat-accent-soft)"; e.currentTarget.style.color = "inherit"; }}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-            </svg>
+            <MobileIcon width={16} height={16} />
             <Text size="2">1900 1234</Text>
           </Flex>
         </Flex>

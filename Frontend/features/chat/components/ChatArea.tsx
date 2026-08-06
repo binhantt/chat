@@ -671,6 +671,11 @@ export function ChatArea({
               visibleUser?.email ||
               "Nguoi tro chuyen an danh"}
           </Text>
+          {otherUser?.id && (
+            <Text size="1" style={{ color: textSecondary, fontFamily: "monospace" }}>
+              ID: {otherUser.id.slice(0, 12)}...
+            </Text>
+          )}
           {!canViewProfile && (
             <Text size="2" style={{ color: textSecondary }}>
               Bam Thich de xem ten va ho so

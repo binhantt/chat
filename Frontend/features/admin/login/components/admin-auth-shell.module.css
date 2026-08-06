@@ -1,0 +1,14 @@
+.authShell {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(75,46,131,0.18), transparent 28%),
+    radial-gradient(circle at 84% 16%, rgba(34,211,238,0.12), transparent 26%),
+    var(--bg-primary);
+  color: var(--text-primary);
+  height: 100dvh;
+  overflow: hidden;
+  padding: 18px;
+}
+
+.authShellInner {
+  height: 100%;
+}

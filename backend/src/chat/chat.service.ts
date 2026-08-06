@@ -13,6 +13,7 @@ import {
   ConversationStatus,
 } from './entities/conversation.entity';
 import { Message, MessageStatus } from './entities/message.entity';
+import { Report, ReportStatus } from '../report/entities/report.entity';
 import { AuthTokenService } from '../auth/services/auth-token.service';
 import { ChatRealtimeService } from './chat-realtime.service';
 import { ConductService } from '../conduct/conduct.service';
@@ -20,11 +21,14 @@ import {
   MatchQueue,
   MatchQueueStatus,
 } from '../match/entities/match-queue.entity';
+import { AiChatService } from '../ai/ai-chat.service';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class ChatService implements OnModuleInit {
   private readonly logger = new Logger(ChatService.name);
   private readonly messageRetentionDays = 90;
+  private readonly AI_BOT_EMAIL = 'bot@nguoila.online';
 
   constructor(
     @InjectRepository(Conversation)
@@ -33,9 +37,14 @@ export class ChatService implements OnModuleInit {
     private readonly messageRepository: Repository<Message>,
     @InjectRepository(MatchQueue)
     private readonly matchQueueRepository: Repository<MatchQueue>,
+    @InjectRepository(Report)
+    private readonly reportRepository: Repository<Report>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     private readonly authTokenService: AuthTokenService,
     private readonly chatRealtimeService: ChatRealtimeService,
     private readonly conductService: ConductService,
+    private readonly aiChatService: AiChatService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -53,6 +62,7 @@ export class ChatService implements OnModuleInit {
   }
 
   private readonly endedConversationRetentionDays = 30;
+  private readonly chatHistoryRetentionDays = 30;
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async deleteExpiredMessages(): Promise<number> {
@@ -108,6 +118,76 @@ export class ChatService implements OnModuleInit {
     );
 
     return deletedConversations;
+  }
+
+  /**
+   * Xóa lịch sử chat (messages) của conversations đã cũ (>30 ngày)
+   * - Nếu KHÔNG có report pending nào → xóa messages ngay
+   * - Nếu CÓ report pending → đợi admin resolve/reject rồi mới xóa
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async deleteChatHistoryAfterRetention(): Promise<number> {
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - this.chatHistoryRetentionDays);
+
+    // Tìm conversations vẫn active hoặc ended nhưng chưa bị xóa
+    const oldConversations = await this.conversationRepository.find({
+      where: [
+        { updatedAt: LessThan(cutoffDate), status: ConversationStatus.Active },
+        { updatedAt: LessThan(cutoffDate), status: ConversationStatus.Ended },
+        { updatedAt: LessThan(cutoffDate), status: ConversationStatus.Blocked },
+      ],
+      select: ['id', 'user1Id', 'user2Id', 'status', 'updatedAt'],
+    });
+
+    if (oldConversations.length === 0) {
+      return 0;
+    }
+
+    let totalDeletedMessages = 0;
+
+    for (const conv of oldConversations) {
+      // Kiểm tra có report pending nào cho user1 hoặc user2 không
+      const hasPendingReports = await this.reportRepository
+        .createQueryBuilder('report')
+        .where(
+          '(report.reportedUserId = :user1 OR report.reportedUserId = :user2)',
+          { user1: conv.user1Id, user2: conv.user2Id },
+        )
+        .andWhere('report.status = :status', {
+          status: ReportStatus.Pending,
+        })
+        .getCount();
+
+      // Nếu có report pending → bỏ qua, đợi admin resolve
+      if (hasPendingReports > 0) {
+        this.logger.log(
+          `Skipping chat history deletion for conversation ${conv.id}: ${hasPendingReports} pending report(s)`,
+        );
+        continue;
+      }
+
+      // Không có report pending → xóa messages của conversation này
+      const result = await this.messageRepository.delete({
+        conversationId: conv.id,
+      });
+      const deletedCount = result.affected ?? 0;
+
+      if (deletedCount > 0) {
+        totalDeletedMessages += deletedCount;
+        this.logger.log(
+          `Deleted ${deletedCount} messages from conversation ${conv.id} (no pending reports)`,
+        );
+      }
+    }
+
+    if (totalDeletedMessages > 0) {
+      this.logger.log(
+        `Chat history cleanup: deleted ${totalDeletedMessages} messages from ${oldConversations.length} conversations (>${this.chatHistoryRetentionDays} days, no pending reports)`,
+      );
+    }
+
+    return totalDeletedMessages;
   }
 
   async findConversationById(
@@ -337,7 +417,78 @@ export class ChatService implements OnModuleInit {
     this.logger.log(
       `Message created: ${savedMessage.id} in conversation ${conversationId}`,
     );
+
+    // Check if this is a conversation with the AI bot
+    const isAiConversation = await this.isAiConversation(conversation);
+    if (isAiConversation) {
+      // Don't generate reply if the bot sent the message
+      const senderIsBot = senderId !== conversation.user1Id;
+      if (!senderIsBot) {
+        await this.generateAiReply(conversation, conversation.user1Id);
+      }
+    }
+
     return savedMessage;
+  }
+
+  private async isAiConversation(conversation: Conversation): Promise<boolean> {
+    const botUser = await this.userRepository.findOne({
+      where: { email: this.AI_BOT_EMAIL },
+    });
+    if (!botUser) return false;
+    return conversation.user2Id === botUser.id;
+  }
+
+  private async generateAiReply(conversation: Conversation, humanUserId: string): Promise<void> {
+    try {
+      const shouldReply = await this.aiChatService.shouldReply(conversation.id);
+      if (!shouldReply) return;
+
+      // Get recent messages for context
+      const recentMessages = await this.messageRepository.find({
+        where: { conversationId: conversation.id },
+        order: { createdAt: 'DESC' },
+        take: 10,
+      });
+
+      const history = recentMessages.reverse().map((m) => ({
+        role: m.senderId === humanUserId ? 'user' : 'assistant',
+        content: m.content,
+      }));
+
+      const lastUserMessage = recentMessages.find((m) => m.senderId === humanUserId);
+      if (!lastUserMessage) return;
+
+      const reply = await this.aiChatService.generateReply(lastUserMessage.content, history);
+      if (!reply) return;
+
+      const botUser = await this.userRepository.findOne({
+        where: { email: this.AI_BOT_EMAIL },
+      });
+      if (!botUser) return;
+
+      const botMessage = this.messageRepository.create({
+        conversationId: conversation.id,
+        senderId: botUser.id,
+        content: reply,
+        status: MessageStatus.Sent,
+      });
+
+      const savedBotMessage = await this.messageRepository.save(botMessage);
+
+      await this.conversationRepository.update(conversation.id, {
+        updatedAt: new Date(),
+      });
+
+      this.chatRealtimeService.emitMessage(
+        [conversation.user1Id, conversation.user2Id],
+        savedBotMessage,
+      );
+
+      this.logger.log(`AI reply sent in conversation ${conversation.id}`);
+    } catch (error) {
+      this.logger.error('Failed to generate AI reply', error);
+    }
   }
 
   async getConversationMessages(

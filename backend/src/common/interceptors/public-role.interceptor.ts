@@ -30,6 +30,7 @@ function hideRoleField(data: unknown): unknown {
 
   for (const [key, value] of Object.entries(source)) {
     if (key === 'role') {
+      output.isAdmin = value === 'admin';
       continue;
     }
 

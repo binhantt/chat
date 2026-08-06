@@ -18,8 +18,9 @@ export class AuthCookieService {
     accessToken: string,
     refreshToken: string,
     userId: string,
+    accessTokenMaxAge?: number,
   ): void {
-    this.setAccessToken(response, accessToken);
+    this.setAccessToken(response, accessToken, accessTokenMaxAge);
     this.setRefreshToken(response, refreshToken);
     this.setUserId(response, userId);
     this.setCsrfToken(response);
@@ -40,10 +41,10 @@ export class AuthCookieService {
     }
   }
 
-  setAccessToken(response: Response, accessToken: string): void {
+  setAccessToken(response: Response, accessToken: string, maxAge?: number): void {
     response.cookie(ACCESS_TOKEN_COOKIE, accessToken, {
       ...this.baseCookieOptions(true),
-      maxAge: this.authTokenService.getAccessTokenMaxAge(),
+      maxAge: maxAge ?? this.authTokenService.getAccessTokenMaxAge(),
     });
   }
 
@@ -152,8 +153,8 @@ export class AuthCookieService {
     return {
       httpOnly,
       path: '/',
-      sameSite: 'strict' as const,
-      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none' as const,
+      secure: true,
     };
   }
 }

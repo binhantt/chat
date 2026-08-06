@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import {
   ACCESS_TOKEN_TTL_MS,
+  GUEST_ACCESS_TOKEN_TTL_MS,
   REFRESH_TOKEN_TTL_MS,
 } from '../constants/auth-token.constant';
 
@@ -17,8 +18,8 @@ interface RefreshSession {
 export class AuthTokenService {
   private readonly refreshSessions = new Map<string, RefreshSession>();
 
-  createAccessToken(userId: string): string {
-    const expiresAt = Date.now() + ACCESS_TOKEN_TTL_MS;
+  createAccessToken(userId: string, ttlMs?: number): string {
+    const expiresAt = Date.now() + (ttlMs ?? ACCESS_TOKEN_TTL_MS);
     const signature = this.signAccessToken(userId, expiresAt);
 
     return `user:${userId}:${expiresAt}:${signature}`;

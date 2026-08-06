@@ -22,7 +22,7 @@ export function ChatSidebarHeader({ onHome }: ChatSidebarHeaderProps) {
           Phòng trò chuyện
         </Text>
         <Text as="div" size="1" className="chat-muted">
-          Trò chuyện và ghép đôi
+          Trò chuyện trực tuyến
         </Text>
       </Box>
     </Flex>

@@ -1,0 +1,18 @@
+.fieldLabel {
+  color: var(--text-primary);
+}
+
+.inputField {
+  background: #FFFFFF;
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  color: var(--text-primary);
+}
+
+.submitButton {
+  background: var(--primary);
+  border-radius: 8px;
+  color: #FFFFFF;
+  min-height: 44px;
+  width: 100%;
+}

@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { getCsrfHeaders } from "@/lib/csrf";
 import { useChatHomeStore } from "../store/useChatHomeStore";
 import type { ChatSessionState, MatchedUser } from "../types";
 
@@ -33,14 +32,6 @@ export function useChatHome() {
     clearChatRoute();
     window.sessionStorage.removeItem(CHAT_SESSION_KEY);
   }, [clearChatRoute, conversationId, resetChatSession]);
-
-  const leaveCurrentMatch = useCallback(async () => {
-    await fetch("/api/v1/match/leave", {
-      credentials: "include",
-      method: "DELETE",
-      headers: { ...getCsrfHeaders() },
-    }).catch(() => undefined);
-  }, []);
 
   useEffect(() => {
     const convParam = searchParams.get("conv");
@@ -73,7 +64,6 @@ export function useChatHome() {
       const raw = window.sessionStorage.getItem(CHAT_SESSION_KEY);
       if (!raw) return;
 
-      // Don't restore if we just cleared this conversation
       const saved = JSON.parse(raw) as Partial<ChatSessionState>;
       if (saved.conversationId && saved.selectedUser && saved.conversationId !== clearedConversationRef.current) {
         queueMicrotask(() => {
@@ -100,39 +90,24 @@ export function useChatHome() {
       return;
     }
 
-    if (mode !== "match" && mode !== "search") {
+    if (mode !== "search") {
       window.sessionStorage.removeItem(CHAT_SESSION_KEY);
     }
   }, [conversationId, matchedUser, mode, selectedUser]);
 
   const handleSearchClick = () => {
     clearChatRoute();
-    setMode("search");
-  };
-
-  const handleMatchClick = async () => {
-    await leaveCurrentMatch();
-    resetChatState();
     setMode("match");
   };
 
   const handleHomeClick = () => {
     resetChatState();
-    setMode("match");
+    setMode("search");
   };
 
   const handleChatBack = () => {
     resetChatState();
-    setMode("match");
-  };
-
-  const handleMatched = (convId: string, matched: MatchedUser) => {
-    clearChatRoute();
-    setChatSession({
-      conversationId: convId,
-      matchedUser: matched,
-      selectedUser: matched.id,
-    });
+    setMode("search");
   };
 
   const handleSelectConversation = (convId: string, partner: MatchedUser) => {
@@ -144,19 +119,10 @@ export function useChatHome() {
     });
   };
 
-  const handleCancelMatch = () => {
-    void leaveCurrentMatch();
-    resetChatState();
-    setMode("match");
-  };
-
   return {
     conversationId,
-    handleCancelMatch,
     handleChatBack,
     handleHomeClick,
-    handleMatchClick,
-    handleMatched,
     handleSearchClick,
     handleSelectConversation,
     matchedUser,

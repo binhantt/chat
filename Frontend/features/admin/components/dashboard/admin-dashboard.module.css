@@ -1,0 +1,345 @@
+/* adminPanelStyle equivalent */
+.panel {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+/* Admin Dashboard Header */
+.headerCard {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.badge {
+  background: rgba(75, 46, 131, 0.1);
+  border: 1px solid var(--chat-border);
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.heading {
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 8px 0 0;
+  max-width: 680px;
+}
+
+.refreshBtn {
+  border-radius: 8px;
+}
+
+/* Stat Card */
+.statCard {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.statIconBox {
+  background: linear-gradient(135deg, var(--primary), rgba(75, 46, 131, 0.7));
+  border-radius: 10px;
+  color: #ffffff;
+  height: 46px;
+  width: 46px;
+}
+
+.statLabel {
+  color: var(--text-secondary);
+}
+
+.statValue {
+  color: var(--text-primary);
+}
+
+/* Server Metrics Panel */
+.metricsSection {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.metricsTitle {
+  color: var(--text-primary);
+}
+
+.metricsDesc {
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.metricsHint {
+  background: rgba(75, 46, 131, 0.06);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.metricsHintText {
+  color: var(--text-secondary);
+}
+
+.metricsLoading {
+  background: rgba(75, 46, 131, 0.06);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.metricsLoadingText {
+  color: var(--text-secondary);
+}
+
+.metricsError {
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.metricsErrorText {
+  color: #b91c1c;
+}
+
+.metricsFooter {
+  color: var(--text-secondary);
+}
+
+/* MetricMeter */
+.meterBox {
+  background: rgba(75, 46, 131, 0.06);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.meterLabel {
+  color: var(--text-primary);
+}
+
+.meterBar {
+  background: rgba(15, 23, 42, 0.08);
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.meterBarFill {
+  border-radius: 999px;
+  height: 100%;
+  transition: width 180ms ease;
+}
+
+.meterMeta {
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+/* SmallMetric */
+.smallMetric {
+  background: var(--chat-surface);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.smallMetricIcon {
+  background: rgba(75, 46, 131, 0.1);
+  border-radius: 8px;
+  color: var(--primary);
+  height: 34px;
+  width: 34px;
+}
+
+.smallMetricLabel {
+  color: var(--text-secondary);
+}
+
+.smallMetricValue {
+  color: var(--text-primary);
+}
+
+/* Visit Stats */
+.visitPanel {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.visitTitle {
+  color: var(--text-primary);
+}
+
+.visitDesc {
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.visitMetricBox {
+  background: rgba(75, 46, 131, 0.06);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.visitMetricIconBox {
+  background: rgba(75, 46, 131, 0.12);
+  border-radius: 8px;
+  color: var(--primary);
+  height: 34px;
+  width: 34px;
+}
+
+.visitMetricLabel {
+  color: var(--text-secondary);
+}
+
+.visitMetricValue {
+  color: var(--text-primary);
+}
+
+.visitPathName {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.visitPathCount {
+  color: var(--primary);
+}
+
+.visitFooter {
+  color: var(--text-secondary);
+}
+
+/* Chart Panel */
+.chartPanel {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.chartTitle {
+  color: var(--text-primary);
+}
+
+.chartDesc {
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.chartDonutCenter {
+  background: var(--chat-surface);
+  border-radius: 50%;
+  height: 104px;
+  width: 104px;
+}
+
+.chartDonutCenterTotal {
+  color: var(--text-primary);
+}
+
+.chartDonutCenterLabel {
+  color: var(--text-secondary);
+}
+
+.chartLegendItem {
+  background: rgba(75, 46, 131, 0.08);
+  border-radius: 999px;
+  height: 6px;
+  margin-top: 7px;
+  overflow: hidden;
+}
+
+.chartLegendFill {
+  border-radius: 999px;
+  height: 100%;
+}
+
+.chartSectionTitle {
+  color: var(--text-primary);
+}
+
+/* Recent Users */
+.recentUsersPanel {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.recentUsersTitle {
+  color: var(--text-primary);
+}
+
+.recentUsersViewAll {
+  border-radius: 8px;
+}
+
+.recentUsersEmpty {
+  color: var(--text-secondary);
+}
+
+.recentUsersList {
+  border-top: 1px solid var(--chat-border);
+}
+
+.recentUserItem {
+  border-bottom: 1px solid var(--chat-border);
+  padding: 10px 0;
+}
+
+/* User Row (Dashboard) */
+.userRow {
+  background: transparent;
+  padding: 4px 0;
+}
+
+.userRowInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.userRowName {
+  color: var(--text-primary);
+}
+
+.userRowEmail {
+  color: var(--text-secondary);
+}
+
+/* Progress Row */
+.progressRowLabel {
+  color: var(--text-primary);
+}
+
+.progressRowValue {
+  color: var(--text-secondary);
+}
+
+.progressBar {
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 999px;
+  height: 8px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  border-radius: 999px;
+  height: 100%;
+}
+
+/* Loading */
+.loadingContainer {
+  min-height: 420px;
+}
+
+.loadingText {
+  color: var(--text-secondary);
+}

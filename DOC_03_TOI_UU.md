@@ -1,24 +1,24 @@
-# DOC 03 - Toi uu hieu nang va bao mat
+# DOC 03 - Performance Optimization and Security
 
-Cap nhat: 30/05/2026
+Updated: 30/05/2026
 
-Tai lieu nay ghi cac quy tac toi uu backend, frontend va database can giu khi code tiep.
+This document records the optimization rules for backend, frontend, and database that should be maintained during development.
 
-## Nguyen tac chung
+## General Principles
 
-- Khong goi API lap neu data da co cache hop ly.
-- Khong query DB trong loop neu co the dung JOIN hoac `IN (...)`.
-- Khong `SELECT *` cho endpoint danh sach.
-- Danh sach lon dung cursor pagination, tranh offset lon.
-- Middleware/proxy chi match route can bao ve.
-- Refresh token chi khi access token loi/het han.
-- Logout nen clear cookie/token nhanh, tranh query DB neu khong can.
+- Do not call API repeatedly if data is already reasonably cached.
+- Do not query DB in a loop if JOIN or `IN (...)` can be used.
+- No `SELECT *` for list endpoints.
+- Use cursor pagination for large lists, avoid large offsets.
+- Middleware/proxy should only match routes that need protection.
+- Only refresh token when access token fails/expires.
+- Logout should clear cookie/token quickly, avoid DB query if not needed.
 
 ## Backend
 
-### Tranh N+1 query
+### Avoid N+1 Queries
 
-Khong nen:
+Don't:
 
 ```ts
 for (const user of users) {
@@ -26,7 +26,7 @@ for (const user of users) {
 }
 ```
 
-Nen:
+Do:
 
 ```ts
 await repository
@@ -35,7 +35,7 @@ await repository
   .getMany();
 ```
 
-Hoac dung JOIN:
+Or use JOIN:
 
 ```sql
 SELECT users.id, users.email, reports.id
@@ -43,24 +43,24 @@ FROM users
 LEFT JOIN reports ON reports.reported_user_id = users.id;
 ```
 
-### Cac diem da toi uu
+### Already Optimized Points
 
 - `report.service.ts`
-  - `findMyReports` batch recent partners bang 1 raw query thay vi moi report mot query.
-  - `updateStatus` khong query lai user sau khi `lockFromReport`/`unlockFromReport`.
+  - `findMyReports` batches recent partners with 1 raw query instead of 1 query per report.
+  - `updateStatus` does not re-query user after `lockFromReport`/`unlockFromReport`.
 - `match.service.ts`
-  - Bulk update active conversations bang `In(conversationIds)`.
-  - `findMatch` dung `IN (:...preferredGenders)` thay vi query tung gender.
+  - Bulk update active conversations using `In(conversationIds)`.
+  - `findMatch` uses `IN (:...preferredGenders)` instead of querying each gender.
 - `users.service.ts`
-  - Manager users dung cursor pagination va select field can thiet.
+  - Manager users uses cursor pagination and selects only needed fields.
 - `chat.service.ts`
-  - Manager chats dung cursor pagination.
+  - Manager chats uses cursor pagination.
 - `report.service.ts`
-  - Manager reports dung cursor pagination, select alias field can thiet.
+  - Manager reports uses cursor pagination, selects aliased fields as needed.
 
 ### Pagination
 
-Khong nen:
+Don't:
 
 ```sql
 SELECT *
@@ -69,7 +69,7 @@ ORDER BY created_at DESC
 LIMIT 20 OFFSET 10000;
 ```
 
-Nen:
+Do:
 
 ```sql
 SELECT id, content, created_at
@@ -79,7 +79,7 @@ ORDER BY created_at DESC
 LIMIT 20;
 ```
 
-Voi cursor gom time + id:
+With cursor using time + id:
 
 ```sql
 WHERE created_at < :createdAt
@@ -88,7 +88,7 @@ ORDER BY created_at DESC, id DESC
 LIMIT :limit;
 ```
 
-### Index nen co
+### Recommended Indexes
 
 Messages:
 
@@ -121,15 +121,15 @@ Users:
 - `lockType, lockedUntil`
 - `city, gender, isActive`
 
-### Select field can thiet
+### Select Only Needed Fields
 
-Khong nen lay het:
+Don't fetch everything:
 
 ```ts
 repository.find({ relations: ["messages", "reports"] });
 ```
 
-Nen dung query builder:
+Use query builder:
 
 ```ts
 repository
@@ -140,17 +140,17 @@ repository
   .getRawMany();
 ```
 
-### Auth/token
+### Auth/Token
 
-- Access token ngan han.
-- Refresh token chi goi khi access token loi/het han.
-- Neu refresh token het han thi logout.
-- Neu user bi khoa, clear cookie va day user ve login.
-- JWT payload nho: `sub`, `role` neu backend can; khong nhot object lon.
+- Short-lived access token.
+- Only refresh token when access token fails/expires.
+- If refresh token expires, logout.
+- If user is locked, clear cookie and redirect to login.
+- Small JWT payload: `sub`, `role` if backend needs; don't stuff large objects.
 
 ### Logout
 
-Nen:
+Do:
 
 ```ts
 res.clearCookie("access_token");
@@ -158,34 +158,34 @@ res.clearCookie("refresh_token");
 return { success: true };
 ```
 
-Khong nen await cleanup nang neu logout chi dung JWT/cookie stateless.
+Don't await heavy cleanup if logout only uses stateless JWT/cookie.
 
 ### Logging
 
-Da co interceptor log API:
+API logging interceptor already exists:
 
 ```text
 [API] GET /api/v1/users/me 1ms
 ```
 
-Dung log nay de biet bottleneck:
+Use this log to identify bottlenecks:
 
-- `Waiting/TTFB` cao: backend/DB.
-- `Content Download` cao: payload lon.
-- `Stalled` cao: browser/network.
+- High `Waiting/TTFB`: backend/DB.
+- High `Content Download`: large payload.
+- High `Stalled`: browser/network.
 
 ## Frontend
 
-### Khong goi API lap
+### Don't Call API Repeatedly
 
-- `AuthContext` cache `/api/v1/users/me` trong bo nho.
-- `/admin/*` khong goi `/users/me` bang client AuthProvider.
-- Sidebar admin `prefetch={false}` de khong goi data truoc khi click.
-- API manager GET co inflight dedupe ngan han.
+- `AuthContext` caches `/api/v1/users/me` in memory.
+- `/admin/*` does not call `/users/me` via client AuthProvider.
+- Admin sidebar uses `prefetch={false}` to avoid fetching data before click.
+- Manager GET APIs have short-lived inflight dedupe.
 
-### Refresh token co dieu kien
+### Conditional Token Refresh
 
-Khong nen:
+Don't:
 
 ```ts
 if (response.status === 401 || response.status === 403) {
@@ -193,7 +193,7 @@ if (response.status === 401 || response.status === 403) {
 }
 ```
 
-Nen:
+Do:
 
 ```ts
 if (response.status === 401 && message.includes("access token")) {
@@ -201,39 +201,39 @@ if (response.status === 401 && message.includes("access token")) {
 }
 ```
 
-403 CSRF xu ly rieng.
+Handle 403 CSRF separately.
 
-### RSC va Client Component
+### RSC vs Client Component
 
-Dung RSC khi:
+Use RSC when:
 
-- Chi render UI tinh.
-- Doc cookie/header.
-- Fetch server-side.
+- Only rendering static UI.
+- Reading cookie/header.
+- Server-side fetching.
 
-Dung `"use client"` khi:
+Use `"use client"` when:
 
-- Can `useState`, `useEffect`, event handler.
-- Can Zustand hook.
-- Can browser API.
+- Need `useState`, `useEffect`, event handlers.
+- Need Zustand hooks.
+- Need browser APIs.
 
-### Admin layout
+### Admin Layout
 
-- Desktop: sidebar trai.
+- Desktop: left sidebar.
 - Mobile: bottom navigation.
-- Active menu lay tu `x-current-path`.
-- Navbar mobile gon, khong nhet search dai.
+- Active menu from `x-current-path`.
+- Mobile navbar should be compact, don't stuff long search bars.
 
 ### UI
 
-- Dung Radix UI Themes.
-- Dung icon Radix.
+- Use Radix UI Themes.
+- Use Radix icons.
 - Card radius 8px.
-- Tranh card long card.
-- Text khong de tran container.
-- Mobile can padding bottom de khong bi bottom nav che.
+- Avoid card-in-card nesting.
+- Text should not overflow container.
+- Mobile needs bottom padding to avoid bottom nav overlap.
 
-## Check truoc khi push
+## Pre-Push Checks
 
 Frontend:
 
@@ -249,7 +249,7 @@ cd backend
 pnpm.cmd build
 ```
 
-Lint nhanh file vua sua:
+Quick lint on recently changed files:
 
 ```bash
 cd Frontend
@@ -258,4 +258,3 @@ pnpm.cmd run lint -- "features/admin/components/users"
 cd backend
 .\node_modules\.bin\eslint.cmd src/report/report.service.ts src/match/match.service.ts
 ```
-

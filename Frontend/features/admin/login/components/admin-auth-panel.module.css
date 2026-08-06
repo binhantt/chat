@@ -1,0 +1,14 @@
+.authPanel {
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(255,255,255,0.9));
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  max-width: 420px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.authPanelGradient {
+  background: linear-gradient(90deg, var(--primary), #22d3ee, #f59e0b);
+  height: 3px;
+  width: 100%;
+}

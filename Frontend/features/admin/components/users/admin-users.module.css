@@ -1,0 +1,229 @@
+/* Users Header */
+.headerCard {
+  background: linear-gradient(90deg, rgba(75,46,131,0.12), rgba(255,255,255,0.92));
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.headerIcon {
+  background: var(--primary);
+  border-radius: 8px;
+  color: #ffffff;
+  height: 48px;
+  width: 48px;
+}
+
+.headerTitle {
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+.headerDesc {
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 4px 0 0;
+  max-width: 720px;
+}
+
+.headerBtn {
+  border-radius: 8px;
+}
+
+/* Users Toolbar */
+.toolbar {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.toolbarSearch {
+  flex: 1;
+  min-width: 0;
+}
+
+.toolbarBtn {
+  border-radius: 8px;
+  white-space: nowrap;
+}
+
+.filterBtn {
+  border-radius: 8px;
+}
+
+/* Users Stat Grid */
+.statCard {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.statLabel {
+  color: var(--text-secondary);
+}
+
+.statValue {
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.statIconBox {
+  border-radius: 8px;
+  height: 42px;
+  width: 42px;
+}
+
+/* User List Panel */
+.userListPanel {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  box-shadow: var(--chat-shadow);
+  padding: 18px;
+}
+
+.listTitle {
+  color: var(--text-primary);
+}
+
+.listDesc {
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+.listInfo {
+  color: var(--text-secondary);
+}
+
+/* Empty state */
+.emptyState {
+  min-height: 260px;
+  padding: 24px;
+}
+
+.emptyIcon {
+  background: rgba(75, 46, 131, 0.08);
+  border-radius: 8px;
+  color: var(--primary);
+  height: 68px;
+  width: 68px;
+}
+
+.emptyTitle {
+  color: var(--text-primary);
+}
+
+.emptyDesc {
+  color: var(--text-secondary);
+}
+
+/* Grid header */
+.gridHeader {
+  color: var(--text-secondary);
+  gap: 12px;
+  padding: 0 10px;
+}
+
+.gridHeaderText {
+  text-transform: uppercase;
+}
+
+/* User Row */
+.userRow {
+  background: #ffffff;
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+}
+
+.userRowGrid {
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+}
+
+.userRowMobile {
+  padding: 16px;
+}
+
+.userIdentity {
+  min-width: 0;
+}
+
+.userName {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.userId {
+  color: var(--text-secondary);
+}
+
+.userEmail {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.userDate {
+  color: var(--text-primary);
+}
+
+/* Detail Dialog */
+.detailDialogContent {
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  max-width: 720px;
+}
+
+.detailField {
+  color: var(--text-secondary);
+}
+
+.detailValue {
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+.detailBio {
+  background: var(--auth-soft-control);
+  border-radius: 8px;
+  min-height: 72px;
+  padding: 12px;
+}
+
+/* User Actions */
+.actionsContainer {
+  position: relative;
+}
+
+.actionsBtn {
+  border-radius: 8px;
+}
+
+.actionsMenu {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.14);
+  min-width: 178px;
+  padding: 6px;
+  position: absolute;
+  right: 0;
+  top: 36px;
+  z-index: 10;
+}
+
+.actionRow {
+  border-radius: 6px;
+  cursor: pointer;
+  padding: 8px 10px;
+}
+
+/* Loading */
+.loadingContainer {
+  min-height: 420px;
+}
+
+.loadingText {
+  color: var(--text-secondary);
+}

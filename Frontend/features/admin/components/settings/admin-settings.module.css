@@ -1,0 +1,102 @@
+.pageHeading {
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+.descriptionText {
+  color: var(--text-secondary);
+  margin: 6px 0 0;
+}
+
+.actionButton {
+  border-radius: 8px;
+}
+
+.settingSection {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  box-shadow: var(--auth-shadow);
+  padding: 18px;
+}
+
+.sectionIconBox {
+  background: var(--auth-soft-control);
+  border-radius: 8px;
+  color: var(--primary);
+  height: 46px;
+  width: 46px;
+}
+
+.sectionTitle {
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+.sectionDescription {
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 4px 0 0;
+}
+
+.toggleLabel {
+  color: var(--text-primary);
+}
+
+.toggleDescription {
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.inputLabel {
+  color: var(--text-primary);
+}
+
+.inputDescription {
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.inputField {
+  border-radius: 8px;
+}
+
+.selectLabel {
+  color: var(--text-primary);
+}
+
+.selectDescription {
+  color: var(--text-secondary);
+  margin-top: 3px;
+}
+
+.selectTrigger {
+  border-radius: 8px;
+  max-width: 320px;
+}
+
+.metricCard {
+  background: var(--chat-surface-muted);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.metricLabel {
+  color: var(--text-secondary);
+}
+
+.metricDot {
+  background: #22C55E;
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
+}
+
+.metricValue {
+  color: var(--text-primary);
+}
+
+.metricValueGreen {
+  color: #16A34A;
+}

@@ -1,0 +1,21 @@
+# -- Agent tool data --
+.mimocode/
+.qwen/
+
+# -- Local logs / scratch --
+Frontend/dev.log
+_report_lines.txt
+_security_lines.txt
+nul
+ibdex.html
+
+# -- Credentials / secrets (do not commit) --
+deploy/login_b64.txt
+deploy/backend.env.production
+deploy/frontend.env.production
+
+# -- Build artifacts --
+Frontend/.next-old/
+deploy/backend.tar.gz
+Frontend/.next/
+node_modules/

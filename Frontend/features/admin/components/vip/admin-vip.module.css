@@ -1,0 +1,267 @@
+.loadingText {
+  color: var(--text-secondary);
+}
+
+.pageHeading {
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+.descriptionText {
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 6px 0 0;
+  max-width: 720px;
+}
+
+.actionButton {
+  border-radius: 8px;
+}
+
+.errorBox {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 10px 16px;
+}
+
+.errorText {
+  color: #EF4444;
+}
+
+.featuresSection {
+  background: var(--chat-surface);
+  border-radius: 10px;
+  padding: 18px;
+}
+
+.featuresHeader {
+  border-bottom: 1px solid var(--chat-border);
+  padding-bottom: 12px;
+}
+
+.featuresTitle {
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+}
+
+.featureItem {
+  padding: 8px 12px;
+}
+
+.featureName {
+  color: var(--text-primary);
+}
+
+.planCard {
+  background: var(--chat-surface);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.planCardHeader {
+  padding: 18px;
+  border-bottom: 1px solid var(--chat-border);
+}
+
+.planName {
+  color: var(--text-primary);
+  font-family: var(--font-heading);
+}
+
+.planPrice {
+  color: var(--primary);
+  font-family: var(--font-heading);
+}
+
+.planDuration {
+  color: var(--text-secondary);
+}
+
+.iconButtonSecondary {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  padding: 4px;
+}
+
+.iconButtonDanger {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #EF4444;
+  padding: 4px;
+}
+
+.planDescription {
+  padding: 0 18px;
+  border-bottom: 1px solid var(--chat-border);
+  padding-bottom: 12px;
+}
+
+.planDescriptionText {
+  color: var(--text-secondary);
+}
+
+.planFeatures {
+  padding: 12px 18px;
+}
+
+.planFeaturesLabel {
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.emptyPlans {
+  color: var(--text-secondary);
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+}
+
+/* Dialog */
+.planDialogContent {
+  max-width: 520px;
+}
+
+.subSectionBottomMargin {
+  margin-bottom: 4px;
+}
+
+.smallActionButton {
+  border-radius: 6px;
+}
+
+.fieldLabel {
+  color: var(--text-primary);
+}
+
+.fieldLabelBottom {
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.textField {
+  margin-top: 6px;
+  border-radius: 8px;
+}
+
+.selectField {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--chat-border);
+  background: var(--chat-surface);
+  color: var(--text-primary);
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+.featureToggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.featureToggleSelected {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: var(--auth-soft-control);
+  color: var(--primary);
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.flex1 {
+  flex: 1;
+}
+
+.flex2 {
+  flex: 2;
+}
+
+/* Subscriber list */
+.subListTitle {
+  color: var(--text-primary);
+}
+
+.subListDesc {
+  color: var(--text-secondary);
+  margin-top: 4px;
+  max-width: 600px;
+}
+
+.subSection {
+  background: var(--chat-surface);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.subSectionHeader {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--chat-border);
+}
+
+.greenDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green-9);
+}
+
+.grayDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+}
+
+.subSectionTitle {
+  color: var(--text-primary);
+}
+
+.emptyState {
+  padding: 24px;
+}
+
+.loadingContainer {
+  padding: 24px;
+}
+
+.emptyText {
+  color: var(--text-secondary);
+}
+
+.tableHeaderRow {
+  border-bottom: 1px solid var(--chat-border);
+}
+
+.tableRow {
+  border-bottom: 1px solid var(--chat-border);
+}
+
+.historyRow {
+  border-bottom: 1px solid var(--chat-border);
+  opacity: 0.6;
+}
+
+.primaryText {
+  color: var(--text-primary);
+}
+
+.secondaryText {
+  color: var(--text-secondary);
+}

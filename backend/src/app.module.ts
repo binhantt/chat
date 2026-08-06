@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -16,6 +18,8 @@ import { PaymentModule } from './payment/payment.module';
 import { AdModule } from './ad/ad.module';
 import { SeppayModule } from './seppay/seppay.module';
 import { SupabaseModule } from './supabase/supabase.module';
+import { UploadModule } from './upload/upload.module';
+import { AiModule } from './ai/ai.module';
 import { createPostgresConfig } from './database/postgres.config';
 import { PerformanceIndexService } from './database/performance-index.service';
 
@@ -23,6 +27,26 @@ import { PerformanceIndexService } from './database/performance-index.service';
   imports: [
     TypeOrmModule.forRoot(createPostgresConfig()),
     ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: 'default',
+          ttl: 60_000,
+          limit: 500,
+        },
+        {
+          name: 'guest-login',
+          ttl: 60_000,
+          limit: 10,
+        },
+        {
+          name: 'chat-message',
+          ttl: 60_000,
+          limit: 120,
+        },
+      ],
+      storage: undefined,
+    }),
     AuthModule,
     UsersModule,
     ChatModule,
@@ -36,8 +60,17 @@ import { PerformanceIndexService } from './database/performance-index.service';
     AdModule,
     SeppayModule,
     SupabaseModule,
+    UploadModule,
+    AiModule,
   ],
   controllers: [AppController],
-  providers: [AppService, PerformanceIndexService],
+  providers: [
+    AppService,
+    PerformanceIndexService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
-export class AppModule {}
+export class AppModule { }

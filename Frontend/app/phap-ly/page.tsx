@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { getSiteUrl } from "@/lib/site";
+import { PublicNavbar } from "@/components/layouts/users/PublicNavbar";
 
 export const metadata: Metadata = {
   title: "Pháp lý & Người dùng",
@@ -80,19 +81,13 @@ export default function PhapLyPage() {
 
   return (
     <>
+      <PublicNavbar />
       <JsonLd data={breadcrumbSchema} />
-      <main
-        style={{
-          maxWidth: 800,
-          margin: "0 auto",
-          padding: "40px 24px 80px",
-        }}
-      >
+      <header style={{ textAlign: "center", padding: "32px 16px 0", maxWidth: 800, margin: "0 auto", width: "100%", boxSizing: "border-box" }}>
         <h1
           style={{
             fontSize: 32,
             fontWeight: 700,
-            textAlign: "center",
             marginBottom: 8,
           }}
         >
@@ -100,7 +95,6 @@ export default function PhapLyPage() {
         </h1>
         <p
           style={{
-            textAlign: "center",
             fontSize: 15,
             color: "var(--text-secondary)",
             marginBottom: 48,
@@ -109,7 +103,16 @@ export default function PhapLyPage() {
         >
           Quy tắc, quyền lợi, trách nhiệm và thông tin pháp lý dành cho người dùng nền tảng Người Lạ.
         </p>
-
+      </header>
+      <main
+        style={{
+          maxWidth: 800,
+          margin: "0 auto",
+          padding: "0 16px 60px",
+          boxSizing: "border-box",
+          width: "100%",
+        }}
+      >
         {sections.map((section) => (
           <section key={section.title} style={{ marginBottom: 40 }}>
             <h2

@@ -13,6 +13,8 @@ import { UserSubscription } from '../subscription/entities/user-subscription.ent
 import { Payment } from '../payment/entities/payment.entity';
 import { Ad } from '../ad/entities/ad.entity';
 import { AdStats } from '../ad/entities/ad-stats.entity';
+import { AiSettings } from '../ai/entities/ai-settings.entity';
+import { SpeedBoost } from '../match/entities/speed-boost.entity';
 
 const entities = [
   User,
@@ -28,6 +30,8 @@ const entities = [
   Payment,
   Ad,
   AdStats,
+  AiSettings,
+  SpeedBoost,
 ];
 
 export function createPostgresConfig(): TypeOrmModuleOptions {

@@ -1,4 +1,4 @@
-export type CenterMode = "welcome" | "search" | "match" | "chat";
+export type CenterMode = "search" | "chat" | "match";
 
 export interface MatchedUser {
   id: string;

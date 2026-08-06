@@ -16,11 +16,37 @@ import { EventBusService } from './events/event-bus.service';
 import { createMatchMatchedEvent } from './events/match-matched.event';
 import { createMatchExpiredEvent } from './events/match-expired.event';
 import { MatchQueueRepository } from './repositories/match-queue.repository';
+import { AiChatService } from '../ai/ai-chat.service';
 
 @Injectable()
 export class MatchService {
   private readonly logger = new Logger(MatchService.name);
   readonly QUEUE_EXPIRY_MINUTES = 15;
+  private readonly EXIT_THRESHOLD = 5;
+  private exitCounts = new Map<string, number>();
+
+  async getQueueExpiryMinutes(): Promise<number> {
+    const aiSettings = await this.aiChatService.getSettings();
+    if (aiSettings?.enabled) {
+      return aiSettings.timeoutMinutes || 5;
+    }
+    return this.QUEUE_EXPIRY_MINUTES;
+  }
+
+  incrementExitCount(userId: string): number {
+    const count = (this.exitCounts.get(userId) || 0) + 1;
+    this.exitCounts.set(userId, count);
+    this.logger.log(`User ${userId} exited ${count}/${this.EXIT_THRESHOLD} times`);
+    return count;
+  }
+
+  shouldForceAiConversation(userId: string): boolean {
+    return (this.exitCounts.get(userId) || 0) >= this.EXIT_THRESHOLD;
+  }
+
+  resetExitCount(userId: string): void {
+    this.exitCounts.delete(userId);
+  }
   private readonly MATCH_RETRY_BATCH_SIZE = 100;
   private retryMatchingRunning = false;
 
@@ -32,9 +58,19 @@ export class MatchService {
     private readonly matchQueueRepository: MatchQueueRepository,
     private readonly chatRealtimeService: ChatRealtimeService,
     private readonly eventBus: EventBusService,
+    private readonly aiChatService: AiChatService,
   ) {}
 
   // ── Public helpers called by command/query handlers ──
+
+  async getOnlineCount(): Promise<number> {
+    const now = new Date();
+    const cutoff = new Date(now.getTime() - 5 * 60 * 1000);
+    const waiting = await this.matchQueueRepository.findWaiting();
+    return waiting.filter(
+      (q) => !q.expiresAt || q.expiresAt.getTime() > cutoff.getTime(),
+    ).length;
+  }
 
   async cancelActiveMatchForNewSearch(
     userId: string,
@@ -174,7 +210,16 @@ export class MatchService {
 
         this.logger.log(`Expired ${toExpire.length} stale match queues`);
         for (const eq of toExpire) {
-          this.eventBus.emit(createMatchExpiredEvent(eq.userId, eq.id));
+          const aiSettings = await this.aiChatService.getSettings();
+          const hasKeys = aiSettings?.enabled && (
+            (aiSettings.groqApiKeys && aiSettings.groqApiKeys.length > 0) || aiSettings.groqApiKey
+          );
+          if (hasKeys) {
+            await this.createAiConversation(eq.userId, eq.id);
+            this.resetExitCount(eq.userId);
+          } else {
+            this.eventBus.emit(createMatchExpiredEvent(eq.userId, eq.id));
+          }
         }
       }
 
@@ -229,33 +274,49 @@ export class MatchService {
     const preferredGenders = this.getPreferredGenders(userQueue.gender, userQueue.preferredGender);
     const now = Date.now();
 
-    // Sort waiting queues by priority (VIP first), then by join time
-    const sorted = [...waitingQueues]
-      .filter(
+    const getBasePool = () =>
+      [...waitingQueues].filter(
         (queue) =>
           queue.id !== userQueue.id &&
           queue.userId !== userQueue.userId &&
           !processedQueueIds.has(queue.id) &&
           !processedUserIds.has(queue.userId) &&
           queue.status === MatchQueueStatus.Waiting &&
-          queue.gender === userQueue.gender &&
-          queue.city === userQueue.city &&
           (!queue.expiresAt || queue.expiresAt.getTime() > now),
-      )
-      .sort((a, b) => {
-        // Higher priority first, then earlier join time
-        if (b.priorityScore !== a.priorityScore) {
-          return b.priorityScore - a.priorityScore;
-        }
+      );
+
+    const sortByPriority = (pool: MatchQueue[]) =>
+      pool.sort((a, b) => {
+        if (b.priorityScore !== a.priorityScore) return b.priorityScore - a.priorityScore;
         return a.createdAt.getTime() - b.createdAt.getTime();
       });
 
-    for (const gender of preferredGenders) {
-      const match = sorted.find((q) => q.gender === gender);
-      if (match) return match;
-    }
+    const matchByGender = (pool: MatchQueue[], genders: UserGender[]) => {
+      for (const gender of genders) {
+        const match = pool.find((q) => q.gender === gender);
+        if (match) return match;
+      }
+      return null;
+    };
 
-    return null;
+    // Level 1: Exact match — same city + gender matching preference
+    const exactPool = sortByPriority(
+      getBasePool().filter((q) => q.city === userQueue.city),
+    );
+    let match = matchByGender(exactPool, preferredGenders);
+    if (match) return match;
+
+    // Level 2: Same city, any gender
+    match = sortByPriority(getBasePool().filter((q) => q.city === userQueue.city))
+      .find(() => true) ?? null;
+    if (match) return match;
+
+    // Level 3: Any city, preferred gender
+    match = matchByGender(sortByPriority(getBasePool()), preferredGenders);
+    if (match) return match;
+
+    // Level 4: Fallback — anyone available
+    return sortByPriority(getBasePool()).find(() => true) ?? null;
   }
 
   private getPreferredGenders(gender: UserGender, preferredGender?: string | null): UserGender[] {
@@ -271,6 +332,29 @@ export class MatchService {
         return [UserGender.Female, UserGender.Male];
       default:
         return [UserGender.Female, UserGender.Male];
+    }
+  }
+
+  async createAiConversation(userId: string, queueId: string): Promise<void> {
+    try {
+      const botUser = await this.aiChatService.findOrCreateBotUser();
+
+      const conversation = this.conversationRepository.create({
+        user1Id: userId,
+        user2Id: botUser.id,
+        status: ConversationStatus.Active,
+        user1Accepted: true,
+        user2Accepted: true,
+      });
+
+      const savedConversation = await this.conversationRepository.save(conversation);
+
+      this.chatRealtimeService.emitConversationCreated([userId], savedConversation);
+
+      this.logger.log(`AI conversation created for user ${userId}`);
+    } catch (error) {
+      this.logger.error('Failed to create AI conversation', error);
+      this.eventBus.emit(createMatchExpiredEvent(userId, queueId));
     }
   }
 }

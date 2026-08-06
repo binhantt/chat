@@ -1,0 +1,260 @@
+/* ==================== Header ==================== */
+
+.header {
+  background: linear-gradient(90deg, rgba(75,46,131,0.12), rgba(255,255,255,0.9));
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.headerIconBox {
+  background: var(--primary);
+  border-radius: 8px;
+  color: #FFFFFF;
+  height: 48px;
+  width: 48px;
+}
+
+.headerTitle {
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+.headerDescription {
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 4px 0 0;
+  max-width: 700px;
+}
+
+/* ==================== Toolbar ==================== */
+
+.toolbar {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.toolbarCount {
+  color: var(--text-secondary);
+}
+
+/* ==================== Stat Cards ==================== */
+
+.statCard {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.statLabel {
+  color: var(--text-secondary);
+}
+
+.statValue {
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.statIconBox {
+  border-radius: 8px;
+  height: 42px;
+  width: 42px;
+}
+
+/* ==================== List Panel ==================== */
+
+.listPanel {
+  background: var(--chat-surface);
+  border-radius: 8px;
+  box-shadow: var(--chat-shadow);
+  padding: 18px;
+}
+
+.listPanelTitle {
+  color: var(--text-primary);
+}
+
+.listPanelSubtitle {
+  color: var(--text-secondary);
+}
+
+.emptyState {
+  min-height: 240px;
+}
+
+.emptyStateTitle {
+  color: var(--text-primary);
+}
+
+.emptyStateSubtitle {
+  color: var(--text-secondary);
+}
+
+.pageInfo {
+  color: var(--text-secondary);
+}
+
+/* ==================== Report Row ==================== */
+
+.reportRow {
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  overflow: hidden;
+  transition: box-shadow 0.15s ease;
+}
+
+.reportRowExpanded {
+  background: var(--auth-soft-control);
+  box-shadow: 0 14px 34px rgba(37, 99, 235, 0.10);
+}
+
+.reportRowCollapsed {
+  background: var(--chat-surface);
+  box-shadow: none;
+}
+
+.reportRowMinWidth {
+  min-width: 0;
+}
+
+.reportRowTitle {
+  color: var(--text-primary);
+  line-height: 1.35;
+}
+
+.reportRowBody {
+  color: var(--text-secondary);
+  display: -webkit-box;
+  line-height: 1.45;
+  margin-top: 3px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.reportRowLabel {
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.reportRowDate {
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+/* ==================== Expanded Panel ==================== */
+
+.expandedPanel {
+  background: var(--auth-panel-gradient);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.expandedPanelContent {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  flex: 1 1 auto;
+  min-height: 150px;
+  padding: 14px;
+}
+
+.expandedPanelContentDesc {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-top: 10px;
+  white-space: pre-wrap;
+}
+
+.expandedPanelSidebar {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  flex: 0 0 360px;
+  padding: 14px;
+}
+
+.expandedPanelSectionTitle {
+  color: var(--text-primary);
+}
+
+.expandedPanelAiBox {
+  background: rgba(75,46,131,0.08);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.expandedPanelAiSummary {
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-top: 8px;
+}
+
+.expandedPanelEvidenceText {
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+/* ==================== User Block ==================== */
+
+.userBlock {
+  border-radius: 8px;
+  min-width: 0;
+  padding: 8px 10px;
+}
+
+.userBlockIndigo {
+  background: rgba(75,46,131,0.06);
+}
+
+.userBlockRed {
+  background: rgba(239,68,68,0.06);
+}
+
+.userBlockInner {
+  min-width: 0;
+}
+
+.userBlockName {
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.userBlockEmail {
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ==================== Loading State ==================== */
+
+.loadingContainer {
+  min-height: 420px;
+}
+
+.loadingText {
+  color: var(--text-secondary);
+}
+
+/* ==================== Utility ==================== */
+
+.flexNone {
+  display: none;
+}
+
+.roundedBtn {
+  border-radius: 8px;
+}
+
+.fitContent {
+  width: fit-content;
+}
+
+.selectTrigger {
+  width: 100%;
+}

@@ -1,10 +1,10 @@
-# DOC 01 - Cau truc du an
+# DOC 01 - Project Structure
 
-Cap nhat: 30/05/2026
+Updated: 30/05/2026
 
-Tai lieu nay dung de nhin nhanh toan bo cau truc du an Chat/Nguoi La. Hai thu muc code chinh la `backend` va `Frontend`; cac file doc dat ngoai hai thu muc nay de de tim.
+This document provides a quick overview of the entire Chat/Stranger project structure. The two main code directories are `backend` and `Frontend`; doc files are placed outside these two directories for easy discovery.
 
-## Tong quan thu muc
+## Directory Overview
 
 ```text
 D:\chat
@@ -46,125 +46,125 @@ D:\chat
 
 ## Backend
 
-Backend dung NestJS, TypeORM va PostgreSQL. API chinh co prefix `/api`.
+Backend uses NestJS, TypeORM, and PostgreSQL. Main API has prefix `/api`.
 
 ### `backend/src/auth`
 
-Phu trach dang nhap, token, cookie, refresh token va Google login.
+Handles login, token, cookie, refresh token, and Google login.
 
-- `auth.controller.ts`: dinh nghia route dang nhap, refresh, logout, manager login.
-- `auth.service.ts`: xu ly nghiep vu dang nhap.
-- `services/auth-token.service.ts`: tao va verify access/refresh token.
-- `services/auth-cookie.service.ts`: set/clear cookie va refresh access token.
-- `guards/demo-auth.guard.ts`: guard doc cookie/token va gan `request.user`.
+- `auth.controller.ts`: defines login, refresh, logout, manager login routes.
+- `auth.service.ts`: login business logic.
+- `services/auth-token.service.ts`: create and verify access/refresh token.
+- `services/auth-cookie.service.ts`: set/clear cookie and refresh access token.
+- `guards/demo-auth.guard.ts`: guard reads cookie/token and assigns `request.user`.
 
 ### `backend/src/users`
 
-Phu trach user, ho so, khoa/mo khoa tai khoan, manager users.
+Handles user, profile, lock/unlock account, manager users.
 
-- `user.controller.ts`: API user va manager users.
-- `admin-system.controller.ts`: API tai nguyen server CPU/RAM.
-- `users.service.ts`: query user, update ho so, lock/unlock, pagination.
-- `entities/user.entity.ts`: bang `users` va index lien quan.
-- `dto/*`: validate payload request.
+- `user.controller.ts`: user and manager users API.
+- `admin-system.controller.ts`: server CPU/RAM resource API.
+- `users.service.ts`: query user, update profile, lock/unlock, pagination.
+- `entities/user.entity.ts`: `users` table and related indexes.
+- `dto/*`: validate request payload.
 
 ### `backend/src/chat`
 
-Phu trach conversation, message, SSE realtime.
+Handles conversation, message, SSE realtime.
 
-- `chat.controller.ts`: API chat user va manager chats.
-- `chat.service.ts`: tao tin nhan, lay hoi thoai, ket thuc phong.
-- `chat-realtime.service.ts`: SSE event `message.created`, `conversation.created`, `typing`, `conversation.ended`.
-- `entities/conversation.entity.ts`: bang `conversations`.
-- `entities/message.entity.ts`: bang `messages`.
+- `chat.controller.ts`: user chat and manager chats API.
+- `chat.service.ts`: create message, get conversations, end room.
+- `chat-realtime.service.ts`: SSE events `message.created`, `conversation.created`, `typing`, `conversation.ended`.
+- `entities/conversation.entity.ts`: `conversations` table.
+- `entities/message.entity.ts`: `messages` table.
 
 ### `backend/src/match`
 
-Phu trach ghep doi nguoi dung.
+Handles user matching.
 
 - `match.controller.ts`: join, leave, status.
-- `match.service.ts`: queue, tim match, tao conversation.
-- `entities/match-queue.entity.ts`: bang queue ghep doi.
+- `match.service.ts`: queue, find match, create conversation.
+- `entities/match-queue.entity.ts`: match queue table.
 
 ### `backend/src/report`
 
-Phu trach bao cao vi pham.
+Handles violation reports.
 
-- `report.controller.ts`: API report user va manager reports.
-- `report.service.ts`: tao report, list report, cap nhat status, khoa/mo khoa tu report.
-- `entities/report.entity.ts`: bang `reports` va index.
+- `report.controller.ts`: user report and manager reports API.
+- `report.service.ts`: create report, list reports, update status, lock/unlock from report.
+- `entities/report.entity.ts`: `reports` table and indexes.
 
 ### `backend/src/conduct`
 
-Phu trach luat ung xu/noi dung vi pham.
+Handles conduct rules / prohibited content.
 
 - `conduct.controller.ts`: CRUD conduct rules.
-- `conduct.service.ts`: list theo cursor, them/sua/xoa rule, check message.
-- `entities/conduct-rule.entity.ts`: bang rule.
+- `conduct.service.ts`: list by cursor, add/edit/delete rule, check message.
+- `entities/conduct-rule.entity.ts`: rule table.
 
 ### `backend/src/database`
 
-- `performance-index.service.ts`: tao index hieu nang luc startup.
-- `postgres.config.ts`: cau hinh ket noi DB.
+- `performance-index.service.ts`: create performance indexes at startup.
+- `postgres.config.ts`: DB connection config.
 
 ### `backend/src/security`
 
-Bao ve request, sanitize input, cau hinh cookie/CSRF/middleware.
+Protects requests, sanitizes input, configures cookie/CSRF/middleware.
 
 ## Frontend
 
-Frontend dung Next.js App Router, React, Radix UI Themes, Zustand.
+Frontend uses Next.js App Router, React, Radix UI Themes, Zustand.
 
 ### `Frontend/app`
 
 - `layout.tsx`: metadata, Radix Theme, Providers.
-- `page.tsx`: trang user chinh.
-- `login/page.tsx`: trang login user.
-- `admin/(dashboard)/*`: route admin dashboard.
-- `admin/login/page.tsx`: login manager.
-- `api/v1/*`: Next Route Handler proxy toi backend.
+- `page.tsx`: main user page.
+- `login/page.tsx`: user login page.
+- `admin/(dashboard)/*`: admin dashboard routes.
+- `admin/login/page.tsx`: manager login.
+- `api/v1/*`: Next Route Handler proxy to backend.
 
 ### `Frontend/components`
 
-Component dung chung.
+Shared components.
 
-- `brand/BrandLogo.tsx`: logo Nguoi La.
-- `providers/Providers.tsx`: boc ThemeProvider va AuthProvider.
-- `layouts/users/*`: layout user cu/dung chung.
+- `brand/BrandLogo.tsx`: Stranger logo.
+- `providers/Providers.tsx`: wraps ThemeProvider and AuthProvider.
+- `layouts/users/*`: old/shared user layout.
 
 ### `Frontend/contexts`
 
-- `AuthContext.tsx`: user hien tai, logout, update user, cache `/users/me`.
-- `ThemeContext.tsx`: light/dark mode cho user va admin.
+- `AuthContext.tsx`: current user, logout, update user, cache `/users/me`.
+- `ThemeContext.tsx`: light/dark mode for user and admin.
 
 ### `Frontend/features/athu`
 
-Login user va API client dung chung.
+User login and shared API client.
 
-- `page/LoginPage.tsx`: UI login Google.
+- `page/LoginPage.tsx`: Google login UI.
 - `components/*`: Auth shell/panel/button/error.
-- `api/adminApi.ts`: API manager namespace `/api/v1/manager`.
-- `api/chatApi.ts`: API chat user.
-- `api/reportApi.ts`: API report user.
+- `api/adminApi.ts`: manager API client with GET cache/dedupe.
+- `api/chatApi.ts`: user chat API.
+- `api/reportApi.ts`: user report API.
 - `hooks/*`: Google identity/login.
-- `store/*`: Zustand UI auth.
-- `styles/authTheme.ts`: token mau dung chung.
+- `store/*`: Zustand auth UI state.
+- `styles/authTheme.ts`: shared color tokens.
 
 ### `Frontend/features/chat`
 
-Trang chat user.
+User chat page.
 
-- `page/ChatPage.tsx`: rap trang chat.
-- `components/ChatArea.tsx`: khung chat.
-- `components/MatchPeople.tsx`: ghep nguoi.
-- `components/SearchPeople.tsx`: tim kiem nguoi.
-- `components/match/*`: cac trang thai ghep doi.
+- `page/ChatPage.tsx`: chat page wrapper.
+- `components/ChatArea.tsx`: chat frame.
+- `components/MatchPeople.tsx`: match people.
+- `components/SearchPeople.tsx`: search people.
+- `components/match/*`: match states.
 - `hooks/useChatHome.ts`: load chat/match.
-- `store/*`: Zustand state chat.
+- `store/*`: Zustand chat state.
 
 ### `Frontend/features/admin`
 
-Trang quan ly.
+Admin management pages.
 
 ```text
 features/admin
@@ -185,32 +185,32 @@ features/admin
 ```
 
 - `components/layout`: navbar, sidebar, mobile nav, current user, logout.
-- `page/*`: page route admin.
-- `hooks/*`: logic fetch/filter/page.
-- `store/*`: Zustand state manager.
-- `styles/*`: style tokens rieng tung nhom.
+- `page/*`: admin page routes.
+- `hooks/*`: fetch/filter/pagination logic.
+- `store/*`: Zustand manager state.
+- `styles/*`: style tokens per group.
 
 ### `Frontend/features/settings`
 
-Trang cai dat user: thong tin tai khoan, tuy chon, dark mode, danger zone.
+User settings page: account info, preferences, dark mode, danger zone.
 
 ### `Frontend/features/report`
 
-Trang gui bao cao va lich su bao cao cua user.
+User report submission and report history page.
 
 ### `Frontend/features/vip`
 
-Trang VIP chia component nho: hero, benefits, package card, buy button, hook, store, utils sort.
+VIP page split into small components: hero, benefits, package card, buy button, hook, store, sort utils.
 
 ### `Frontend/features/user-layout`
 
-Shell chung cho trang user, tab, hero, panel va layout.
+Shared shell for user pages, tabs, hero, panel, and layout.
 
-## Quy uoc dat file
+## File Conventions
 
-- Page chi nen rap layout.
-- Logic fetch/state nam trong hook hoac store.
-- Component mot nhiem vu rieng.
-- API client nam trong `features/athu/api`.
-- Route proxy Next nam trong `Frontend/app/api/v1`.
-- Backend chia theo module NestJS: controller, service, dto, entity.
+- Pages should only wrap layout.
+- Fetch/state logic belongs in hooks or stores.
+- Components should have a single responsibility.
+- API clients are in `features/athu/api`.
+- Next proxy routes are in `Frontend/app/api/v1`.
+- Backend is split by NestJS module: controller, service, dto, entity.

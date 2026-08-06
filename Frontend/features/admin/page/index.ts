@@ -7,3 +7,4 @@ export { VipPackagesPage } from "./VipPackagesPage";
 export { ConductPage } from "./ConductPage";
 export { AdsPage } from "./AdsPage";
 export { PaymentsPage } from "./PaymentsPage";
+export { AiPage } from "./AiPage";

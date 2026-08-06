@@ -1,9 +1,14 @@
-﻿import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Post, Req, Res, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { AuthService } from './auth.service';
 import { EmailLoginDto } from './dto/email-login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
+import { GuestLoginDto } from './dto/guest-login.dto';
 import { AuthCookieService } from './services/auth-cookie.service';
+import { DemoAuthGuard } from './guards/demo-auth.guard';
+import type { AuthenticatedRequest } from './interfaces/authenticated-request.interface';
+import { GUEST_ACCESS_TOKEN_TTL_MS } from './constants/auth-token.constant';
 
 @Controller('v1/auth')
 export class AuthController {
@@ -11,6 +16,46 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly authCookieService: AuthCookieService,
   ) {}
+
+  @Post('guest-login')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async guestLogin(
+    @Body() body: GuestLoginDto,
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    const clientIp = (request.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim()
+      || request.headers['x-real-ip'] as string
+      || request.socket?.remoteAddress
+      || undefined;
+
+    const result = await this.authService.guestLogin(body.displayName, clientIp);
+    this.authCookieService.setAuthCookies(
+      response,
+      result.accessToken,
+      result.refreshToken,
+      result.user.id,
+      GUEST_ACCESS_TOKEN_TTL_MS,
+    );
+    return result;
+  }
+
+  @Post('guest-cleanup')
+  async guestCleanup(
+    @Req() request: Request,
+    @Res({ passthrough: true }) response: Response,
+  ) {
+    // Manually resolve the user since DemoAuthGuard bypasses /api/v1/auth/*
+    const session = this.authCookieService.resolveAuthenticatedSession(
+      request as AuthenticatedRequest,
+    );
+    if (!session.userId) {
+      return { message: 'Chua dang nhap', success: false };
+    }
+    const result = await this.authService.guestCleanup(session.userId);
+    this.authCookieService.clearAuthCookies(response);
+    return result;
+  }
 
   @Post('google-login')
   async googleLogin(

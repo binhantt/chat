@@ -1,23 +1,23 @@
-# DOC 05 - Bang mau giao dien
+# DOC 05 - UI Color Palette
 
-Cap nhat: 30/05/2026
+Updated: 30/05/2026
 
-Tai lieu nay ghi lai bang mau dang dung cho giao dien `Frontend`. Muc tieu la giu login, user, chat va admin cung mot tong mau, tranh sua moi trang mot kieu.
+This document records the color palette currently used for the `Frontend` UI. The goal is to keep login, user, chat, and admin consistent in color tone, avoiding different styles per page.
 
-## Mau goc
+## Base Colors
 
-| Ten | Gia tri | Dung cho |
+| Name | Value | Used For |
 | --- | --- | --- |
-| Nen sang | `#F4F9FF` | Nen chinh light mode |
-| Xanh chinh | `#3B82F6` | Button, icon active, border nhan manh |
-| Chu chinh | `#0F172A` | Tieu de va noi dung light mode |
-| Chu phu | `#475569` | Mo ta, subtitle, label phu |
-| Cyan | `#22D3EE` | Diem nhan phu, gradient nhe |
-| Vang | `#F59E0B` | VIP, canh bao, diem nhan nho |
-| Do | `#DC2626` | Loi, khoa tai khoan, hanh dong nguy hiem |
-| Xanh la | `#16A34A` | Thanh cong, hoat dong |
+| Light Background | `#F4F9FF` | Main light mode background |
+| Primary Blue | `#3B82F6` | Buttons, active icons, emphasis borders |
+| Main Text | `#0F172A` | Headings and content in light mode |
+| Secondary Text | `#475569` | Descriptions, subtitles, secondary labels |
+| Cyan | `#22D3EE` | Secondary accent, subtle gradient |
+| Gold | `#F59E0B` | VIP, warnings, small accents |
+| Red | `#DC2626` | Errors, account lock, dangerous actions |
+| Green | `#16A34A` | Success, active status |
 
-## Light mode
+## Light Mode
 
 ```css
 :root {
@@ -39,7 +39,7 @@ Tai lieu nay ghi lai bang mau dang dung cho giao dien `Frontend`. Muc tieu la gi
 }
 ```
 
-## Dark mode
+## Dark Mode
 
 ```css
 [data-theme="dark"] {
@@ -61,30 +61,30 @@ Tai lieu nay ghi lai bang mau dang dung cho giao dien `Frontend`. Muc tieu la gi
 }
 ```
 
-## Quy tac dung mau
+## Color Usage Rules
 
-- Nen trang: dung `--auth-bg` hoac `--bg`.
-- Panel/card: dung `--auth-panel`, khong dung nen xam mac dinh cua browser.
-- Panel nhe ben trong: dung `--auth-panel-soft` hoac `--auth-panel-lift`.
-- Button chinh: dung `--auth-control`.
-- Border: dung `--auth-line`; chi dung border trong component, tranh vien ngoai qua day.
-- Chu chinh: dung `--auth-text`.
-- Chu phu: dung `--auth-muted`.
-- Trang VIP: duoc dung `--auth-gold` lam diem nhan.
-- Trang canh bao/bao cao/khoa tai khoan: dung do `#DC2626` hoac Radix `red`.
-- Trang thanh cong/hoat dong: dung xanh la `#16A34A` hoac Radix `green`.
+- Page background: use `--auth-bg` or `--bg`.
+- Panel/card: use `--auth-panel`, don't use browser's default gray background.
+- Light inner panel: use `--auth-panel-soft` or `--auth-panel-lift`.
+- Primary button: use `--auth-control`.
+- Border: use `--auth-line`; only use border inside components, avoid overly thick outer borders.
+- Main text: use `--auth-text`.
+- Secondary text: use `--auth-muted`.
+- VIP page: may use `--auth-gold` as accent.
+- Warning/report/lock page: use red `#DC2626` or Radix `red`.
+- Success/active page: use green `#16A34A` or Radix `green`.
 
-## File dang quan ly mau
+## Files Managing Colors
 
-- `Frontend/app/globals.css`: khai bao CSS variables light/dark.
-- `Frontend/features/athu/styles/authTheme.ts`: map bien mau de component dung chung.
-- `Frontend/features/admin/styles/*Theme.ts`: style panel rieng cho admin.
-- `Frontend/features/chat/styles/*`: style rieng cho khung chat.
+- `Frontend/app/globals.css`: declares light/dark CSS variables.
+- `Frontend/features/athu/styles/authTheme.ts`: maps color variables for shared component use.
+- `Frontend/features/admin/styles/*Theme.ts`: separate admin panel styles.
+- `Frontend/features/chat/styles/*`: chat frame specific styles.
 
-## Luu y khi sua giao dien
+## UI Modification Notes
 
-- Khong tao bang mau moi trong tung component neu mau da co trong `authTheme`.
-- Khong dung qua nhieu gradient. Neu can nhan manh, dung gradient nhe tu `--auth-control` sang `--auth-cyan`.
-- Border radius giu quanh `8px` de dong bo voi Radix UI.
-- Neu them dark mode, phai them bien tuong ung trong `[data-theme="dark"]`.
-- Neu them mau moi, cap nhat file nay va `globals.css` cung luc.
+- Don't create new color palettes per component if colors already exist in `authTheme`.
+- Don't use excessive gradients. If emphasis is needed, use a subtle gradient from `--auth-control` to `--auth-cyan`.
+- Keep border radius around `8px` to sync with Radix UI.
+- When adding dark mode, must add corresponding variables in `[data-theme="dark"]`.
+- When adding new colors, update both this file and `globals.css` simultaneously.

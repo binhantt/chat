@@ -16,10 +16,20 @@ export function PageVisitTracker() {
     if (lastTrackedPathRef.current === path) return;
     lastTrackedPathRef.current = path;
 
+    const getVisitorId = (): string => {
+      const key = "visitor_id";
+      let id = localStorage.getItem(key);
+      if (!id) {
+        id = crypto.randomUUID();
+        localStorage.setItem(key, id);
+      }
+      return id;
+    };
+
     const controller = new AbortController();
     const timeout = window.setTimeout(() => {
       void fetch("/api/v1/analytics/visit", {
-        body: JSON.stringify({ path }),
+        body: JSON.stringify({ path, visitorId: getVisitorId() }),
         credentials: "include",
         headers: { "Content-Type": "application/json", ...getCsrfHeaders() },
         keepalive: true,

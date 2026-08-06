@@ -90,7 +90,7 @@ export function ChatWelcomePanel({ onMatch, onSearch }: ChatWelcomePanelProps) {
             fontWeight: 600,
             border: "none",
             cursor: "pointer",
-            boxShadow: "0 4px 14px rgba(168, 85, 247, 0.25)",
+            boxShadow: "0 4px 14px var(--chat-accent-soft)",
           }}
         >
           Tìm kiếm người

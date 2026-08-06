@@ -7,14 +7,16 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { performance } from 'node:perf_hooks';
-import { DataSource, Repository } from 'typeorm';
+import { randomUUID } from 'node:crypto';
+import { DataSource, LessThan, Repository } from 'typeorm';
 import { EventBusService } from '../common/events/event-bus.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ProfileSetupDto } from './dto/profile-setup.dto';
 import { UpdateUserAccessDto } from './dto/update-user-access.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User, UserLockType, UserRole } from './entities/user.entity';
+import { User, UserGender, UserLockType, UserRole } from './entities/user.entity';
 import { createUserCreatedEvent } from './events/user-created.event';
 import { createUserBannedEvent } from './events/user-banned.event';
 import { createUserUnlockedEvent } from './events/user-unlocked.event';
@@ -80,6 +82,7 @@ export class UsersService implements OnModuleInit {
         city: true,
         role: true,
         isActive: true,
+        isGuest: true,
         lockType: true,
         lockedUntil: true,
         lockReason: true,
@@ -169,6 +172,141 @@ export class UsersService implements OnModuleInit {
     }
 
     return user;
+  }
+
+  async createGuestUser(displayName?: string, clientIp?: string): Promise<User> {
+    // 1 IP = 1 guest user. Reuse existing guest if found.
+    const normalizedIp = clientIp?.replace(/^::ffff:/, '') || null;
+    if (normalizedIp) {
+      const existing = await this.usersRepository.findOne({
+        where: { isGuest: true, createdByIp: normalizedIp, isActive: true },
+      });
+      if (existing) {
+        this.logger.log(`Reusing guest user for IP ${normalizedIp}: ${existing.id}`);
+        return this.toSafeUser(existing);
+      }
+    }
+
+    const guestId = randomUUID();
+    const now = new Date();
+
+    // Random gender and city for guest users so they can chat immediately
+    const genders: UserGender[] = [UserGender.Male, UserGender.Female, UserGender.Other];
+    const cities = [
+      'Hà Nội', 'Hồ Chí Minh', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ',
+      'Biên Hòa', 'Nha Trang', 'Huế', 'Vũng Tàu', 'Quảng Ninh',
+    ];
+    const randomGender = genders[Math.floor(Math.random() * genders.length)];
+    const randomCity = cities[Math.floor(Math.random() * cities.length)];
+    const guestName = displayName || this.generateGuestName();
+
+    // Use raw query with snake_case column names matching the database schema
+    await this.dataSource.query(
+      `INSERT INTO users (id, email, full_name, gender, city, is_guest, is_active, role, lock_type, created_by_ip, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, true, true, 'user', 'none', $6, $7, $7)`,
+      [guestId, `guest-${guestId}@anonymous.chat`, guestName, randomGender, randomCity, clientIp || null, now],
+    );
+
+    this.logger.log(`Created guest user: ${guestId} from IP ${clientIp || 'unknown'}`);
+    const user = await this.findById(guestId);
+    return user!;
+  }
+
+  async deleteGuestUserAndData(guestId: string): Promise<void> {
+    const user = await this.findById(guestId);
+    if (!user || !user.isGuest) {
+      return;
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      // Find all conversations this guest participated in
+      const conversations = await manager.query<Array<{ id: string }>>(
+        `SELECT id FROM conversations WHERE user1_id = $1 OR user2_id = $1`,
+        [guestId],
+      );
+      const conversationIds = conversations.map((c) => c.id);
+
+      // Delete messages in those conversations
+      if (conversationIds.length > 0) {
+        await manager.query(
+          `DELETE FROM messages WHERE conversation_id = ANY($1::uuid[])`,
+          [conversationIds],
+        );
+      }
+
+      // Delete messages sent by guest in any conversation
+      await manager.query(
+        `DELETE FROM messages WHERE sender_id = $1`,
+        [guestId],
+      );
+
+      // Delete match queue entries
+      await manager.query(
+        `DELETE FROM match_queue WHERE "userId" = $1 OR "matchedWithUserId" = $1`,
+        [guestId],
+      );
+
+      // Delete reports involving guest
+      await manager.query(
+        `DELETE FROM reports WHERE reporter_id = $1 OR reported_user_id = $1`,
+        [guestId],
+      );
+
+      // Delete conversations
+      if (conversationIds.length > 0) {
+        await manager.query(
+          `DELETE FROM conversations WHERE id = ANY($1::uuid[])`,
+          [conversationIds],
+        );
+      }
+
+      // Delete the guest user
+      await manager.query(
+        `DELETE FROM users WHERE id = $1`,
+        [guestId],
+      );
+    });
+
+    this.invalidateUserCache(guestId);
+    this.logger.log(`Deleted guest user and all data: ${guestId}`);
+  }
+
+  @Cron(CronExpression.EVERY_30_MINUTES)
+  async cleanupStaleGuestsCron(): Promise<void> {
+    try {
+      const count = await this.cleanStaleGuests();
+      if (count > 0) {
+        this.logger.log(`Cron: cleaned ${count} stale guest users`);
+      }
+    } catch (error) {
+      this.logger.error('Cron: failed to clean stale guests:', error);
+    }
+  }
+
+  async cleanStaleGuests(): Promise<number> {
+    const staleDate = new Date();
+    staleDate.setHours(staleDate.getHours() - 1); // Guests older than 1 hour
+
+    const staleGuests = await this.usersRepository.find({
+      where: {
+        isGuest: true,
+        createdAt: LessThan(staleDate),
+      },
+      select: ['id'],
+    });
+
+    for (const guest of staleGuests) {
+      try {
+        await this.deleteGuestUserAndData(guest.id);
+      } catch (error) {
+        this.logger.error(`Failed to clean stale guest ${guest.id}:`, error);
+      }
+    }
+
+    if (staleGuests.length > 0) {
+      this.logger.log(`Cleaned ${staleGuests.length} stale guest users`);
+    }
+    return staleGuests.length;
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -643,6 +781,14 @@ export class UsersService implements OnModuleInit {
     }
 
     return patch;
+  }
+
+  private generateGuestName(): string {
+    const adjectives = ['Vui vẻ', 'Dễ thương', 'Nhiệt tình', 'Thân thiện', 'Hài hước', 'Đáng yêu', 'Hiền lành', 'Tốt bụng'];
+    const nouns = ['Khách', 'Bạn mới', 'Người lạ', 'Gấu Bông', 'Mèo Con', 'Cà Phê', 'Sao Mai', 'Mây Trắng'];
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    return `${adj} ${noun}`;
   }
 
   private toAdminUserListItem(row: AdminUserListRow): User {

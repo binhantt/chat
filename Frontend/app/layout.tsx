@@ -7,6 +7,7 @@ import { Roboto, Poppins } from "next/font/google";
 import { Providers } from "@/components/providers/Providers";
 import { getSiteUrl } from "@/lib/site";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { SkipLink } from "@/components/seo/SkipLink";
 
 const bodyFont = Roboto({
   subsets: ["latin", "vietnamese"],
@@ -23,17 +24,17 @@ const headingFont = Poppins({
 });
 
 const siteUrl = new URL(getSiteUrl());
-const logoPath = "/nguoi-la-logo.svg";
+const logoPath = "/nguoi-la-logo.png";
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,
   applicationName: "Người Lạ",
   title: {
-    default: "Người Lạ - Kết nối và trò chuyện trực tuyến",
+    default: "Chat Người Lạ Online - Kết Nối Trò Chuyện An Toàn | Người Lạ",
     template: "%s | Người Lạ",
   },
   description:
-    "Người Lạ là nền tảng kết nối và trò chuyện trực tuyến số 1 dành cho người Việt — kết nối nhanh, hồ sơ rõ ràng, ghép đôi thông minh, riêng tư và an toàn. Hỗ trợ báo cáo nội dung không phù hợp, quản lý hồ sơ, gói VIP và trò chuyện ẩn danh. Miễn phí 100%, đăng nhập bằng Google.",
+    "Chat người lạ online miễn phí — kết nối nhanh, ghép đôi thông minh, trò chuyện ẩn danh an toàn. Đăng nhập bằng Google, bắt đầu chat ngay với hàng ngàn người Việt trên Người Lạ.",
   other: {
     "google-site-verification": "4fFkqdCP5Ywwwyo_b7LjG2bENj8DpmfU3u6-8ekbsw0",
     "fb:app_id": "nguoilaonline",
@@ -55,6 +56,37 @@ export const metadata: Metadata = {
     "tìm bạn trò chuyện",
     "chat ẩn danh",
     "kết nối người Việt",
+    "nhắn tin miễn phí",
+    "chat với người lạ",
+    "tán gẫu trực tuyến",
+    "kết bạn bốn phương",
+    "tìm bạn chat",
+    "trò chuyện tâm sự",
+    "chat random Việt Nam",
+    "làm quen online",
+    "kết nối cộng đồng",
+    "nhắn tin nhanh",
+    "chat nhóm trực tuyến",
+    "giao lưu bạn bè",
+    "tìm kiếm bạn bè",
+    "kết bạn tâm giao",
+    "trò chuyện mọi lúc mọi nơi",
+    "chat với người lạ online",
+    "trò chuyện cùng người lạ",
+    "kết bạn với người lạ",
+    "tìm người trò chuyện",
+    "chat random",
+    "tán gẫu với người lạ",
+    "làm quen với người lạ",
+    "kết nối ngẫu nhiên",
+    "chat riêng tư",
+    "trò chuyện ẩn danh",
+    "tìm bạn tâm sự",
+    "kết bạn nói chuyện",
+    "chat miễn phí Việt Nam",
+    "ứng dụng kết bạn",
+    "tinder Việt Nam",
+    "bumble Việt Nam",
   ],
   authors: [{ name: "Người Lạ" }],
   creator: "Người Lạ",
@@ -82,23 +114,23 @@ export const metadata: Metadata = {
     url: "/",
     images: [
       {
-        alt: "Người Lạ - Kết nối và trò chuyện trực tuyến",
+        alt: "Chat Người Lạ Online - Kết nối trò chuyện an toàn",
         url: "/opengraph-image",
         width: 1200,
         height: 630,
       },
     ],
     siteName: "Người Lạ",
-    title: "Người Lạ - Kết nối và trò chuyện trực tuyến",
+    title: "Chat Người Lạ Online - Kết Nối Trò Chuyện An Toàn | Người Lạ",
     description:
-      "Người Lạ là nền tảng trò chuyện trực tuyến thân thiện và an toàn dành cho người Việt. Kết nối nhanh, hồ sơ rõ ràng, ghép đôi thông minh, miễn phí 100%. Đăng nhập bằng Google, cập nhật hồ sơ, tìm người phù hợp và bắt đầu trò chuyện ngay.",
+      "Chat người lạ online miễn phí — kết nối nhanh, ghép đôi thông minh, trò chuyện ẩn danh an toàn. Đăng nhập bằng Google, bắt đầu chat ngay.",
   },
   twitter: {
     card: "summary_large_image",
     images: ["/opengraph-image"],
-    title: "Người Lạ - Kết nối và trò chuyện trực tuyến",
+    title: "Chat Người Lạ Online - Kết Nối Trò Chuyện An Toàn",
     description:
-      "Nền tảng trò chuyện trực tuyến cho người Việt — kết nối nhanh, hồ sơ rõ ràng, ghép đôi thông minh, riêng tư và an toàn. Đăng nhập bằng Google và bắt đầu ngay.",
+      "Chat người lạ online miễn phí — kết nối nhanh, riêng tư và an toàn. Đăng nhập bằng Google và bắt đầu chat ngay.",
   },
   robots: {
     index: true,
@@ -134,7 +166,7 @@ export default function RootLayout({
         "@id": `${siteUrl.origin}/#organization`,
         name: "Người Lạ",
         url: siteUrl.origin,
-        logo: `${siteUrl.origin}/nguoi-la-logo.svg`,
+        logo: `${siteUrl.origin}/nguoi-la-logo.png`,
         image: `${siteUrl.origin}/opengraph-image`,
         description:
           "Nền tảng kết nối và trò chuyện trực tuyến dành cho người Việt.",
@@ -151,9 +183,9 @@ export default function RootLayout({
         "@type": "WebSite",
         "@id": `${siteUrl.origin}/#website`,
         url: siteUrl.origin,
-        name: "Người Lạ",
+        name: "Người Lạ - Chat Người Lạ Online",
         description:
-          "Kết nối, trò chuyện và quản lý trải nghiệm trực tuyến trong không gian gọn gàng, riêng tư và an toàn.",
+          "Chat người lạ online miễn phí — kết nối nhanh, ghép đôi thông minh, trò chuyện ẩn danh an toàn.",
         publisher: { "@id": `${siteUrl.origin}/#organization` },
         inLanguage: "vi-VN",
         potentialAction: {
@@ -169,9 +201,9 @@ export default function RootLayout({
         "@type": "WebApplication",
         "@id": `${siteUrl.origin}/#webapp`,
         url: siteUrl.origin,
-        name: "Người Lạ",
+        name: "Người Lạ - Chat Người Lạ Online",
         description:
-          "Trò chuyện trực tuyến với người lạ một cách an toàn và riêng tư.",
+          "Chat người lạ online miễn phí — kết nối nhanh, ghép đôi thông minh, trò chuyện ẩn danh an toàn và riêng tư.",
         operatingSystem: "All",
         browserRequirements: "Requires JavaScript",
         applicationCategory: "SocialNetworking",
@@ -198,8 +230,13 @@ export default function RootLayout({
 
   return (
     <html lang="vi" className={`${bodyFont.variable} ${headingFont.variable}`}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      </head>
       <body style={{ margin: 0 }}>
         <JsonLd data={jsonLd} />
+        <SkipLink />
         <Providers>
           <Theme
             accentColor="violet"

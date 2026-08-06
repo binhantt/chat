@@ -20,6 +20,7 @@ const API_URL = "/api/v1/match";
 type MatchPeopleProps = {
   onCancel: () => void;
   onMatched: (conversationId: string, matchedUser: MatchedUser) => void;
+  autoStart?: boolean;
 };
 
 type MatchStatusResponse = {
@@ -33,7 +34,7 @@ type MatchStatusResponse = {
   status?: string;
 };
 
-export function MatchPeople({ onCancel, onMatched }: MatchPeopleProps) {
+export function MatchPeople({ onCancel, onMatched, autoStart }: MatchPeopleProps) {
   const status = useMatchUiStore((state) => state.status);
   const matchResult = useMatchUiStore((state) => state.matchResult);
   const resetMatch = useMatchUiStore((state) => state.resetMatch);
@@ -160,6 +161,17 @@ export function MatchPeople({ onCancel, onMatched }: MatchPeopleProps) {
       cancelled = true;
     };
   }, [completeMatch, setStatus, startPolling]);
+
+  // Auto-start search when autoStart is true (delay 5-10s to avoid spam)
+  useEffect(() => {
+    if (autoStart && status === "idle") {
+      const delay = 5000 + Math.random() * 5000; // 5-10s
+      const timer = setTimeout(() => {
+        void handleStart();
+      }, delay);
+      return () => clearTimeout(timer);
+    }
+  }, [autoStart, status]);
 
   useEffect(() => {
     if (status !== "matched" || !matchResult || matchResult.chatReady) {

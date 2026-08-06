@@ -1,4 +1,4 @@
-﻿import type { NextFunction, Request, Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
 
 const DEFAULT_ALLOWED_ORIGINS = [
   'http://localhost:3000',
@@ -18,6 +18,7 @@ const CSRF_EXEMPT_PATHS = [
   '/api/v1/auth/email-login',
   '/api/v1/auth/refresh',
   '/api/v1/manager/login',
+  '/api/v1/manager/ai/',
   '/api/v1/subscription/',
   '/api/v1/payment/',
   '/api/v1/ad/',
@@ -71,7 +72,6 @@ export function securityHeadersMiddleware(
     'Referrer-Policy',
     process.env.REFERRER_POLICY || 'no-referrer',
   );
-  response.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   response.setHeader(
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=()',

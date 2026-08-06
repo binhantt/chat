@@ -1,10 +1,10 @@
-# DOC 04 - Code, API va ghi chu sua file
+# DOC 04 - Code, API, and File Change Notes
 
-Cap nhat: 30/05/2026
+Updated: 30/05/2026
 
-Tai lieu nay tong hop nhanh cac file code quan trong, API dang dung va cach sua tiep.
+This document summarizes key code files, active APIs, and how to make further changes.
 
-## Lenh chay
+## Run Commands
 
 Frontend:
 
@@ -22,7 +22,7 @@ pnpm.cmd start:dev
 pnpm.cmd build
 ```
 
-## API user
+## User API
 
 Auth:
 
@@ -62,9 +62,9 @@ Reports:
 - `GET /api/v1/reports/reportable-users`
 - `GET /api/v1/reports/my-reports`
 
-## API manager
+## Manager API
 
-Manager API khong dung namespace `/admin`; dung `/manager`.
+Manager API does not use `/admin` namespace; uses `/manager`.
 
 Login:
 
@@ -100,20 +100,20 @@ System:
 
 - `GET /api/v1/manager/system/metrics`
 
-## Frontend route quan trong
+## Key Frontend Routes
 
-- `/login`: login user.
-- `/`: app user chinh.
-- `/admin/login`: login manager.
-- `/admin`: dashboard manager.
-- `/admin/users`: quan ly nguoi dung.
-- `/admin/chats`: quan ly hoi thoai.
-- `/admin/conduct`: quan ly ung xu.
-- `/admin/reports`: quan ly bao cao.
-- `/admin/vip`: quan ly goi VIP.
-- `/admin/settings`: cai dat manager.
+- `/login`: user login.
+- `/`: main user app.
+- `/admin/login`: manager login.
+- `/admin`: manager dashboard.
+- `/admin/users`: user management.
+- `/admin/chats`: conversation management.
+- `/admin/conduct`: conduct management.
+- `/admin/reports`: report management.
+- `/admin/vip`: VIP package management.
+- `/admin/settings`: manager settings.
 
-## File backend hay sua
+## Commonly Modified Backend Files
 
 Auth:
 
@@ -156,7 +156,7 @@ Conduct:
 - `backend/src/conduct/conduct.service.ts`
 - `backend/src/conduct/entities/conduct-rule.entity.ts`
 
-## File frontend hay sua
+## Commonly Modified Frontend Files
 
 Layout:
 
@@ -174,7 +174,7 @@ Auth:
 - `Frontend/features/athu/components/*`
 - `Frontend/features/athu/api/*`
 
-Admin layout:
+Admin Layout:
 
 - `Frontend/features/admin/components/AdminLayout.tsx`
 - `Frontend/features/admin/components/layout/AdminSidebar.tsx`
@@ -182,7 +182,7 @@ Admin layout:
 - `Frontend/features/admin/components/layout/AdminNavbar.tsx`
 - `Frontend/features/admin/components/layout/adminNavigation.tsx`
 
-Admin users:
+Admin Users:
 
 - `Frontend/features/admin/page/UsersPage.tsx`
 - `Frontend/features/admin/hooks/useAdminUsersPage.ts`
@@ -190,7 +190,7 @@ Admin users:
 - `Frontend/features/admin/components/users/*`
 - `Frontend/features/admin/styles/usersTheme.ts`
 
-Admin reports:
+Admin Reports:
 
 - `Frontend/features/admin/page/ReportsPage.tsx`
 - `Frontend/features/admin/hooks/useAdminReportsPage.ts`
@@ -198,20 +198,20 @@ Admin reports:
 - `Frontend/features/admin/components/reports/*`
 - `Frontend/features/admin/styles/reportsTheme.ts`
 
-Admin conduct:
+Admin Conduct:
 
 - `Frontend/features/admin/page/ConductPage.tsx`
 - `Frontend/features/admin/components/conduct/*`
 - `Frontend/features/admin/styles/conductTheme.ts`
 
-Admin dashboard:
+Admin Dashboard:
 
 - `Frontend/features/admin/page/DashboardPage.tsx`
 - `Frontend/features/admin/components/dashboard/*`
 - `Frontend/features/admin/hooks/useAdminServerMetrics.ts`
 - `Frontend/features/admin/store/useAdminServerMetricsStore.ts`
 
-Chat user:
+User Chat:
 
 - `Frontend/features/chat/page/ChatPage.tsx`
 - `Frontend/features/chat/hooks/useChatHome.ts`
@@ -232,11 +232,11 @@ VIP:
 - `Frontend/features/vip/store/*`
 - `Frontend/features/vip/utils/*`
 
-## Mau code nen theo
+## Code Patterns to Follow
 
-### Page component
+### Page Component
 
-Page chi nen rap component:
+Pages should only wrap components:
 
 ```tsx
 import { UsersClientView } from "@/features/admin/components/users";
@@ -246,7 +246,7 @@ export function UsersPage() {
 }
 ```
 
-### Hook xu ly logic
+### Hook for Logic
 
 ```tsx
 export function useAdminUsersPage() {
@@ -259,7 +259,7 @@ export function useAdminUsersPage() {
 }
 ```
 
-### Store Zustand
+### Zustand Store
 
 ```tsx
 import { create } from "zustand";
@@ -275,7 +275,7 @@ export const useStore = create<State>((set) => ({
 }));
 ```
 
-### Backend service list cursor
+### Backend Service List with Cursor
 
 ```ts
 const rows = await repository
@@ -289,7 +289,7 @@ const rows = await repository
   .getRawMany();
 ```
 
-### Backend batch query thay N+1
+### Backend Batch Query Instead of N+1
 
 ```ts
 const rows = await repository
@@ -298,16 +298,15 @@ const rows = await repository
   .getMany();
 ```
 
-## Ghi chu can nho
+## Notes to Remember
 
-- UI admin route van la `/admin`.
-- API manager dung `/api/v1/manager`, khong dung `/api/v1/admin`.
-- Khi token access loi/het han moi refresh.
-- Khi refresh token het han moi logout.
-- Khi user bi khoa, clear cookie va thoat ngay.
-- Dark mode phai anh huong ca user va admin.
-- Mobile admin dung bottom nav.
-- Sidebar admin khong prefetch trang de tranh goi API thua.
-- Khong luu user object lau dai trong localStorage neu khong can.
-- Neu commit/push, can xem `git status` truoc vi repo dang co nhieu thay doi.
-
+- Admin UI route is still `/admin`.
+- Manager API uses `/api/v1/manager`, not `/api/v1/admin`.
+- Only refresh when access token fails/expires.
+- Only logout when refresh token expires.
+- When user is locked, clear cookie and exit immediately.
+- Dark mode must affect both user and admin.
+- Mobile admin uses bottom nav.
+- Admin sidebar does not prefetch pages to avoid unnecessary API calls.
+- Don't store user object in localStorage long-term if not needed.
+- Before commit/push, check `git status` first as the repo has many changes.

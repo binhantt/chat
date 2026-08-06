@@ -1,0 +1,12 @@
+.avatar {
+  background: var(--primary);
+  color: #FFFFFF;
+}
+
+.userName {
+  color: var(--text-primary);
+}
+
+.userRole {
+  color: var(--text-secondary);
+}

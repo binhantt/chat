@@ -18,7 +18,7 @@ export function GoogleButtonSlot() {
           gap="2"
           style={{
             width: "100%",
-            minHeight: 50,
+            minHeight: 44,
             borderRadius: 8,
             border: "1px solid var(--auth-line)",
             background: "var(--auth-panel)",

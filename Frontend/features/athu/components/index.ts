@@ -1,5 +1,3 @@
-export { AuthBenefits } from "./AuthBenefits";
-export { AuthBrand } from "./AuthBrand";
 export { AuthCopy } from "./AuthCopy";
 export { AuthError } from "./AuthError";
 export { AuthPanel } from "./AuthPanel";

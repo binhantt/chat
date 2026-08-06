@@ -1,0 +1,57 @@
+.mobileNav {
+  background: var(--bg-sidebar);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  overflow-x: auto;
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .mobileNav {
+    display: none;
+  }
+}
+
+.navLink {
+  text-decoration: none;
+  flex: 0 0 76px;
+}
+
+.navLinkActive {
+  color: #ffffff;
+}
+
+.navLinkInactive {
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.navItem {
+  border-radius: 8px;
+  min-height: 54px;
+  padding: 6px 4px;
+}
+
+.navItemActive {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.navItemInactive {
+  background: transparent;
+}
+
+.iconBox {
+  height: 18px;
+  width: 18px;
+}
+
+.label {
+  line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

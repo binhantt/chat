@@ -13,7 +13,7 @@ export function AuthTerms() {
         paddingInline: 8,
       }}
     >
-      <InfoCircledIcon color="var(--auth-muted)" height={14} width={14} />
+      <InfoCircledIcon color="var(--auth-muted)" height={14} width={14} aria-hidden="true" />
       <Text
         as="p"
         size="1"

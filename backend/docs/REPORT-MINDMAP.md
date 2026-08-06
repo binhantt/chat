@@ -1,34 +1,34 @@
-#  Mind Map - He Thong Bao Cao (Report System)
+# Mind Map - Report System
 
-##  Tong Quan
+## Overview
 
 ```
 REPORT SYSTEM
 |--- Backend (NestJS + PostgreSQL)
-|   |--- Controller -> Xu ly HTTP Request
+|   |--- Controller -> Handle HTTP Request
 |   |--- Service -> Business Logic
-|   |--- Entity -> Cau truc Database
+|   |--- Entity -> Database Structure
 |   |--- DTO -> Data Transfer Object
 |   `--- Module -> Dependency Injection
 |--- Frontend (Next.js + Radix UI)
-|   |--- ReportForm -> Gui bao cao moi
-|   |--- ReportStats -> Thong ke
-|   |--- ReportHistory -> Lich su bao cao
-|   `--- AdminReportManagement -> Quan ly (Admin)
+|   |--- ReportForm -> Submit new report
+|   |--- ReportStats -> Statistics
+|   |--- ReportHistory -> Report history
+|   `--- AdminReportManagement -> Management (Admin)
 `--- API Routes (Next.js App Router)
-    |--- POST /api/reports -> Tao bao cao
-    |--- GET /api/reports -> Lay tat ca (Admin)
-    |--- GET /api/reports/:id -> Lay theo ID (Admin)
-    |--- PATCH /api/reports/:id/status -> Cap nhat trang thai
-    |--- GET /api/reports/stats -> Thong ke
-    `--- GET /api/reports/my-reports -> Bao cao cua toi
+    |--- POST /api/reports -> Create report
+    |--- GET /api/reports -> Get all (Admin)
+    |--- GET /api/reports/:id -> Get by ID (Admin)
+    |--- PATCH /api/reports/:id/status -> Update status
+    |--- GET /api/reports/stats -> Statistics
+    `--- GET /api/reports/my-reports -> My reports
 ```
 
 ---
 
-##  Kien Truc Backend
+## Backend Architecture
 
-###  Cau truc thu muc
+### Directory Structure
 
 ```
 backend/src/report/
@@ -40,27 +40,27 @@ backend/src/report/
 |--- dto/
 |   `--- create-report.dto.ts # Validation DTO
 `--- interfaces/
-    `--- (mo rong neu can)
+    `--- (extend if needed)
 ```
 
-###  Moi quan he Database
+### Database Relationships
 
 ```
 users ------< reports >-------- users
   |                              |
   | (reporter_id)                | (reported_user_id)
   |                              |
-  `---- Bao cao boi --------------+
-       Bi bao cao
+  `---- Reported by --------------+
+       Being reported
 
 reports ------< conversations >------ conversations
   |                                    |
   | (reported_user_id)                 |
   |                                    |
-  `---- Doi tac gan day cua nguoi bi bao cao
+  `---- Recent partners of the reported user
 ```
 
-###  Entity: Report
+### Entity: Report
 
 ```typescript
 @Entity('reports')
@@ -76,7 +76,7 @@ class Report {
 }
 ```
 
-###  DTO: CreateReportDto
+### DTO: CreateReportDto
 
 ```typescript
 class CreateReportDto {
@@ -91,7 +91,7 @@ class CreateReportDto {
 }
 ```
 
-###  Response: ReportWithContext
+### Response: ReportWithContext
 
 ```typescript
 interface ReportWithContext {
@@ -120,9 +120,9 @@ interface ReportWithContext {
 
 ---
 
-##  API Endpoints
+## API Endpoints
 
-### 1 POST /api/reports - Tao bao cao moi
+### 1 POST /api/reports - Create new report
 
 ```
  Request:
@@ -149,7 +149,7 @@ interface ReportWithContext {
 `--- 403 -> Forbidden
 ```
 
-### 2 GET /api/reports - Lay tat ca (Admin)
+### 2 GET /api/reports - Get all (Admin)
 
 ```
  Request:
@@ -164,7 +164,7 @@ interface ReportWithContext {
 `--- 403 -> Forbidden (non-admin)
 ```
 
-### 3 GET /api/reports/:id - Lay theo ID (Admin)
+### 3 GET /api/reports/:id - Get by ID (Admin)
 
 ```
  Request:
@@ -180,7 +180,7 @@ interface ReportWithContext {
 `--- 404 -> Report not found
 ```
 
-### 4 PATCH /api/reports/:id/status - Cap nhat trang thai
+### 4 PATCH /api/reports/:id/status - Update status
 
 ```
  Request:
@@ -199,7 +199,7 @@ interface ReportWithContext {
 `--- 404 -> Report not found
 ```
 
-### 5 GET /api/reports/stats - Thong ke
+### 5 GET /api/reports/stats - Statistics
 
 ```
  Request:
@@ -213,7 +213,7 @@ interface ReportWithContext {
 `--- rejectedReports: number
 ```
 
-### 6 GET /api/reports/my-reports - Bao cao cua toi
+### 6 GET /api/reports/my-reports - My reports
 
 ```
  Request:
@@ -225,30 +225,30 @@ interface ReportWithContext {
 
 ---
 
-##  Kien Truc Frontend
+## Frontend Architecture
 
-###  Cau truc thu muc
+### Directory Structure
 
 ```
 frontend/features/report/
 |--- page/
-|   `--- ReportPage.tsx           # Trang chinh voi Tabs
+|   `--- ReportPage.tsx           # Main page with Tabs
 |--- components/
-|   |--- ReportForm.tsx           # Form gui bao cao
-|   |--- ReportStats.tsx          # Thong ke
-|   |--- ReportHistory.tsx        # Lich su bao cao
-|   `--- AdminReportManagement.tsx # Quan ly admin
+|   |--- ReportForm.tsx           # Report submission form
+|   |--- ReportStats.tsx          # Statistics
+|   |--- ReportHistory.tsx        # Report history
+|   `--- AdminReportManagement.tsx # Admin management
 `--- index.ts                     # Barrel export
 ```
 
-###  ReportPage (Tabs Navigation)
+### ReportPage (Tabs Navigation)
 
 ```typescript
 <Tabs.Root defaultValue="user-reports">
   <Tabs.List>
-    <Tabs.Trigger value="user-reports">Bao cao cua toi</Tabs.Trigger>
-    <Tabs.Trigger value="admin-management">Quan ly bao cao</Tabs.Trigger>
-    <Tabs.Trigger value="statistics">Thong ke</Tabs.Trigger>
+    <Tabs.Trigger value="user-reports">My Reports</Tabs.Trigger>
+    <Tabs.Trigger value="admin-management">Report Management</Tabs.Trigger>
+    <Tabs.Trigger value="statistics">Statistics</Tabs.Trigger>
   </Tabs.List>
 
   <Tabs.Content value="user-reports">
@@ -267,7 +267,7 @@ frontend/features/report/
 </Tabs.Root>
 ```
 
-###  ReportForm Component
+### ReportForm Component
 
 ```typescript
 interface ReportFormProps {
@@ -292,7 +292,7 @@ interface ReportFormProps {
 }
 ```
 
-###  ReportStats Component
+### ReportStats Component
 
 ```typescript
 interface ReportStatsProps {
@@ -300,19 +300,19 @@ interface ReportStatsProps {
 }
 
 // Displays:
-// - Tong bao cao ()
-// - Cho xu ly ()
-// - Da xem xet ()
-// - Da giai quyet ()
+// - Total reports ()
+// - Pending ()
+// - Reviewed ()
+// - Resolved ()
 
 // When detailed=true, shows:
-// - Thong ke chi tiet card
+// - Detailed statistics card
 // - Badge breakdowns
 // - Reports by category
 // - Reports by user (top 5)
 ```
 
-###  ReportHistory Component
+### ReportHistory Component
 
 ```typescript
 interface Report {
@@ -332,19 +332,19 @@ interface Report {
 // - rejected -> red
 
 // Date formatting:
-// - 1 day -> "Hom qua"
-// - <7 days -> "X ngay truoc"
-// - <30 days -> "X tuan truoc"
-// - >30 days -> "X thang truoc"
+// - 1 day -> "Yesterday"
+// - <7 days -> "X days ago"
+// - <30 days -> "X weeks ago"
+// - >30 days -> "X months ago"
 ```
 
-###  AdminReportManagement Component
+### AdminReportManagement Component
 
 ```typescript
 // Features:
 // - Summary stats badges
 // - Full reports table with columns:
-//   | ID | Ly do | Nguoi bao cao | Nguoi bi bao cao | Trang thai | Ngay tao | Thao tac |
+//   | ID | Reason | Reporter | Reported User | Status | Created Date | Actions |
 // - Detail modal with:
 //   - Report details
 //   - Status update dropdown
@@ -354,13 +354,13 @@ interface Report {
 
 ---
 
-##  Data Flow
+## Data Flow
 
 ```
 +-------------------------------------------------------------------+
 |                        DATA FLOW                                |
 |                                                                 |
-|  [User Clicks "Bao cao"]                                        |
+|  [User Clicks "Report"]                                         |
 |         |                                                       |
 |         v                                                       |
 |  [ReportForm.tsx]                                               |
@@ -410,7 +410,7 @@ interface Report {
 
 ---
 
-##  Security & Authorization
+## Security & Authorization
 
 ```
 +-----------------------------------------------------------+
@@ -457,7 +457,7 @@ interface Report {
 
 ---
 
-##  Enum Values
+## Enum Values
 
 ### ReportReason
 
@@ -465,12 +465,12 @@ interface Report {
 +--------------------------------------------------------------+
 |     Enum Value          |         Description              |
 |--------------------------+----------------------------------
-| spam                    | Noi dung spam                    |
-| harassment              | Quay roi, bat nat               |
-| inappropriate_content   | Noi dung khong phu hop          |
-| fake_profile            | Tai khoan gia mao               |
-| underage                | Nguoi dung chua du tuoi         |
-| other                   | Ly do khac                      |
+| spam                    | Spam content                     |
+| harassment              | Harassment, bullying             |
+| inappropriate_content   | Inappropriate content            |
+| fake_profile            | Fake account                     |
+| underage                | Underage user                    |
+| other                   | Other reason                     |
 `--------------------------------------------------------------+
 ```
 
@@ -480,16 +480,16 @@ interface Report {
 +--------------------------------------------------------------+
 |     Enum Value          |         Description              |
 |--------------------------+----------------------------------
-| pending                 |  Cho xu ly                    |
-| reviewed                |  Da xem xet                   |
-| resolved                |  Da giai quyet                |
-| rejected                |  Tu choi                       |
+| pending                 | Pending                          |
+| reviewed                | Reviewed                         |
+| resolved                | Resolved                         |
+| rejected                | Rejected                         |
 `--------------------------------------------------------------+
 ```
 
 ---
 
-##  Dependencies
+## Dependencies
 
 ```
 Backend:
@@ -509,7 +509,7 @@ Frontend:
 
 ---
 
-##  Testing Strategy
+## Testing Strategy
 
 ```
 +-----------------------------------------------------------+
@@ -543,7 +543,7 @@ Frontend:
 
 ---
 
-##  Future Improvements
+## Future Improvements
 
 ```
 +-----------------------------------------------------------+
@@ -581,7 +581,7 @@ Frontend:
 
 ---
 
-##  Quick Reference
+## Quick Reference
 
 ### Environment Variables
 
@@ -626,4 +626,4 @@ git push origin feature/report-system
 
 ---
 
-*Tai lieu duoc tao ngay 10/05/2026*
+*Document created on 10/05/2026*

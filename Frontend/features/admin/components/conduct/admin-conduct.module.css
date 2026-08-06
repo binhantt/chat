@@ -1,0 +1,179 @@
+/* ===== ConductHeader ===== */
+.header {
+  background: linear-gradient(90deg, rgba(75, 46, 131, 0.12), rgba(255, 255, 255, 0.92));
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.headerIcon {
+  background: var(--primary);
+  border-radius: 8px;
+  color: #ffffff;
+  height: 48px;
+  width: 48px;
+}
+
+.headerTitle {
+  color: var(--text-primary);
+  letter-spacing: 0;
+}
+
+.headerDesc {
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 4px 0 0;
+  max-width: 720px;
+}
+
+.headerBtn {
+  border-radius: 8px;
+}
+
+/* ===== ConductToolbar ===== */
+.toolbar {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.toolbarSearch {
+  border-radius: 8px;
+  flex: 1 1 320px;
+  max-width: 520px;
+}
+
+.toolbarFilterBtn {
+  border-radius: 8px;
+}
+
+.toolbarCount {
+  color: var(--text-secondary);
+  min-width: 110px;
+  text-align: right;
+}
+
+/* ===== ConductStatGrid ===== */
+.statCard {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  padding: 14px;
+}
+
+.statLabel {
+  color: var(--text-secondary);
+}
+
+.statValue {
+  color: var(--text-primary);
+  line-height: 1.15;
+}
+
+.statIcon {
+  border-radius: 8px;
+  height: 42px;
+  width: 42px;
+}
+
+/* ===== ConductRulesPanel ===== */
+.panel {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  box-shadow: var(--chat-shadow);
+  padding: 16px;
+}
+
+.panelTitle {
+  color: var(--text-primary);
+}
+
+.panelCount {
+  color: var(--text-secondary);
+}
+
+.panelLoader {
+  min-height: 240px;
+}
+
+.panelLoaderText {
+  color: var(--text-secondary);
+}
+
+.panelEmpty {
+  min-height: 240px;
+}
+
+.panelEmptyTitle {
+  color: var(--text-primary);
+}
+
+.panelEmptyDesc {
+  color: var(--text-secondary);
+}
+
+.panelLoadMoreBtn {
+  border-radius: 8px;
+}
+
+/* ===== ConductRuleRow ===== */
+.ruleRow {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.ruleInfoBlock {
+  min-width: 0;
+}
+
+.ruleInfoLabel {
+  color: var(--text-secondary);
+  margin-bottom: 5px;
+}
+
+.ruleInfoValue {
+  color: var(--text-primary);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.rulePhrase {
+  color: var(--text-primary);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.rulePhraseWrapper {
+  min-width: 0;
+}
+
+.ruleIdText {
+  color: var(--text-secondary);
+}
+
+/* ===== ConductCreateForm ===== */
+.dialogContent {
+  background: var(--chat-surface);
+  border: 1px solid var(--chat-border);
+  border-radius: 8px;
+  max-width: 560px;
+}
+
+.dialogDesc {
+  color: var(--text-secondary);
+}
+
+.formLabel {
+  color: var(--text-primary);
+}
+
+.formInput {
+  border-radius: 8px;
+}
+
+.formSubmitBtn {
+  border-radius: 8px;
+}

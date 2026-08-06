@@ -1,4 +1,4 @@
-﻿import {
+import {
   Controller,
   Get,
   Post,
@@ -9,8 +9,10 @@
   Req,
   Res,
   UseGuards,
+  SetMetadata,
   ForbiddenException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { ChatService } from './chat.service';
 import { ChatRealtimeService } from './chat-realtime.service';
@@ -29,11 +31,13 @@ export class ChatController {
   ) {}
 
   @Get('stream')
+  @SetMetadata('skipThrottle', true)
   stream(@Req() request: AuthenticatedRequest, @Res() response: Response) {
     return this.chatRealtimeService.subscribe(request.user!.id, response);
   }
 
   @Get('conversations')
+  @SetMetadata('skipThrottle', true)
   async getConversations(
     @Req() request: AuthenticatedRequest,
     @Query('limit') limit?: string,
@@ -61,6 +65,7 @@ export class ChatController {
   }
 
   @Post('conversations/:id/messages')
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   async sendMessage(
     @Param('id') id: string,
     @Body() body: SendMessageDto,
@@ -70,6 +75,7 @@ export class ChatController {
   }
 
   @Get('conversations/:id/messages')
+  @SetMetadata('skipThrottle', true)
   async getMessages(
     @Param('id') id: string,
     @Req() request: AuthenticatedRequest,
@@ -131,6 +137,11 @@ export class ChatController {
     @Param('id') id: string,
     @Req() request: AuthenticatedRequest,
   ) {
+    if (request.user?.isGuest) {
+      throw new ForbiddenException(
+        'Vui long dang nhap bang Google de thich nguoi nay',
+      );
+    }
     return this.chatService.acceptConversation(id, request.user!.id);
   }
 }

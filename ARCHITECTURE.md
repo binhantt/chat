@@ -1,30 +1,30 @@
-# Cau truc du an Chat
+# Chat Project Structure
 
-Tai lieu nay mo ta nhanh cau truc backend va giao dien hien tai de tiep tuc code khong bi lon xon.
+This document quickly describes the current backend and frontend structure to continue development without confusion.
 
-## Tong quan
+## Overview
 
 - `backend`: NestJS API, TypeORM, PostgreSQL, cookie auth.
 - `Frontend`: Next.js App Router, React, Radix UI, Zustand.
-- Public user API dung `/api/v1/...`.
-- Khu quan ly khong public chu `admin` trong API nua, dung namespace `/api/v1/manager/...`.
-- Frontend route quan ly van la `/admin/...` de nguoi dung de truy cap giao dien.
-- Kien truc **CQRS + Event-Driven** duoc ap dung cho module `conduct` (xem [DOC_08_EVENT_DRIVEN.md](DOC_08_EVENT_DRIVEN.md)).
+- Public user API uses `/api/v1/...`.
+- Management area no longer exposes `admin` in API; uses namespace `/api/v1/manager/...`.
+- Frontend management route is still `/admin/...` for easy user access.
+- **CQRS + Event-Driven** architecture is applied for the `conduct` module (see [DOC_08_EVENT_DRIVEN.md](DOC_08_EVENT_DRIVEN.md)).
 
-## Kien truc Event-Driven
+## Event-Driven Architecture
 
-Du an ap dung Event-Driven Architecture ket hop CQRS. Cac command (Create, Update, Delete) duoc xu ly boi handler rieng, sau khi hoan tat thi **emit event** qua `EventBusService` (dung RxJS Subject). Cac listener co the lang nghe va phan ung.
+The project applies Event-Driven Architecture combined with CQRS. Commands (Create, Update, Delete) are handled by separate handlers, and after completion **emit events** via `EventBusService` (using RxJS Subject). Listeners can listen and react.
 
 ```text
 Command Handler -> DB + Cache -> EventBus.emit() -> Listeners
 Query Handler  -> DB Read       -> Response
 ```
 
-Hien tai Event-Driven duoc ap dung o module `conduct`. Xem [DOC_08_EVENT_DRIVEN.md](DOC_08_EVENT_DRIVEN.md) de biet chi tiet va huong dan mo rong.
+Currently Event-Driven is applied in the `conduct` module. See [DOC_08_EVENT_DRIVEN.md](DOC_08_EVENT_DRIVEN.md) for details and expansion guide.
 
 ## Backend
 
-Thu muc chinh: `backend/src`.
+Main directory: `backend/src`.
 
 ```text
 backend/src
@@ -44,7 +44,7 @@ backend/src
 
 ### `auth`
 
-Xu ly dang nhap, refresh token, logout, cookie va Google auth.
+Handles login, refresh token, logout, cookie, and Google auth.
 
 - `auth.controller.ts`
   - `POST /api/v1/auth/google-login`
@@ -52,14 +52,14 @@ Xu ly dang nhap, refresh token, logout, cookie va Google auth.
   - `POST /api/v1/auth/refresh`
   - `POST /api/v1/auth/logout`
   - `POST /api/v1/manager/login`
-- `auth.service.ts`: nghiep vu dang nhap.
+- `auth.service.ts`: login business logic.
 - `services/auth-cookie.service.ts`: set, clear, refresh cookie.
-- `services/auth-token.service.ts`: tao va verify access/refresh token.
-- `services/google-auth.service.ts`: xac thuc Google.
+- `services/auth-token.service.ts`: create and verify access/refresh token.
+- `services/google-auth.service.ts`: Google authentication.
 
 ### `users`
 
-Xu ly ho so nguoi dung, quan ly nguoi dung va tai nguyen he thong.
+Handles user profiles, user management, and system resources.
 
 - `user.controller.ts`
   - User:
@@ -76,13 +76,13 @@ Xu ly ho so nguoi dung, quan ly nguoi dung va tai nguyen he thong.
     - `PATCH /api/v1/manager/users/:id/access`
 - `admin-system.controller.ts`
   - `GET /api/v1/manager/system/metrics`
-- `users.service.ts`: query user, lock/unlock, update ho so.
-- `services/user-factory.service.ts`: tao user.
+- `users.service.ts`: query user, lock/unlock, update profile.
+- `services/user-factory.service.ts`: create user.
 - `services/password.service.ts`: hash/compare password.
 
 ### `chat`
 
-Xu ly phong chat, tin nhan, SSE/realtime va trang quan ly tin nhan.
+Handles chat rooms, messages, SSE/realtime, and message management pages.
 
 - `chat.controller.ts`
   - User:
@@ -99,22 +99,22 @@ Xu ly phong chat, tin nhan, SSE/realtime va trang quan ly tin nhan.
   - Manager:
     - `GET /api/v1/manager/chats`
     - `GET /api/v1/manager/chats/:id/messages`
-- `chat.service.ts`: query, tao tin nhan, trang thai phong.
+- `chat.service.ts`: query, create message, room status.
 - `chat-realtime.service.ts`: realtime/SSE.
 
 ### `match`
 
-Xu ly ghep doi nguoi dung.
+Handles user matching.
 
 - `match.controller.ts`
   - `POST /api/v1/match/join`
   - `DELETE /api/v1/match/leave`
   - `GET /api/v1/match/status`
-- `match.service.ts`: hang doi va logic ghep doi.
+- `match.service.ts`: queue and matching logic.
 
 ### `report`
 
-Xu ly bao cao nguoi dung va quan ly bao cao.
+Handles user reports and report management.
 
 - `report.controller.ts`
   - User:
@@ -126,11 +126,11 @@ Xu ly bao cao nguoi dung va quan ly bao cao.
     - `GET /api/v1/manager/reports`
     - `GET /api/v1/manager/reports/:id`
     - `PATCH /api/v1/manager/reports/:id/status`
-- `report.service.ts`: tao bao cao, doi trang thai, khoa/mo khoa lien quan bao cao.
+- `report.service.ts`: create report, change status, lock/unlock related to reports.
 
 ### `conduct`
 
-Xu ly luat ung xu va tu khoa can chan. Ap dung kien truc **CQRS + Event-Driven**. Cac command va query duoc tach rieng, moi handler mot nhiem vu.
+Handles conduct rules and blocked keywords. Uses **CQRS + Event-Driven** architecture. Commands and queries are separated, each handler has a single responsibility.
 
 **API:**
 - `GET /api/v1/manager/conduct-rules`
@@ -138,12 +138,12 @@ Xu ly luat ung xu va tu khoa can chan. Ap dung kien truc **CQRS + Event-Driven**
 - `PATCH /api/v1/manager/conduct-rules/:id`
 - `DELETE /api/v1/manager/conduct-rules/:id`
 
-**Cau truc thu muc:**
+**Directory structure:**
 
 ```text
 src/conduct/
 ├── commands/
-│   ├── create-conduct-rule.command.ts      # Dinh nghia command
+│   ├── create-conduct-rule.command.ts      # Command definition
 │   ├── update-conduct-rule.command.ts
 │   ├── delete-conduct-rule.command.ts
 │   └── handlers/
@@ -151,10 +151,10 @@ src/conduct/
 │       ├── update-conduct-rule.handler.ts
 │       └── delete-conduct-rule.handler.ts
 ├── queries/
-│   ├── get-conduct-rules.query.ts          # Dinh nghia query
+│   ├── get-conduct-rules.query.ts          # Query definition
 │   ├── check-message.query.ts
 │   └── handlers/
-│       ├── get-conduct-rules.handler.ts    # Handler doc du lieu
+│       ├── get-conduct-rules.handler.ts    # Handler reads data
 │       └── check-message.handler.ts
 ├── events/
 │   ├── event-bus.service.ts               # EventBus (RxJS Subject)
@@ -171,33 +171,33 @@ src/conduct/
     └── conduct-rule-seeder.service.ts
 ```
 
-**Luong xu ly:**
+**Processing flow:**
 - Command (POST/PATCH/DELETE) -> Handler -> DB + Cache -> `EventBus.emit()` -> Response
 - Query (GET) -> Handler -> DB Read -> Response
-- Controller inject handlers truc tiep, khong qua service layer
+- Controller injects handlers directly, no service layer in between
 
 ### `common`, `security`, `database`
 
 - `common/interceptors`: logger, mask role, response helper.
-- `security`: cau hinh bao ve request.
-- `database/performance-index.service.ts`: dam bao index DB khi startup.
+- `security`: request protection config.
+- `database/performance-index.service.ts`: ensures DB indexes at startup.
 
-## Quy tac backend
+## Backend Rules
 
-- Khong dung `SELECT *` neu endpoint chi can vai field.
-- Endpoint danh sach dung pagination/cursor, khong dung offset lon.
-- Index nen uu tien composite index theo query thuc te:
+- Don't use `SELECT *` if endpoint only needs a few fields.
+- List endpoints use pagination/cursor, not large offsets.
+- Indexes should prioritize composite indexes based on actual queries:
   - `room_id, created_at DESC`
   - `user_id, created_at DESC`
   - `created_at, id`
-- Middleware auth chi match route can bao ve.
-- Logout chi clear cookie/token, khong query DB neu khong can.
-- Refresh access token chi khi access token loi/het han.
-- Response API khong tra `role` ra client.
+- Auth middleware only matches routes that need protection.
+- Logout only clears cookie/token, avoid DB query if not needed.
+- Only refresh access token when it fails/expires.
+- API response does not return `role` to client.
 
 ## Frontend
 
-Thu muc chinh: `Frontend`.
+Main directory: `Frontend`.
 
 ```text
 Frontend
@@ -213,11 +213,11 @@ Frontend
 ### App Router
 
 - `app/layout.tsx`: metadata, title, favicon logo, Radix `Theme`, providers.
-- `app/page.tsx`: layout user chinh va tab: chat, website, ca nhan, vip, settings, report.
-- `app/admin/(dashboard)`: cac trang quan ly.
-- `app/api/v1/...`: Next route handler proxy toi backend.
+- `app/page.tsx`: main user layout and tabs: chat, website, personal, vip, settings, report.
+- `app/admin/(dashboard)`: management pages.
+- `app/api/v1/...`: Next route handler proxy to backend.
 
-### API proxy frontend
+### Frontend API Proxy
 
 - User proxy:
   - `app/api/v1/auth/*`
@@ -234,21 +234,21 @@ Frontend
 
 ### `features/athu`
 
-Login user va API dung chung.
+User login and shared API.
 
-- `page/LoginPage.tsx`: trang dang nhap Google.
+- `page/LoginPage.tsx`: Google login page.
 - `components`: auth shell, panel, button, error, copy.
-- `api/adminApi.ts`: API manager client, co cache/dedupe GET ngan han.
-- `api/chatApi.ts`, `api/reportApi.ts`: API user.
+- `api/adminApi.ts`: manager API client with GET cache/dedupe.
+- `api/chatApi.ts`, `api/reportApi.ts`: user APIs.
 - `hooks`: Google login/identity.
-- `store`: UI state cho auth.
+- `store`: auth UI state.
 
 ### `features/chat`
 
-Trang chat nguoi dung.
+User chat page.
 
-- `page/ChatPage.tsx`: page chinh.
-- `components`: moi component mot nhiem vu rieng:
+- `page/ChatPage.tsx`: main page.
+- `components`: each component has a single responsibility:
   - `ChatArea`
   - `ChatHomeSidebar`
   - `ChatHomeMainPanel`
@@ -256,12 +256,12 @@ Trang chat nguoi dung.
   - `SearchPeople`
   - `MatchPeople`
   - `match/*`
-- `hooks/useChatHome.ts`: xu ly load conversation, match, chat.
-- `store`: Zustand state rieng cho chat home va match UI.
+- `hooks/useChatHome.ts`: handles loading conversations, match, chat.
+- `store`: Zustand state for chat home and match UI.
 
 ### `features/admin`
 
-Giao dien quan ly.
+Admin management interface.
 
 ```text
 features/admin
@@ -281,7 +281,7 @@ features/admin
 +-- styles
 ```
 
-- `page`: moi route co mot page component rieng:
+- `page`: each route has its own page component:
   - `DashboardPage`
   - `UsersPage`
   - `ChatsPage`
@@ -290,16 +290,16 @@ features/admin
   - `VipPackagesPage`
   - `SettingsPage`
 - `components/layout`:
-  - `AdminSidebar`: Server Component, active menu theo `x-current-path`, `prefetch={false}` de khong goi API thua.
+  - `AdminSidebar`: Server Component, active menu from `x-current-path`, `prefetch={false}` to avoid unnecessary API calls.
   - `AdminNavbar`
   - `AdminCurrentUser`
   - `AdminLogoutButton`
-- `hooks`: xu ly logic trang.
-- `store`: Zustand cho users, reports, server metrics.
+- `hooks`: page logic.
+- `store`: Zustand for users, reports, server metrics.
 
 ### `features/vip`
 
-Trang VIP da chia lai theo cau truc nho.
+VIP page restructured into small components.
 
 ```text
 features/vip
@@ -311,15 +311,15 @@ features/vip
 +-- utils
 ```
 
-- `page/VipPage.tsx`: chi rap layout.
+- `page/VipPage.tsx`: only wraps layout.
 - `components`: hero, status, card, price, feature item, button.
 - `hooks`: `useVipBenefits`, `useVipPackages`.
-- `store/vipStore.ts`: data goi VIP va quyen loi.
-- `utils/sortVipPackages.ts`: sort rieng.
+- `store/vipStore.ts`: VIP package data and benefits.
+- `utils/sortVipPackages.ts`: custom sort.
 
 ### `features/user-layout`
 
-Component layout chung cho cac trang user.
+Shared layout component for user pages.
 
 - `UserPageShell`
 - `UserHero`
@@ -328,21 +328,21 @@ Component layout chung cho cac trang user.
 - `hooks/useUserTabs`
 - `store/useUserLayoutStore`
 
-## Quy tac giao dien
+## Frontend Rules
 
-- Dung Radix UI Themes va Radix Icons.
-- Component chi nen lam mot nhiem vu.
-- Page chi rap layout, khong nhot logic phuc tap.
-- Hook xu ly thao tac/fetch/state logic.
-- Store giu state chia se bang Zustand.
-- Data tinh co the de trong `store` hoac file data rieng.
-- Sort/filter nen tach vao `utils` neu dung lai hoac lam code dai.
-- Tranh long card trong card.
-- Sidebar/menu dung `prefetch={false}` voi cac trang co server fetch de tranh goi API khi chua click.
-- Neu component can `useState`, `useEffect`, zustand hook, event handler thi moi dung `"use client"`.
-- Neu chi render UI, doc cookie/header, fetch server thi uu tien RSC.
+- Use Radix UI Themes and Radix Icons.
+- Components should have a single responsibility.
+- Pages only wrap layout, don't cram complex logic.
+- Hooks handle operations/fetch/state logic.
+- Stores hold shared state via Zustand.
+- Static data can be in `store` or separate data files.
+- Sort/filter should be in `utils` if reused or makes code long.
+- Avoid card-in-card nesting.
+- Sidebar/menu uses `prefetch={false}` for pages with server fetch to avoid API calls before click.
+- Only use `"use client"` when component needs `useState`, `useEffect`, zustand hook, event handler.
+- Prefer RSC for static UI rendering, cookie/header reading, server fetching.
 
-## Kiem tra truoc khi ket thuc
+## Pre-Completion Checks
 
 Frontend:
 
@@ -358,8 +358,8 @@ cd backend
 pnpm build
 ```
 
-Neu VS Code bao loi cu nhung build pass:
+If VS Code shows old errors but build passes:
 
 - Restart TypeScript server.
 - Reload window.
-- Kiem tra file dang mo co phai ban cu/cache khong.
+- Check if the open file is a stale/cached version.

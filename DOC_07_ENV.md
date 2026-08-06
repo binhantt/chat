@@ -1,39 +1,39 @@
-# Tai lieu bien moi truong
+# Environment Variables Documentation
 
-Tai lieu nay gom cac bien `.env` dang duoc frontend va backend su dung. Khong commit file `.env` that neu co secret san pham; chi commit `.env.example`.
+This document contains the `.env` variables currently used by frontend and backend. Do not commit actual `.env` files if they contain production secrets; only commit `.env.example`.
 
-## Muc luc
+## Table of Contents
 
-- [File lien quan](#file-lien-quan)
-- [Bien dung chung](#bien-dung-chung)
+- [Related Files](#related-files)
+- [Shared Variables](#shared-variables)
 - [Backend `.env`](#backend-env)
 - [Frontend `.env`](#frontend-env)
-- [Luu y bao mat](#luu-y-bao-mat)
+- [Security Notes](#security-notes)
 
-## File lien quan
+## Related Files
 
-- `backend/.env`: cau hinh chay backend tren may local.
-- `backend/.env.example`: mau bien moi truong backend.
-- `Frontend/.env`: cau hinh chay frontend tren may local.
-- `Frontend/.env.example`: mau bien moi truong frontend.
-- `Frontend/lib/env.ts`: noi gom bien dung chung o frontend, vi du `BACKEND_URL` va `APP_URL`.
-- `backend/src/database/postgres.config.ts`: doc bien ket noi PostgreSQL.
-- `backend/src/security/security.config.ts`: doc bien CORS va frontend URL.
-- `backend/src/auth/services/auth-token.service.ts`: doc secret ky access/refresh token.
-- `backend/src/auth/services/google-auth.service.ts`: doc Google client id.
-- `backend/src/analytics/analytics.service.ts`: doc `ANALYTICS_SALT`.
+- `backend/.env`: backend local run config.
+- `backend/.env.example`: backend environment variable template.
+- `Frontend/.env`: frontend local run config.
+- `Frontend/.env.example`: frontend environment variable template.
+- `Frontend/lib/env.ts`: contains shared frontend variables, e.g. `BACKEND_URL` and `APP_URL`.
+- `backend/src/database/postgres.config.ts`: reads PostgreSQL connection variables.
+- `backend/src/security/security.config.ts`: reads CORS and frontend URL variables.
+- `backend/src/auth/services/auth-token.service.ts`: reads access/refresh token signing secrets.
+- `backend/src/auth/services/google-auth.service.ts`: reads Google client ID.
+- `backend/src/analytics/analytics.service.ts`: reads `ANALYTICS_SALT`.
 
-## Bien dung chung
+## Shared Variables
 
-| Bien | Noi dung | Vi du local |
+| Variable | Description | Local Example |
 | --- | --- | --- |
-| `NEXT_PUBLIC_APP_URL` | URL frontend public | `http://localhost:3000` |
-| `NEXT_PUBLIC_SITE_URL` | URL site dung cho sitemap/metadata | `http://localhost:3000` |
-| `NEXT_PUBLIC_API_URL` | URL backend NestJS | `http://localhost:3001` |
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth Web Client ID cho frontend | `xxx.apps.googleusercontent.com` |
-| `GOOGLE_CLIENT_ID` | Google OAuth Web Client ID cho backend verify token | `xxx.apps.googleusercontent.com` |
+| `NEXT_PUBLIC_APP_URL` | Public frontend URL | `http://localhost:3000` |
+| `NEXT_PUBLIC_SITE_URL` | Site URL for sitemap/metadata | `http://localhost:3000` |
+| `NEXT_PUBLIC_API_URL` | NestJS backend URL | `http://localhost:3001` |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Google OAuth Web Client ID for frontend | `xxx.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_ID` | Google OAuth Web Client ID for backend token verification | `xxx.apps.googleusercontent.com` |
 
-`NEXT_PUBLIC_API_URL` phai khop voi backend `PORT`. Mac dinh backend chay `3001`, frontend chay `3000`.
+`NEXT_PUBLIC_API_URL` must match the backend `PORT`. Default backend runs on `3001`, frontend on `3000`.
 
 ## Backend `.env`
 
@@ -64,7 +64,7 @@ ADMIN_EMAIL=admin@example.com
 ADMIN_PASSWORD=Admin@123456
 ```
 
-Neu dung connection string PostgreSQL, co the thay nhom `DB_*` bang:
+If using a PostgreSQL connection string, the `DB_*` group can be replaced with:
 
 ```env
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/chat
@@ -80,9 +80,9 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.
 NEXT_DIST_DIR=.next
 ```
 
-## Luu y bao mat
+## Security Notes
 
-- Production phai doi tat ca secret: `AUTH_TOKEN_SECRET`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `ANALYTICS_SALT`.
-- `ADMIN_PASSWORD` khong dung mat khau mac dinh khi deploy.
-- `CORS_ORIGINS` chi khai bao domain frontend that, khong dung `*`.
-- Cac bien bat dau bang `NEXT_PUBLIC_` se duoc expose ra browser, khong dat secret vao nhom nay.
+- Production must change all secrets: `AUTH_TOKEN_SECRET`, `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET`, `ANALYTICS_SALT`.
+- `ADMIN_PASSWORD` must not use the default password when deploying.
+- `CORS_ORIGINS` should only declare actual frontend domains, not `*`.
+- Variables starting with `NEXT_PUBLIC_` are exposed to the browser; do not put secrets in this group.

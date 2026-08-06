@@ -21,7 +21,7 @@ type ChatHomeState = {
 export const useChatHomeStore = create<ChatHomeState>((set) => ({
   conversationId: null,
   matchedUser: null,
-  mode: "match",
+  mode: "search",
   selectedUser: null,
   resetChatSession: () =>
     set({
